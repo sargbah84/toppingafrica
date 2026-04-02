@@ -1,0 +1,26 @@
+# Robots.txt for Topping Africa
+# https://toppingafrica.com
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://toppingafrica.com/sitemap.xml
+
+# Disallow admin and authenticated areas
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /livewire/*
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /storage/
+Disallow: /vendor/
+
+# Allow important assets
+Allow: /build/
+Allow: /images/
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1

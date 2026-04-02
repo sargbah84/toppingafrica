@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* TipTap Editor Styles */
+.tiptap-toolbar {
+    @apply flex flex-wrap items-center gap-0.5 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-t-lg;
+}
+
+.tiptap-toolbar button {
+    @apply p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors;
+}
+
+.tiptap-toolbar button.is-active {
+    @apply bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white;
+}
+
+.tiptap-toolbar .separator {
+    @apply w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1;
+}
+
+.ProseMirror {
+    @apply outline-none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    @apply text-gray-400 dark:text-gray-500;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.ProseMirror img {
+    @apply max-w-full h-auto rounded;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+    @apply ring-2 ring-indigo-500;
+}
