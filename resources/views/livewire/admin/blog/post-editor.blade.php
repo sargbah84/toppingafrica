@@ -96,88 +96,9 @@
                 </div>
             </div>
 
-            {{-- Content (TipTap WYSIWYG) --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden"
-                 x-data="tiptapEditor($wire.entangle('content'), 'content')"
-                 wire:ignore>
-                {{-- Toolbar --}}
-                <div class="tiptap-toolbar">
-                    <button type="button" @click="toggleBold()" :class="{ 'is-active': isActive('bold') }" title="Bold">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6zM6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
-                    </button>
-                    <button type="button" @click="toggleItalic()" :class="{ 'is-active': isActive('italic') }" title="Italic">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 4h4m-2 0l-4 16m0 0h4m2-16l-4 16"/></svg>
-                    </button>
-                    <button type="button" @click="toggleUnderline()" :class="{ 'is-active': isActive('underline') }" title="Underline">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4v7a5 5 0 0 0 10 0V4M5 21h14"/></svg>
-                    </button>
-                    <button type="button" @click="toggleStrike()" :class="{ 'is-active': isActive('strike') }" title="Strikethrough">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 4H9a3 3 0 0 0 0 6h2m4 0H9a3 3 0 0 0 0 6h7M4 12h16"/></svg>
-                    </button>
-
-                    <div class="separator"></div>
-
-                    <button type="button" @click="toggleHeading(2)" :class="{ 'is-active': isActive('heading', { level: 2 }) }" title="Heading 2">
-                        <span class="text-xs font-bold">H2</span>
-                    </button>
-                    <button type="button" @click="toggleHeading(3)" :class="{ 'is-active': isActive('heading', { level: 3 }) }" title="Heading 3">
-                        <span class="text-xs font-bold">H3</span>
-                    </button>
-                    <button type="button" @click="toggleHeading(4)" :class="{ 'is-active': isActive('heading', { level: 4 }) }" title="Heading 4">
-                        <span class="text-xs font-bold">H4</span>
-                    </button>
-
-                    <div class="separator"></div>
-
-                    <button type="button" @click="toggleBulletList()" :class="{ 'is-active': isActive('bulletList') }" title="Bullet List">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z"/></svg>
-                    </button>
-                    <button type="button" @click="toggleOrderedList()" :class="{ 'is-active': isActive('orderedList') }" title="Ordered List">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.242 5.992h12m-12 6.003h12m-12 5.999h12M4.117 7.495v-3.75H2.99m1.125 3.75H2.99m1.125 0H4.99m-3.873 3.75h.003m-.003 0h3.75m-3.753 0c0-.64.217-1.224.563-1.688m-3.313 8.19v-.003m0 0h3.75m-3.75 0c0 .638.218 1.224.563 1.689"/></svg>
-                    </button>
-                    <button type="button" @click="toggleBlockquote()" :class="{ 'is-active': isActive('blockquote') }" title="Blockquote">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
-                    </button>
-                    <button type="button" @click="toggleCodeBlock()" :class="{ 'is-active': isActive('codeBlock') }" title="Code Block">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"/></svg>
-                    </button>
-
-                    <div class="separator"></div>
-
-                    <button type="button" @click="setTextAlign('left')" :class="{ 'is-active': isActive({ textAlign: 'left' }) }" title="Align Left">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m-10.5 5.25h16.5"/></svg>
-                    </button>
-                    <button type="button" @click="setTextAlign('center')" :class="{ 'is-active': isActive({ textAlign: 'center' }) }" title="Align Center">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5M3.75 17.25h16.5"/></svg>
-                    </button>
-
-                    <div class="separator"></div>
-
-                    <button type="button" @click="addLink()" :class="{ 'is-active': isActive('link') }" title="Add Link">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-1.03a4.5 4.5 0 0 0-1.242-7.244l-4.5-4.5a4.5 4.5 0 0 0-6.364 6.364l1.757 1.757"/></svg>
-                    </button>
-                    <button type="button" @click="addImage()" title="Add Image">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V5.25a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v14.25a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>
-                    </button>
-                    <button type="button" @click="addYoutube()" title="Add YouTube Video">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25z"/></svg>
-                    </button>
-                    <button type="button" @click="setHorizontalRule()" title="Horizontal Rule">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5"/></svg>
-                    </button>
-
-                    <div class="separator"></div>
-
-                    <button type="button" @click="undo()" title="Undo">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
-                    </button>
-                    <button type="button" @click="redo()" title="Redo">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3"/></svg>
-                    </button>
-                </div>
-
-                {{-- Editor Area --}}
-                <div x-ref="editor" class="border-0 bg-white dark:bg-gray-800 min-h-[400px]"></div>
+            {{-- Content (TinyMCE Editor) --}}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden" wire:ignore>
+                <textarea id="editor-content">{!! $content !!}</textarea>
             </div>
             @error('content') <p class="mt-1 text-sm text-red-600 dark:text-red-400 px-1">{{ $message }}</p> @enderror
 
@@ -482,6 +403,112 @@
     <div class="mt-6">
         <livewire:admin.blog.seo-analysis-panel :post-id="$postId" />
     </div>
+
+    {{-- TinyMCE Editor --}}
+    @assets
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+    @endassets
+
+    @script
+    <script>
+        // Update editor when AI content is loaded
+        $wire.on('content-updated', () => {
+            setTimeout(function() {
+                const editor = tinymce.get('editor-content');
+                if (editor) {
+                    editor.setContent($wire.get('content') || '');
+                }
+            }, 100);
+        });
+
+        // Insert image from media picker
+        window.addEventListener('insert-content-image', (e) => {
+            const url = e.detail?.url;
+            const editor = tinymce.get('editor-content');
+            if (editor && url) {
+                editor.insertContent(`<img src="${url}" alt="" />`);
+            }
+        });
+
+        function initEditor() {
+            if (typeof tinymce !== 'undefined' && tinymce.get('editor-content')) {
+                tinymce.get('editor-content').remove();
+            }
+
+            if (typeof tinymce === 'undefined') {
+                setTimeout(initEditor, 100);
+                return;
+            }
+
+            const textarea = document.getElementById('editor-content');
+            if (!textarea) {
+                setTimeout(initEditor, 100);
+                return;
+            }
+
+            const isDark = document.documentElement.classList.contains('dark');
+
+            tinymce.init({
+                selector: '#editor-content',
+                height: 500,
+                menubar: true,
+                plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                    'insertdatetime', 'media', 'table', 'help', 'wordcount'
+                ],
+                toolbar: 'undo redo | blocks | ' +
+                    'bold italic underline backcolor | alignleft aligncenter ' +
+                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                    'link image medialibrary media | removeformat | code fullscreen | help',
+                content_style: `
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        font-size: 16px;
+                        line-height: 1.7;
+                        padding: 1rem;
+                        ${isDark ? 'background: #1f2937; color: #e5e7eb;' : ''}
+                    }
+                    img { max-width: 100%; height: auto; border-radius: 0.25rem; }
+                `,
+                skin: isDark ? 'oxide-dark' : 'oxide',
+                content_css: isDark ? 'dark' : 'default',
+                promotion: false,
+                branding: false,
+                license_key: 'gpl',
+                relative_urls: false,
+                remove_script_host: false,
+                convert_urls: true,
+                media_live_embeds: true,
+                setup: function(editor) {
+                    editor.on('init', function() {
+                        const initialContent = $wire.get('content') || '';
+                        if (initialContent) {
+                            editor.setContent(initialContent);
+                        }
+                    });
+
+                    editor.on('change keyup blur', function() {
+                        editor.save();
+                        $wire.set('content', editor.getContent());
+                    });
+
+                    // Custom button for media library
+                    editor.ui.registry.addButton('medialibrary', {
+                        icon: 'gallery',
+                        tooltip: 'Insert from Media Library',
+                        onAction: function() {
+                            const keyword = $wire.get('focus_keyword') || $wire.get('title') || '';
+                            Livewire.dispatch('open-media-picker', { context: 'content_image', keyword: keyword });
+                        }
+                    });
+                }
+            });
+        }
+
+        initEditor();
+    </script>
+    @endscript
 
     {{-- Media Picker Modal --}}
     <livewire:admin.media-picker />

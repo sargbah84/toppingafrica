@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\Ad;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Post;
@@ -15,13 +16,18 @@ use Illuminate\Support\Str;
 
 class MigrateBotbleData extends Command
 {
-    protected $signature = 'migrate:botble {--fresh : Truncate local tables before importing}';
+    protected $signature = 'migrate:botble {--fresh : Truncate local tables before importing} {--clean-shortcodes : Only clean Botble shortcodes from existing posts}';
     protected $description = 'Migrate data from the old Botble CMS database to the new schema';
 
     private string $conn = 'botble';
 
     public function handle(): int
     {
+        if ($this->option('clean-shortcodes')) {
+            $this->cleanBotbleShortcodes();
+            return self::SUCCESS;
+        }
+
         $this->info('Starting Botble data migration...');
 
         if ($this->option('fresh')) {
@@ -33,6 +39,7 @@ class MigrateBotbleData extends Command
             Comment::truncate();
             DB::table('category_post')->truncate();
             DB::table('post_tag')->truncate();
+            Ad::truncate();
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
 
@@ -42,6 +49,8 @@ class MigrateBotbleData extends Command
         $this->migratePosts();
         $this->migratePostRelations();
         $this->migrateComments();
+        $this->migrateAds();
+        $this->cleanBotbleShortcodes();
 
         $this->newLine();
         $this->info('Migration complete!');
@@ -200,7 +209,7 @@ class MigrateBotbleData extends Command
                     'author_id' => $authorId,
                     'title' => $old->name,
                     'excerpt' => $old->description,
-                    'content' => $old->content,
+                    'content' => $this->convertShortcodes($old->content ?? ''),
                     'featured_image' => $old->image,
                     'post_type' => 'article',
                     'status' => $status,
@@ -275,6 +284,39 @@ class MigrateBotbleData extends Command
         $this->info("  Migrated {$catRelations} post-category and {$tagRelations} post-tag relations.");
     }
 
+    private function migrateAds(): void
+    {
+        $this->info('Migrating ads...');
+
+        $oldAds = DB::connection($this->conn)->table('ads')->get();
+        $bar = $this->output->createProgressBar($oldAds->count());
+
+        foreach ($oldAds as $old) {
+            $code = $old->google_adsense_slot_id ?? null;
+
+            Ad::updateOrCreate(
+                ['name' => $old->name],
+                [
+                    'position' => $old->key ?? 'sidebar',
+                    'code' => $code,
+                    'image' => $old->image ?? null,
+                    'url' => $old->url ?? null,
+                    'is_active' => $old->status === 'published',
+                    'order' => $old->order ?? 0,
+                    'starts_at' => null,
+                    'ends_at' => $old->expired_at ?? null,
+                    'created_at' => $old->created_at,
+                    'updated_at' => $old->updated_at,
+                ]
+            );
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine();
+        $this->info("  Migrated {$oldAds->count()} ads.");
+    }
+
     private function migrateComments(): void
     {
         $this->info('Migrating comments...');
@@ -327,5 +369,82 @@ class MigrateBotbleData extends Command
         $bar->finish();
         $this->newLine();
         $this->info("  Migrated " . count($idMap) . " comments.");
+    }
+
+    private function cleanBotbleShortcodes(): void
+    {
+        $this->info('Cleaning Botble shortcodes from post content...');
+
+        $posts = Post::where('content', 'like', '%[custom-html%')
+            ->orWhere('content', 'like', '%[media %')
+            ->orWhere('content', 'like', '%[content-quote%')
+            ->orWhere('content', 'like', '%&lt;%')
+            ->get();
+
+        $bar = $this->output->createProgressBar($posts->count());
+
+        foreach ($posts as $post) {
+            $cleaned = $this->convertShortcodes($post->content);
+            if ($cleaned !== $post->content) {
+                $post->update(['content' => $cleaned]);
+            }
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine();
+        $this->info("  Cleaned shortcodes in {$posts->count()} posts.");
+    }
+
+    private function convertShortcodes(string $content): string
+    {
+        // [custom-html enable_caching="yes"]...[/custom-html] → extract and decode inner HTML
+        $content = preg_replace_callback(
+            '/\[custom-html[^\]]*\](.*?)\[\/custom-html\]/s',
+            fn ($m) => html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            $content
+        );
+
+        // [media url="..." ...][/media] or [media url="..." ...] → YouTube embed
+        $content = preg_replace_callback(
+            '/\[media\s+url="([^"]+)"[^\]]*\](?:\s*\[\/media\])?/s',
+            function ($matches) {
+                $url = $matches[1];
+                $videoId = null;
+
+                if (preg_match('/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $m)) {
+                    $videoId = $m[1];
+                }
+
+                if ($videoId) {
+                    return '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/' . $videoId . '" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>';
+                }
+
+                return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($url) . '</a>';
+            },
+            $content
+        );
+
+        // [content-quote content_text="..."][/content-quote] → blockquote
+        $content = preg_replace_callback(
+            '/\[content-quote\s+content_text="([^"]+)"\s*\]\s*\[\/content-quote\]/s',
+            function ($matches) {
+                return '<blockquote><p>' . $matches[1] . '</p></blockquote>';
+            },
+            $content
+        );
+
+        // Decode HTML entities left over from Botble's custom-html shortcode content
+        if (str_contains($content, '&lt;')) {
+            $content = html_entity_decode($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Strip <script> tags (from social embed widgets) — they break editors
+        $content = preg_replace('/<script[^>]*>.*?<\/script>/si', '', $content);
+
+        // Clean orphan shortcode tags
+        $content = str_replace('</shortcode>', '', $content);
+
+        return $content;
     }
 }

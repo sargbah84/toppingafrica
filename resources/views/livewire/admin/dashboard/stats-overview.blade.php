@@ -99,23 +99,181 @@
                 </div>
             </div>
 
-            {{-- Simple Bar Chart --}}
-            <div class="flex items-end gap-1 h-48" wire:loading.class="opacity-50">
-                @php
-                    $chartData = $this->viewsChartData;
-                    $maxViews = max(array_column($chartData, 'views')) ?: 1;
-                @endphp
-                @foreach ($chartData as $point)
-                    <div class="flex-1 flex flex-col items-center gap-1">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $point['views'] }}</span>
-                        <div
-                            class="w-full bg-indigo-500 dark:bg-indigo-400 rounded-t transition-all duration-300"
-                            style="height: {{ max(4, ($point['views'] / $maxViews) * 100) }}%"
-                        ></div>
-                        <span class="text-xs text-gray-400 dark:text-gray-500 truncate w-full text-center">{{ $point['date'] }}</span>
-                    </div>
-                @endforeach
+            {{-- Area Chart --}}
+            @php $chartData = $this->viewsChartData; @endphp
+            <div
+                wire:key="chart-{{ $viewsPeriod }}"
+                x-data="viewsChart({{ Js::from($chartData) }})"
+                x-init="draw(); window.addEventListener('resize', () => draw())"
+                wire:loading.class="opacity-50"
+                class="relative"
+            >
+                <canvas x-ref="canvas" class="w-full" style="height: 200px;"></canvas>
+                {{-- Tooltip --}}
+                <div x-show="tooltip.show" x-cloak
+                     class="absolute pointer-events-none bg-gray-900 text-white text-xs rounded-lg px-3 py-1.5 shadow-lg whitespace-nowrap"
+                     :style="'left: ' + tooltip.x + 'px; top: ' + tooltip.y + 'px; transform: translate(-50%, -100%);'"
+                     x-text="tooltip.label + ': ' + tooltip.value + ' views'">
+                </div>
             </div>
+
+            <script>
+            function viewsChart(data) {
+                return {
+                    tooltip: { show: false, x: 0, y: 0, label: '', value: 0 },
+                    draw() {
+                        const canvas = this.$refs.canvas;
+                        if (!canvas) return;
+                        const ctx = canvas.getContext('2d');
+                        const dpr = window.devicePixelRatio || 1;
+                        const rect = canvas.getBoundingClientRect();
+                        canvas.width = rect.width * dpr;
+                        canvas.height = rect.height * dpr;
+                        ctx.scale(dpr, dpr);
+                        const w = rect.width, h = rect.height;
+                        const pad = { top: 20, right: 16, bottom: 32, left: 44 };
+                        const cw = w - pad.left - pad.right;
+                        const ch = h - pad.top - pad.bottom;
+
+                        ctx.clearRect(0, 0, w, h);
+
+                        const values = data.map(d => d.views);
+                        const labels = data.map(d => d.date);
+                        const rawMax = Math.max(...values);
+
+                        // Compute nice Y-axis max with clean step values
+                        let niceMax, stepVal;
+                        const steps = 5;
+                        if (rawMax <= 0) {
+                            niceMax = 100; stepVal = 20;
+                        } else if (rawMax <= 5) {
+                            niceMax = 5; stepVal = 1;
+                        } else if (rawMax <= 10) {
+                            niceMax = 10; stepVal = 2;
+                        } else {
+                            const magnitude = Math.pow(10, Math.floor(Math.log10(rawMax)));
+                            const normalized = rawMax / magnitude;
+                            if (normalized <= 1.5) niceMax = 1.5 * magnitude;
+                            else if (normalized <= 2) niceMax = 2 * magnitude;
+                            else if (normalized <= 3) niceMax = 3 * magnitude;
+                            else if (normalized <= 5) niceMax = 5 * magnitude;
+                            else if (normalized <= 7.5) niceMax = 7.5 * magnitude;
+                            else niceMax = 10 * magnitude;
+                            stepVal = niceMax / steps;
+                        }
+
+                        const isDark = document.documentElement.classList.contains('dark');
+                        const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+                        const textColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
+                        const lineColor = '#6366f1';
+                        const fillColor = isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)';
+
+                        // Grid lines & Y labels
+                        ctx.font = '11px system-ui, sans-serif';
+                        ctx.textAlign = 'right';
+                        ctx.textBaseline = 'middle';
+                        for (let i = 0; i <= steps; i++) {
+                            const y = pad.top + ch - (i / steps) * ch;
+                            ctx.strokeStyle = gridColor;
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([]);
+                            ctx.beginPath();
+                            ctx.moveTo(pad.left, y);
+                            ctx.lineTo(w - pad.right, y);
+                            ctx.stroke();
+                            ctx.fillStyle = textColor;
+                            const val = Math.round(i * stepVal);
+                            ctx.fillText(val.toLocaleString(), pad.left - 8, y);
+                        }
+
+                        // X labels & points
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'top';
+                        const points = [];
+                        const skipInterval = data.length > 14 ? Math.ceil(data.length / 7) : (data.length > 7 ? 2 : 1);
+                        for (let i = 0; i < data.length; i++) {
+                            const x = pad.left + (i / Math.max(data.length - 1, 1)) * cw;
+                            const y = pad.top + ch - (values[i] / niceMax) * ch;
+                            points.push({ x, y });
+
+                            if (i % skipInterval === 0 || i === data.length - 1) {
+                                ctx.fillStyle = textColor;
+                                ctx.fillText(labels[i], x, pad.top + ch + 10);
+                            }
+                        }
+
+                        if (points.length === 0) return;
+
+                        // Smooth curve helper
+                        function drawSmoothLine(pts) {
+                            if (pts.length < 2) return;
+                            ctx.moveTo(pts[0].x, pts[0].y);
+                            if (pts.length === 2) {
+                                ctx.lineTo(pts[1].x, pts[1].y);
+                                return;
+                            }
+                            for (let i = 0; i < pts.length - 1; i++) {
+                                const cpx = (pts[i].x + pts[i + 1].x) / 2;
+                                ctx.quadraticCurveTo(pts[i].x, pts[i].y, cpx, (pts[i].y + pts[i + 1].y) / 2);
+                            }
+                            const last = pts[pts.length - 1];
+                            ctx.lineTo(last.x, last.y);
+                        }
+
+                        // Area fill with gradient
+                        const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+                        gradient.addColorStop(0, isDark ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.15)');
+                        gradient.addColorStop(1, isDark ? 'rgba(99,102,241,0.02)' : 'rgba(99,102,241,0.01)');
+                        ctx.beginPath();
+                        ctx.moveTo(points[0].x, pad.top + ch);
+                        drawSmoothLine(points);
+                        ctx.lineTo(points[points.length - 1].x, pad.top + ch);
+                        ctx.closePath();
+                        ctx.fillStyle = gradient;
+                        ctx.fill();
+
+                        // Line
+                        ctx.beginPath();
+                        drawSmoothLine(points);
+                        ctx.strokeStyle = lineColor;
+                        ctx.lineWidth = 2.5;
+                        ctx.lineJoin = 'round';
+                        ctx.lineCap = 'round';
+                        ctx.setLineDash([]);
+                        ctx.stroke();
+
+                        // Dots
+                        points.forEach(p => {
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+                            ctx.fillStyle = lineColor;
+                            ctx.fill();
+                            ctx.strokeStyle = isDark ? '#1f2937' : '#ffffff';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        });
+
+                        // Mouse interaction
+                        const self = this;
+                        canvas.onmousemove = (e) => {
+                            const br = canvas.getBoundingClientRect();
+                            const mx = e.clientX - br.left;
+                            let closest = 0, minDist = Infinity;
+                            points.forEach((p, i) => {
+                                const d = Math.abs(mx - p.x);
+                                if (d < minDist) { minDist = d; closest = i; }
+                            });
+                            if (minDist < 40) {
+                                self.tooltip = { show: true, x: points[closest].x, y: points[closest].y - 10, label: labels[closest], value: values[closest] };
+                            } else {
+                                self.tooltip.show = false;
+                            }
+                        };
+                        canvas.onmouseleave = () => { self.tooltip.show = false; };
+                    }
+                };
+            }
+            </script>
         </div>
 
         {{-- Popular Posts --}}

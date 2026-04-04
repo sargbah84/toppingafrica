@@ -41,9 +41,9 @@ document.addEventListener('alpine:init', () => {
             });
 
             // Listen for external content updates (e.g., AI-generated content)
-            this.$watch('content', (value) => {
-                if (this.editor && value !== this.editor.getHTML()) {
-                    this.editor.commands.setContent(value, false);
+            Livewire.on('use-generated-content', (data) => {
+                if (this.editor && data[0]?.content) {
+                    this.editor.commands.setContent(data[0].content, false);
                 }
             });
 

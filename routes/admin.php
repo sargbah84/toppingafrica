@@ -62,7 +62,10 @@ Route::prefix('admin')
         Route::delete('newsletters/{newsletter}', [NewsletterController::class, 'destroy'])->name('newsletters.destroy');
 
         // Ads
-        Route::resource('ads', AdController::class)->except(['show']);
+        Route::resource('ads', AdController::class)->only(['index', 'create', 'edit', 'destroy']);
+
+        // Popups
+        Route::get('popups', fn () => view('admin.popups.index'))->name('popups.index');
 
         // Settings
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

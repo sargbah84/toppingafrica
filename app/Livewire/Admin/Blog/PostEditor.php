@@ -178,6 +178,7 @@ class PostEditor extends Component
         }
 
         $this->dispatch('notify', type: 'success', message: 'AI-generated content loaded.');
+        $this->dispatch('content-updated');
     }
 
     public function updatedTitle(string $value): void

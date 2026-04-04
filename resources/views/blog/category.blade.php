@@ -19,7 +19,7 @@
                 <span class="inline-block w-8 h-[3px] bg-primary mr-2 align-middle"></span>
                 <span class="text-xs font-semibold uppercase tracking-wider text-primary">Category</span>
             </div>
-            <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">{{ $category->name }}</h1>
+            <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">{{ $category->name }} <sup class="text-lg font-semibold text-gray-400 dark:text-gray-500">{{ $category->posts_count ?? $posts->total() }}</sup></h1>
             @if($category->description)
                 <p class="text-gray-500 dark:text-gray-400 max-w-xl">{{ $category->description }}</p>
             @endif
