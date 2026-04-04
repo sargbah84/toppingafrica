@@ -59,12 +59,10 @@ return [
     |
     | Path to the Google Cloud service account JSON key file.
     | Create a service account with "reCAPTCHA Enterprise Agent" role.
-    |
-    | For production, you can use GOOGLE_CREDENTIALS_JSON with base64-encoded JSON.
+    | Place the file in storage/app/ and reference the filename here.
     |
     */
 
     'credentials_path' => env('GOOGLE_APPLICATION_CREDENTIALS'),
-    'credentials_json' => env('GOOGLE_CREDENTIALS_JSON'),
 
 ];

@@ -25,7 +25,6 @@ class AppServiceProvider extends ServiceProvider
                 projectId: $config['project_id'] ?? '',
                 scoreThreshold: $config['score_threshold'] ?? 0.5,
                 credentialsPath: $credentialsPath,
-                credentialsJson: $config['credentials_json'] ?? null,
                 enabled: $config['enabled'] ?? true,
             );
         });

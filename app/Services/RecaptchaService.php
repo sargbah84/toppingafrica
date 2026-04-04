@@ -19,7 +19,6 @@ final class RecaptchaService
         private readonly string $projectId,
         private readonly float $scoreThreshold,
         private readonly ?string $credentialsPath,
-        private readonly ?string $credentialsJson,
         private readonly bool $enabled,
     ) {}
 
@@ -163,17 +162,7 @@ final class RecaptchaService
         if ($this->client === null) {
             $options = [];
 
-            if (!empty($this->credentialsJson)) {
-                $decoded = base64_decode($this->credentialsJson, true);
-                if ($decoded !== false) {
-                    $credentials = json_decode($decoded, true);
-                    if ($credentials !== null && is_array($credentials)) {
-                        $options['credentials'] = $credentials;
-                    }
-                }
-            }
-
-            if (!isset($options['credentials']) && $this->credentialsPath && file_exists($this->credentialsPath)) {
+            if ($this->credentialsPath && file_exists($this->credentialsPath)) {
                 $options['credentials'] = $this->credentialsPath;
             }
 
