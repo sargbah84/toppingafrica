@@ -137,6 +137,28 @@ class PostEditor extends Component
         }
     }
 
+    #[On('recommendations-applied')]
+    public function onRecommendationsApplied(): void
+    {
+        if (!$this->postId) {
+            return;
+        }
+
+        $post = Post::with('tags')->find($this->postId);
+        if (!$post) {
+            return;
+        }
+
+        $this->meta_title = $post->meta_title ?? '';
+        $this->meta_description = $post->meta_description ?? '';
+        $this->focus_keyword = $post->focus_keyword ?? '';
+        $this->content = $post->content ?? '';
+        $this->excerpt = $post->excerpt ?? '';
+        $this->selectedTags = $post->tags->pluck('name')->toArray();
+
+        $this->dispatch('content-updated');
+    }
+
     #[On('use-generated-content')]
     public function useGeneratedContent(
         string $title = '',

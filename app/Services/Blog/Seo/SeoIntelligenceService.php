@@ -231,8 +231,9 @@ final class SeoIntelligenceService
             }
         }
 
-        // 3. Apply AI-optimized content
-        if (!empty($aiOptimizations['optimized_content'])) {
+        // 3. Apply AI-optimized content (skip for interactive post types — their content is just an intro)
+        $isInteractive = in_array($post->post_type, ['quiz', 'trivia', 'poll', 'video']);
+        if (!$isInteractive && !empty($aiOptimizations['optimized_content'])) {
             $newContent = $aiOptimizations['optimized_content'];
 
             // Handle truncated content re-attachment
@@ -267,9 +268,9 @@ final class SeoIntelligenceService
             }
         }
 
-        // 4. Add internal links if needed
+        // 4. Add internal links if needed (skip for interactive post types)
         $currentInternalLinks = $this->countInternalLinksInContent($post->content);
-        if ($currentInternalLinks < 3) {
+        if (!$isInteractive && $currentInternalLinks < 3) {
             $suggestedLinks = $this->suggestInternalLinks($post);
             if (!empty($suggestedLinks)) {
                 $linkHtml = $this->buildInternalLinksSection($suggestedLinks);
