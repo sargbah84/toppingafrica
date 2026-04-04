@@ -20,79 +20,88 @@
 
     {{-- Comment Form --}}
     <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 mb-10">
-        <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Leave a Comment</h4>
-
-        @error('recaptcha')
-            <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
-                <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+        @guest
+            {{-- Guest: prompt to login --}}
+            <div class="text-center py-4">
+                <svg class="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/>
+                </svg>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Log in to join the conversation.</p>
+                <a href="{{ route('login') }}"
+                   class="inline-flex items-center px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors">
+                    Login to Comment
+                </a>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                    Don't have an account? <a href="{{ route('register') }}" class="text-primary hover:text-primary-hover font-medium">Register</a>
+                </p>
             </div>
-        @enderror
+        @else
+            {{-- Authenticated user --}}
+            <div class="flex items-center gap-3 mb-4">
+                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}"
+                     class="w-8 h-8 rounded-full object-cover">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ auth()->user()->name }}</span>
+            </div>
 
-        <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-              x-on:submit.prevent="
-                  if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                      grecaptcha.enterprise.ready(async () => {
-                          try {
-                              const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment' });
-                              $wire.set('recaptchaToken', token);
-                          } catch (e) {
-                              $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                          }
+            @if(!auth()->user()->hasVerifiedEmail())
+                <div class="mb-4 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
+                    <p class="text-sm text-amber-700 dark:text-amber-300">
+                        Please <a href="{{ route('verification.notice') }}" class="underline font-semibold hover:text-amber-900 dark:hover:text-amber-100">verify your email address</a> before commenting.
+                    </p>
+                </div>
+            @endif
+
+            @error('recaptcha')
+                <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                    <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+                </div>
+            @enderror
+
+            <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
+                  x-on:submit.prevent="
+                      if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                          grecaptcha.enterprise.ready(async () => {
+                              try {
+                                  const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment' });
+                                  $wire.set('recaptchaToken', token);
+                              } catch (e) {
+                                  $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+                              }
+                              $wire.submitComment();
+                          });
+                      } else if (siteKey) {
+                          $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
                           $wire.submitComment();
-                      });
-                  } else if (siteKey) {
-                      $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                      $wire.submitComment();
-                  } else {
-                      $wire.submitComment();
-                  }
-              ">
-            {{-- Honeypot --}}
-            <div class="hidden" aria-hidden="true">
-                <input type="text" wire:model="honeypot" tabindex="-1" autocomplete="off">
-            </div>
+                      } else {
+                          $wire.submitComment();
+                      }
+                  ">
+                {{-- Honeypot --}}
+                <div class="hidden" aria-hidden="true">
+                    <input type="text" wire:model="honeypot" tabindex="-1" autocomplete="off">
+                </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="comment-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                    <input type="text" id="comment-name" wire:model="name"
-                           class="block w-full rounded-md border-0 py-2 text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-                           placeholder="Your name" {{ auth()->check() ? 'readonly' : '' }}>
-                    @error('name')
+                <div class="mb-4">
+                    <textarea id="comment-body" wire:model="body" rows="3"
+                              class="block w-full rounded-md border-0 py-2 text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+                              placeholder="Write your comment..."
+                              {{ !auth()->user()->hasVerifiedEmail() ? 'disabled' : '' }}></textarea>
+                    @error('body')
                         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                 </div>
-                <div>
-                    <label for="comment-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                    <input type="email" id="comment-email" wire:model="email"
-                           class="block w-full rounded-md border-0 py-2 text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-                           placeholder="Your email (not published)" {{ auth()->check() ? 'readonly' : '' }}>
-                    @error('email')
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
+
+                <div class="flex justify-end">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            wire:loading.attr="disabled"
+                            {{ !auth()->user()->hasVerifiedEmail() ? 'disabled' : '' }}>
+                        <span wire:loading.remove wire:target="submitComment">Post Comment</span>
+                        <span wire:loading wire:target="submitComment">Posting...</span>
+                    </button>
                 </div>
-            </div>
-
-            <div class="mb-4">
-                <label for="comment-body" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comment</label>
-                <textarea id="comment-body" wire:model="body" rows="4"
-                          class="block w-full rounded-md border-0 py-2 text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-                          placeholder="Write your comment..."></textarea>
-                @error('body')
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="flex justify-end">
-                <button type="submit"
-                        class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors"
-                        wire:loading.attr="disabled"
-                        wire:loading.class="opacity-50">
-                    <span wire:loading.remove wire:target="submitComment">Post Comment</span>
-                    <span wire:loading wire:target="submitComment">Posting...</span>
-                </button>
-            </div>
-        </form>
+            </form>
+        @endguest
     </div>
 
     {{-- Comments List --}}
@@ -121,83 +130,64 @@
                         {!! nl2br(e($comment->body)) !!}
                     </div>
 
-                    {{-- Reply Button --}}
-                    <button wire:click="startReply({{ $comment->id }})"
-                            class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
-                        Reply
-                    </button>
+                    {{-- Reply Button (auth only) --}}
+                    @auth
+                        <button wire:click="startReply({{ $comment->id }})"
+                                class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                            Reply
+                        </button>
 
-                    {{-- Inline Reply Form --}}
-                    @if($replyingTo === $comment->id)
-                        <div class="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                            <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-                                  x-on:submit.prevent="
-                                      if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                                          grecaptcha.enterprise.ready(async () => {
-                                              try {
-                                                  const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
-                                                  $wire.set('recaptchaToken', token);
-                                              } catch (e) {
-                                                  $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                                              }
+                        {{-- Inline Reply Form --}}
+                        @if($replyingTo === $comment->id)
+                            <div class="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                                <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
+                                      x-on:submit.prevent="
+                                          if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                                              grecaptcha.enterprise.ready(async () => {
+                                                  try {
+                                                      const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
+                                                      $wire.set('recaptchaToken', token);
+                                                  } catch (e) {
+                                                      $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+                                                  }
+                                                  $wire.submitReply();
+                                              });
+                                          } else if (siteKey) {
+                                              $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
                                               $wire.submitReply();
-                                          });
-                                      } else if (siteKey) {
-                                          $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                                          $wire.submitReply();
-                                      } else {
-                                          $wire.submitReply();
-                                      }
-                                  ">
-                                <div class="hidden" aria-hidden="true">
-                                    <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
-                                </div>
+                                          } else {
+                                              $wire.submitReply();
+                                          }
+                                      ">
+                                    <div class="hidden" aria-hidden="true">
+                                        <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
+                                    </div>
 
-                                @guest
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                                    <div>
-                                        <input type="text" wire:model="replyName"
-                                               class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                               placeholder="Your name">
-                                        @error('replyName')
+                                    <div class="mb-3">
+                                        <textarea wire:model="replyBody" rows="3"
+                                                  class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
+                                                  placeholder="Write your reply..."></textarea>
+                                        @error('replyBody')
                                             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                                         @enderror
                                     </div>
-                                    <div>
-                                        <input type="email" wire:model="replyEmail"
-                                               class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                               placeholder="Your email">
-                                        @error('replyEmail')
-                                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                        @enderror
+
+                                    <div class="flex items-center gap-2 justify-end">
+                                        <button type="button" wire:click="cancelReply"
+                                                class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                            Cancel
+                                        </button>
+                                        <button type="submit"
+                                                class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors"
+                                                wire:loading.attr="disabled">
+                                            <span wire:loading.remove wire:target="submitReply">Post Reply</span>
+                                            <span wire:loading wire:target="submitReply">Posting...</span>
+                                        </button>
                                     </div>
-                                </div>
-                                @endguest
-
-                                <div class="mb-3">
-                                    <textarea wire:model="replyBody" rows="3"
-                                              class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                              placeholder="Write your reply..."></textarea>
-                                    @error('replyBody')
-                                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div class="flex items-center gap-2 justify-end">
-                                    <button type="button" wire:click="cancelReply"
-                                            class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                                        Cancel
-                                    </button>
-                                    <button type="submit"
-                                            class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors"
-                                            wire:loading.attr="disabled">
-                                        <span wire:loading.remove wire:target="submitReply">Post Reply</span>
-                                        <span wire:loading wire:target="submitReply">Posting...</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    @endif
+                                </form>
+                            </div>
+                        @endif
+                    @endauth
 
                     {{-- Nested Replies --}}
                     @if($comment->replies->isNotEmpty())
@@ -220,71 +210,63 @@
                                         <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
                                             {!! nl2br(e($reply->body)) !!}
                                         </div>
-                                        <button wire:click="startReply({{ $reply->id }})"
-                                                class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
-                                            Reply
-                                        </button>
+                                        @auth
+                                            <button wire:click="startReply({{ $reply->id }})"
+                                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors">
+                                                Reply
+                                            </button>
 
-                                        {{-- Inline Reply Form for reply --}}
-                                        @if($replyingTo === $reply->id)
-                                            <div class="mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                                                <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-                                                      x-on:submit.prevent="
-                                                          if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                                                              grecaptcha.enterprise.ready(async () => {
-                                                                  try {
-                                                                      const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
-                                                                      $wire.set('recaptchaToken', token);
-                                                                  } catch (e) {
-                                                                      $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                                                                  }
+                                            {{-- Inline Reply Form for reply --}}
+                                            @if($replyingTo === $reply->id)
+                                                <div class="mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                                                    <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
+                                                          x-on:submit.prevent="
+                                                              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                                                                  grecaptcha.enterprise.ready(async () => {
+                                                                      try {
+                                                                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
+                                                                          $wire.set('recaptchaToken', token);
+                                                                      } catch (e) {
+                                                                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+                                                                      }
+                                                                      $wire.submitReply();
+                                                                  });
+                                                              } else if (siteKey) {
+                                                                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
                                                                   $wire.submitReply();
-                                                              });
-                                                          } else if (siteKey) {
-                                                              $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                                                              $wire.submitReply();
-                                                          } else {
-                                                              $wire.submitReply();
-                                                          }
-                                                      ">
-                                                    <div class="hidden" aria-hidden="true">
-                                                        <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
-                                                    </div>
-
-                                                    @guest
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                                                        <div>
-                                                            <input type="text" wire:model="replyName"
-                                                                   class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                                                   placeholder="Your name">
+                                                              } else {
+                                                                  $wire.submitReply();
+                                                              }
+                                                          ">
+                                                        <div class="hidden" aria-hidden="true">
+                                                            <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
                                                         </div>
-                                                        <div>
-                                                            <input type="email" wire:model="replyEmail"
-                                                                   class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                                                   placeholder="Your email">
+
+                                                        <div class="mb-3">
+                                                            <textarea wire:model="replyBody" rows="2"
+                                                                      class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
+                                                                      placeholder="Write your reply..."></textarea>
+                                                            @error('replyBody')
+                                                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                                            @enderror
                                                         </div>
-                                                    </div>
-                                                    @endguest
 
-                                                    <div class="mb-3">
-                                                        <textarea wire:model="replyBody" rows="2"
-                                                                  class="block w-full rounded-md border-0 py-1.5 text-sm text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary"
-                                                                  placeholder="Write your reply..."></textarea>
-                                                    </div>
-
-                                                    <div class="flex items-center gap-2 justify-end">
-                                                        <button type="button" wire:click="cancelReply"
-                                                                class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700">
-                                                            Cancel
-                                                        </button>
-                                                        <button type="submit"
-                                                                class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors">
-                                                            Post Reply
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        @endif
+                                                        <div class="flex items-center gap-2 justify-end">
+                                                            <button type="button" wire:click="cancelReply"
+                                                                    class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700">
+                                                                Cancel
+                                                            </button>
+                                                            <button type="submit"
+                                                                    class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors"
+                                                                    wire:loading.attr="disabled">
+                                                                <span wire:loading.remove wire:target="submitReply">Post Reply</span>
+                                                                <span wire:loading wire:target="submitReply">Posting...</span>
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        @endauth
                                     </div>
                                 </div>
                             @endforeach

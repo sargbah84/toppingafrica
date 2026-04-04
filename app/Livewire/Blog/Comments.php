@@ -56,9 +56,16 @@ class Comments extends Component
             return;
         }
 
+        if (!Auth::check()) {
+            return;
+        }
+
+        if (!Auth::user()->hasVerifiedEmail()) {
+            $this->addError('body', 'You must verify your email address before commenting.');
+            return;
+        }
+
         $this->validate([
-            'name' => ['required', 'string', 'min:2', 'max:100'],
-            'email' => ['required', 'email', 'max:255'],
             'body' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
@@ -69,8 +76,6 @@ class Comments extends Component
         Comment::create([
             'post_id' => $this->postId,
             'user_id' => Auth::id(),
-            'guest_name' => Auth::check() ? null : $this->name,
-            'guest_email' => Auth::check() ? null : $this->email,
             'body' => $this->body,
             'status' => 'pending',
             'ip_address' => request()->ip(),
@@ -88,9 +93,16 @@ class Comments extends Component
             return;
         }
 
+        if (!Auth::check()) {
+            return;
+        }
+
+        if (!Auth::user()->hasVerifiedEmail()) {
+            $this->addError('replyBody', 'You must verify your email address before commenting.');
+            return;
+        }
+
         $this->validate([
-            'replyName' => ['required', 'string', 'min:2', 'max:100'],
-            'replyEmail' => ['required', 'email', 'max:255'],
             'replyBody' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
@@ -106,8 +118,6 @@ class Comments extends Component
             'post_id' => $this->postId,
             'user_id' => Auth::id(),
             'parent_id' => $parentId,
-            'guest_name' => Auth::check() ? null : $this->replyName,
-            'guest_email' => Auth::check() ? null : $this->replyEmail,
             'body' => $this->replyBody,
             'status' => 'pending',
             'ip_address' => request()->ip(),

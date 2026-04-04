@@ -24,6 +24,11 @@ class MyComments extends Component
 
     public function startEditing(int $commentId): void
     {
+        if (!auth()->user()->hasVerifiedEmail()) {
+            $this->addError('editBody', 'You must verify your email address before editing comments.');
+            return;
+        }
+
         $comment = Comment::where('id', $commentId)
             ->where('user_id', auth()->id())
             ->firstOrFail();
