@@ -1,5 +1,7 @@
 <?php
 
+// Blog configuration for Topping Africa
+
 return [
 
     /*
