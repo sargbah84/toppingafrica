@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
+    public function postViews(): HasMany
+    {
+        return $this->hasMany(PostView::class);
+    }
+
     public function getAvatarUrlAttribute(): string
     {
         return $this->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=000000&color=ffffff';

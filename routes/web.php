@@ -13,13 +13,11 @@ Route::get('/feed', [BlogController::class, 'feed'])->name('blog.feed');
 Route::get('/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
 Route::get('/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
-
-Route::view('profile', 'profile')
-    ->middleware(['auth'])
-    ->name('profile');
+// Regular user pages (use blog layout)
+Route::middleware(['auth'])->group(function () {
+    Route::view('my-account', 'account.index')->name('dashboard');
+    Route::view('my-account/profile', 'account.profile')->name('profile');
+});
 
 // Logout route for admin panel
 Route::post('logout', function () {

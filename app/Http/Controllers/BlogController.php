@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
+use App\Services\Blog\PostViewTracker;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -81,7 +82,7 @@ class BlogController extends Controller
         ));
     }
 
-    public function show(string $slug): View
+    public function show(Request $request, string $slug): View
     {
         $post = Post::where('slug', $slug)
             ->with('author', 'categories', 'tags')
@@ -91,7 +92,7 @@ class BlogController extends Controller
             abort(404);
         }
 
-        $post->incrementViewsCount();
+        app(PostViewTracker::class)->track($post, $request);
 
         $relatedPosts = Post::published()
             ->where('id', '!=', $post->id)

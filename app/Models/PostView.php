@@ -9,15 +9,65 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PostView extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'post_id',
-        'ip_address',
+        'user_id',
+        'ip_hash',
         'user_agent',
-        'referer',
+        'viewed_at',
+    ];
+
+    protected $casts = [
+        'viewed_at' => 'datetime',
     ];
 
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null): void
+    {
+        $ipHash = hash('sha256', $ip . config('app.key'));
+
+        $recentView = static::where('post_id', $post->id)
+            ->where('ip_hash', $ipHash)
+            ->where('viewed_at', '>', now()->subDay())
+            ->exists();
+
+        if (!$recentView) {
+            static::create([
+                'post_id' => $post->id,
+                'user_id' => $userId,
+                'ip_hash' => $ipHash,
+                'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
+                'viewed_at' => now(),
+            ]);
+
+            $post->incrementViewsCount();
+        }
+    }
+
+    public function scopeForPost($query, Post $post)
+    {
+        return $query->where('post_id', $post->id);
+    }
+
+    public function scopeInPeriod($query, \DateTimeInterface $from, ?\DateTimeInterface $to = null)
+    {
+        $query->where('viewed_at', '>=', $from);
+
+        if ($to) {
+            $query->where('viewed_at', '<=', $to);
+        }
+
+        return $query;
     }
 }
