@@ -16,30 +16,31 @@ final class UserEngagementAnalyzer
         $this->config = config('seo-intelligence', []);
     }
 
-    public function analyze(string $content, ?int $postId = null): array
+    public function analyze(string $content, ?int $postId = null, string $postType = 'article'): array
     {
         try {
             $scores = [];
+            $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
 
-            // 1. Internal links
+            // 1. Internal links — relaxed for interactive types (intro is short)
             $internalLinkAnalysis = $this->analyzeInternalLinks($content, $postId);
-            $scores['internal_links'] = $internalLinkAnalysis['score'];
+            $scores['internal_links'] = $isInteractive ? max(60, $internalLinkAnalysis['score']) : $internalLinkAnalysis['score'];
 
-            // 2. External links
+            // 2. External links — relaxed for interactive types
             $externalLinkAnalysis = $this->analyzeExternalLinks($content);
-            $scores['external_links'] = $externalLinkAnalysis['score'];
+            $scores['external_links'] = $isInteractive ? max(60, $externalLinkAnalysis['score']) : $externalLinkAnalysis['score'];
 
-            // 3. Media presence
+            // 3. Media presence — interactive widget IS the media
             $mediaAnalysis = $this->analyzeMedia($content);
-            $scores['media_presence'] = $mediaAnalysis['score'];
+            $scores['media_presence'] = $isInteractive ? 100 : $mediaAnalysis['score'];
 
-            // 4. Call-to-action presence
+            // 4. Call-to-action — interactive types ARE the CTA (vote, answer, swipe)
             $ctaAnalysis = $this->analyzeCTA($content);
-            $scores['cta_presence'] = $ctaAnalysis['score'];
+            $scores['cta_presence'] = $isInteractive ? 100 : $ctaAnalysis['score'];
 
-            // 5. Lists and structured content
+            // 5. Lists and structured content — interactive types ARE structured
             $structureAnalysis = $this->analyzeStructuredContent($content);
-            $scores['structured_content'] = $structureAnalysis['score'];
+            $scores['structured_content'] = $isInteractive ? 100 : $structureAnalysis['score'];
 
             $overallScore = (int) round(array_sum($scores) / count($scores));
 
@@ -52,8 +53,8 @@ final class UserEngagementAnalyzer
                 'images_count' => $mediaAnalysis['images'],
                 'videos_count' => $mediaAnalysis['videos'],
                 'embeds_count' => $mediaAnalysis['embeds'],
-                'has_cta' => $ctaAnalysis['found'],
-                'cta_types' => $ctaAnalysis['types'],
+                'has_cta' => $ctaAnalysis['found'] || $isInteractive,
+                'cta_types' => $isInteractive ? array_merge($ctaAnalysis['types'], [$postType]) : $ctaAnalysis['types'],
                 'lists_count' => $structureAnalysis['lists'],
                 'tables_count' => $structureAnalysis['tables'],
                 'sub_scores' => $scores,

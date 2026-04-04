@@ -15,10 +15,11 @@ final class TechnicalSeoAnalyzer
         $this->config = config('seo-intelligence', []);
     }
 
-    public function analyze(string $content, ?string $metaTitle, ?string $metaDescription, string $slug, string $title): array
+    public function analyze(string $content, ?string $metaTitle, ?string $metaDescription, string $slug, string $title, string $postType = 'article'): array
     {
         try {
             $scores = [];
+            $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
 
             // 1. Meta title length
             $titleAnalysis = $this->analyzeMetaTitle($metaTitle, $title);
@@ -28,21 +29,21 @@ final class TechnicalSeoAnalyzer
             $descAnalysis = $this->analyzeMetaDescription($metaDescription);
             $scores['meta_description'] = $descAnalysis['score'];
 
-            // 3. H1 presence and uniqueness
+            // 3. H1 presence — interactive types don't need H1 in body content
             $h1Analysis = $this->analyzeH1($content);
-            $scores['h1_tag'] = $h1Analysis['score'];
+            $scores['h1_tag'] = $isInteractive ? max(80, $h1Analysis['score']) : $h1Analysis['score'];
 
-            // 4. Header hierarchy
+            // 4. Header hierarchy — interactive types don't need subheadings
             $headerAnalysis = $this->analyzeHeaderHierarchy($content);
-            $scores['header_hierarchy'] = $headerAnalysis['score'];
+            $scores['header_hierarchy'] = $isInteractive ? max(80, $headerAnalysis['score']) : $headerAnalysis['score'];
 
             // 5. URL slug quality
             $slugAnalysis = $this->analyzeSlug($slug);
             $scores['url_slug'] = $slugAnalysis['score'];
 
-            // 6. Image alt text coverage
+            // 6. Image alt text — interactive types don't need images in body
             $altTextAnalysis = $this->analyzeImageAltTexts($content);
-            $scores['image_alt_text'] = $altTextAnalysis['score'];
+            $scores['image_alt_text'] = $isInteractive ? max(70, $altTextAnalysis['score']) : $altTextAnalysis['score'];
 
             $overallScore = (int) round(array_sum($scores) / count($scores));
 

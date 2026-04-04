@@ -12,6 +12,7 @@ final readonly class PostGenerationRequest
         public string $length = 'medium',
         public string $tone = 'professional',
         public ?string $targetKeyword = null,
+        public string $postType = 'article',
         public array $additionalContext = [],
     ) {}
 

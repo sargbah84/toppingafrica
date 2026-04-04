@@ -8,26 +8,27 @@ use Illuminate\Support\Facades\Log;
 
 final class OnPageElementsAnalyzer
 {
-    public function analyze(string $content, ?string $featuredImage, ?string $excerpt): array
+    public function analyze(string $content, ?string $featuredImage, ?string $excerpt, string $postType = 'article'): array
     {
         try {
             $scores = [];
+            $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
 
             // 1. Featured image
             $featuredImageAnalysis = $this->analyzeFeaturedImage($featuredImage);
             $scores['featured_image'] = $featuredImageAnalysis['score'];
 
-            // 2. Image count and alt text compliance
+            // 2. Image count — interactive types don't need body images
             $imageAnalysis = $this->analyzeImages($content);
-            $scores['image_quality'] = $imageAnalysis['score'];
+            $scores['image_quality'] = $isInteractive ? max(80, $imageAnalysis['score']) : $imageAnalysis['score'];
 
-            // 3. Content formatting (bold, italics, lists)
+            // 3. Content formatting — interactive types don't need bold/italic/lists in body
             $formattingAnalysis = $this->analyzeFormatting($content);
-            $scores['formatting'] = $formattingAnalysis['score'];
+            $scores['formatting'] = $isInteractive ? max(80, $formattingAnalysis['score']) : $formattingAnalysis['score'];
 
-            // 4. Content structure
+            // 4. Content structure — interactive types don't need subheadings
             $structureAnalysis = $this->analyzeContentStructure($content);
-            $scores['content_structure'] = $structureAnalysis['score'];
+            $scores['content_structure'] = $isInteractive ? max(80, $structureAnalysis['score']) : $structureAnalysis['score'];
 
             // 5. Excerpt/summary
             $excerptAnalysis = $this->analyzeExcerpt($excerpt);

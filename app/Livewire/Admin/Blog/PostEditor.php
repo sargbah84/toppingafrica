@@ -76,6 +76,7 @@ class PostEditor extends Component
         'trivia',
         'listicle',
         'gallery',
+        'poll',
     ];
 
     public function mount(?int $postId = null): void
@@ -354,7 +355,9 @@ class PostEditor extends Component
                 Rule::unique('posts', 'slug')->ignore($this->postId),
             ],
             'excerpt' => ['nullable', 'string', 'max:500'],
-            'content' => ['required', 'string', 'min:10'],
+            'content' => in_array($this->post_type, ['quiz', 'trivia', 'poll'])
+                ? ['nullable', 'string']
+                : ['required', 'string', 'min:10'],
             'post_type' => ['required', Rule::in($this->postTypes)],
             'type_data' => ['nullable', 'array'],
             'selectedCategories' => ['array'],
@@ -374,6 +377,27 @@ class PostEditor extends Component
             'scheduled_at' => ['nullable', 'required_if:status,scheduled', 'date', 'after:now'],
             'is_featured' => ['boolean'],
         ];
+
+        if ($this->post_type === 'quiz') {
+            $rules['type_data.questions'] = ['required', 'array', 'min:1'];
+            $rules['type_data.questions.*.question'] = ['required', 'string', 'min:3'];
+            $rules['type_data.questions.*.answers'] = ['required', 'array', 'min:2'];
+            $rules['type_data.questions.*.answers.*.text'] = ['required', 'string'];
+            $rules['type_data.passing_score'] = ['required', 'integer', 'min:0', 'max:100'];
+        }
+
+        if ($this->post_type === 'poll') {
+            $rules['type_data.options'] = ['required', 'array', 'min:2'];
+            $rules['type_data.options.*.text'] = ['required', 'string', 'min:1'];
+            $rules['type_data.ends_at'] = ['nullable', 'date'];
+        }
+
+        if ($this->post_type === 'trivia') {
+            $rules['type_data.facts'] = ['required', 'array', 'min:1'];
+            $rules['type_data.facts.*.text'] = ['required', 'string', 'min:3'];
+        }
+
+        return $rules;
     }
 
     protected function messages(): array
@@ -412,8 +436,83 @@ class PostEditor extends Component
                 'layout' => 'grid',
                 'columns' => 3,
             ],
+            'poll' => [
+                'options' => [],
+                'allow_multiple' => false,
+                'show_results_before_vote' => false,
+                'ends_at' => null,
+            ],
             default => [],
         };
+    }
+
+    // Quiz type_data methods
+
+    public function addQuizQuestion(): void
+    {
+        $this->type_data['questions'][] = [
+            'question' => '',
+            'answers' => [
+                ['text' => '', 'is_correct' => true],
+                ['text' => '', 'is_correct' => false],
+            ],
+            'explanation' => '',
+        ];
+    }
+
+    public function removeQuizQuestion(int $index): void
+    {
+        unset($this->type_data['questions'][$index]);
+        $this->type_data['questions'] = array_values($this->type_data['questions']);
+    }
+
+    public function addQuizAnswer(int $questionIndex): void
+    {
+        $this->type_data['questions'][$questionIndex]['answers'][] = [
+            'text' => '',
+            'is_correct' => false,
+        ];
+    }
+
+    public function removeQuizAnswer(int $questionIndex, int $answerIndex): void
+    {
+        unset($this->type_data['questions'][$questionIndex]['answers'][$answerIndex]);
+        $this->type_data['questions'][$questionIndex]['answers'] = array_values(
+            $this->type_data['questions'][$questionIndex]['answers']
+        );
+    }
+
+    public function setCorrectAnswer(int $questionIndex, int $answerIndex): void
+    {
+        foreach ($this->type_data['questions'][$questionIndex]['answers'] as $i => &$answer) {
+            $answer['is_correct'] = ($i === $answerIndex);
+        }
+    }
+
+    // Trivia type_data methods
+
+    public function addTriviaFact(): void
+    {
+        $this->type_data['facts'][] = ['text' => '', 'source' => ''];
+    }
+
+    public function removeTriviaFact(int $index): void
+    {
+        unset($this->type_data['facts'][$index]);
+        $this->type_data['facts'] = array_values($this->type_data['facts']);
+    }
+
+    // Poll type_data methods
+
+    public function addPollOption(): void
+    {
+        $this->type_data['options'][] = ['text' => ''];
+    }
+
+    public function removePollOption(int $index): void
+    {
+        unset($this->type_data['options'][$index]);
+        $this->type_data['options'] = array_values($this->type_data['options']);
     }
 
     protected function calculateReadingTime(): int

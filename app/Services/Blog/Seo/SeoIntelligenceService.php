@@ -35,21 +35,28 @@ final class SeoIntelligenceService
             $post->saveQuietly();
         }
 
-        // Run all 5 analyzers
-        $contentQuality = $this->contentQualityAnalyzer->analyze($content, $focusKeyword);
+        // Combine type_data content for analysis
+        $combinedContent = $content . $this->extractTypeDataContent($post);
+        $postType = $post->post_type ?? 'article';
+        $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
+
+        // Run all 5 analyzers (pass post type for adjusted scoring)
+        $contentQuality = $this->contentQualityAnalyzer->analyze($combinedContent, $focusKeyword, $postType);
         $technicalSeo = $this->technicalSeoAnalyzer->analyze(
-            $content,
+            $combinedContent,
             $post->meta_title,
             $post->meta_description,
             $post->slug,
             $post->title,
+            $postType,
         );
-        $readability = $this->readabilityAnalyzer->analyze($content);
-        $userEngagement = $this->userEngagementAnalyzer->analyze($content, $post->id);
+        $readability = $this->readabilityAnalyzer->analyze($combinedContent, $postType);
+        $userEngagement = $this->userEngagementAnalyzer->analyze($combinedContent, $post->id, $postType);
         $onPageElements = $this->onPageElementsAnalyzer->analyze(
-            $content,
+            $combinedContent,
             $post->featured_image,
             $post->excerpt,
+            $postType,
         );
 
         // Calculate weighted overall score
@@ -584,6 +591,45 @@ PROMPT;
     private function mbStrlenSafe(?string $str): int
     {
         return $str ? mb_strlen($str) : 0;
+    }
+
+    private function extractTypeDataContent(Post $post): string
+    {
+        $typeData = $post->type_data ?? [];
+        $parts = [];
+
+        // Quiz: extract question and answer text
+        if (!empty($typeData['questions'])) {
+            foreach ($typeData['questions'] as $q) {
+                $parts[] = $q['question'] ?? '';
+                foreach ($q['answers'] ?? [] as $a) {
+                    $parts[] = $a['text'] ?? '';
+                }
+                if (!empty($q['explanation'])) {
+                    $parts[] = $q['explanation'];
+                }
+            }
+        }
+
+        // Trivia: extract fact text
+        if (!empty($typeData['facts'])) {
+            foreach ($typeData['facts'] as $fact) {
+                $parts[] = $fact['text'] ?? '';
+            }
+        }
+
+        // Poll: extract option text
+        if (!empty($typeData['options'])) {
+            foreach ($typeData['options'] as $option) {
+                $parts[] = $option['text'] ?? '';
+            }
+        }
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        return "\n\n" . implode("\n", array_filter($parts));
     }
 
     private function extractKeywordFromTitle(string $title): string

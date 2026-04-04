@@ -19,16 +19,16 @@
                 </svg>
                 Saving...
             </span>
-            <button
-                type="button"
-                x-on:click="$dispatch('open-ai-generator')"
-                class="px-4 py-2 border border-indigo-300 dark:border-indigo-700 rounded-lg text-sm font-medium text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-2"
-            >
-                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
-                </svg>
-                AI Generate
-            </button>
+            @if($postId && $slug)
+                <a href="{{ route('blog.show', $slug) }}" target="_blank"
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    Preview
+                </a>
+            @endif
             <button wire:click="saveDraft" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                 Save Draft
             </button>
@@ -96,11 +96,172 @@
                 </div>
             </div>
 
-            {{-- Content (TinyMCE Editor) --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden" wire:ignore>
-                <textarea id="editor-content">{!! $content !!}</textarea>
-            </div>
-            @error('content') <p class="mt-1 text-sm text-red-600 dark:text-red-400 px-1">{{ $message }}</p> @enderror
+            @if(in_array($post_type, ['quiz', 'trivia', 'poll']))
+                {{-- Type-Specific Content Editor --}}
+
+                {{-- Description (optional intro text) --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                    <label for="content-intro" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Introduction (optional)</label>
+                    <textarea
+                        wire:model="content"
+                        id="content-intro"
+                        rows="3"
+                        placeholder="Brief intro displayed above the {{ $post_type }}..."
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    ></textarea>
+                </div>
+
+                @if($post_type === 'quiz')
+                    {{-- Quiz Editor --}}
+                    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">Quiz Questions</h3>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Passing Score (%)</label>
+                                <input type="number" wire:model="type_data.passing_score" min="0" max="100"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div class="flex items-end">
+                                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <input type="checkbox" wire:model="type_data.show_answers"
+                                           class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                                    Show correct answers after
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            @foreach($type_data['questions'] ?? [] as $qi => $question)
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Question {{ $qi + 1 }}</span>
+                                        <button type="button" wire:click="removeQuizQuestion({{ $qi }})" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+                                    </div>
+
+                                    <input type="text" wire:model="type_data.questions.{{ $qi }}.question" placeholder="Enter question..."
+                                           class="w-full px-3 py-2 mb-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+
+                                    <div class="space-y-2 mb-3">
+                                        @foreach($question['answers'] ?? [] as $ai => $answer)
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" wire:click="setCorrectAnswer({{ $qi }}, {{ $ai }})"
+                                                        class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center {{ ($answer['is_correct'] ?? false) ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600 hover:border-green-400' }}">
+                                                    @if($answer['is_correct'] ?? false)
+                                                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/></svg>
+                                                    @endif
+                                                </button>
+                                                <input type="text" wire:model="type_data.questions.{{ $qi }}.answers.{{ $ai }}.text" placeholder="Answer option..."
+                                                       class="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                                                @if(count($question['answers']) > 2)
+                                                    <button type="button" wire:click="removeQuizAnswer({{ $qi }}, {{ $ai }})" class="text-gray-400 hover:text-red-500">
+                                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+
+                                    <button type="button" wire:click="addQuizAnswer({{ $qi }})" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium">+ Add Answer</button>
+
+                                    <div class="mt-3">
+                                        <input type="text" wire:model="type_data.questions.{{ $qi }}.explanation" placeholder="Explanation (shown after answering)..."
+                                               class="w-full px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <button type="button" wire:click="addQuizQuestion"
+                                class="mt-4 w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors">
+                            + Add Question
+                        </button>
+                        @error('type_data.questions') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @elseif($post_type === 'trivia')
+                    {{-- Trivia Editor --}}
+                    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">Trivia Facts</h3>
+
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Source URL (optional)</label>
+                            <input type="url" wire:model="type_data.source_url" placeholder="https://..."
+                                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        <div class="space-y-3">
+                            @foreach($type_data['facts'] ?? [] as $fi => $fact)
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Fact {{ $fi + 1 }}</span>
+                                        <button type="button" wire:click="removeTriviaFact({{ $fi }})" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+                                    </div>
+                                    <textarea wire:model="type_data.facts.{{ $fi }}.text" rows="2" placeholder="Enter a fun fact..."
+                                              class="w-full px-3 py-2 mb-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500"></textarea>
+                                    <input type="text" wire:model="type_data.facts.{{ $fi }}.source" placeholder="Source (optional)"
+                                           class="w-full px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <button type="button" wire:click="addTriviaFact"
+                                class="mt-4 w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors">
+                            + Add Fact
+                        </button>
+                        @error('type_data.facts') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @elseif($post_type === 'poll')
+                    {{-- Poll Editor --}}
+                    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">Poll Options</h3>
+
+                        <div class="space-y-3 mb-4">
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" wire:model="type_data.allow_multiple"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                                Allow multiple selections
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" wire:model="type_data.show_results_before_vote"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                                Show results before voting
+                            </label>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">End Date (optional)</label>
+                                <input type="datetime-local" wire:model="type_data.ends_at"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            @foreach($type_data['options'] ?? [] as $oi => $option)
+                                <div class="flex items-center gap-2">
+                                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">{{ $oi + 1 }}</span>
+                                    <input type="text" wire:model="type_data.options.{{ $oi }}.text" placeholder="Option {{ $oi + 1 }}..."
+                                           class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500">
+                                    @if(count($type_data['options']) > 2)
+                                        <button type="button" wire:click="removePollOption({{ $oi }})" class="text-gray-400 hover:text-red-500">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <button type="button" wire:click="addPollOption"
+                                class="mt-4 w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors">
+                            + Add Option
+                        </button>
+                        @error('type_data.options') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+            @else
+                {{-- Content (TinyMCE Editor) --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden" wire:ignore>
+                    <textarea id="editor-content">{!! $content !!}</textarea>
+                </div>
+                @error('content') <p class="mt-1 text-sm text-red-600 dark:text-red-400 px-1">{{ $message }}</p> @enderror
+            @endif
 
             {{-- Excerpt --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">

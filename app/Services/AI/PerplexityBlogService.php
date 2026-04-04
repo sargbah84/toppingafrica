@@ -203,6 +203,7 @@ PROMPT;
         $categories = implode(', ', array_column(config('blog.default_categories', []), 'name'));
 
         $trendingSection = $this->buildTrendingKeywordsSection($request);
+        $typeSection = $this->buildPostTypeSection($request);
 
         return <<<PROMPT
 Generate a comprehensive blog post with the following requirements:
@@ -211,24 +212,85 @@ Topic: {$request->topic}
 Target Length: approximately {$wordCount} words
 Tone: {$tone}
 Target Keyword (if any): {$request->targetKeyword}
-{$trendingSection}
+{$trendingSection}{$typeSection}
 Use your online search capabilities to include the latest information and trends about this topic, particularly as they relate to Africa.
 
 Return a JSON object with these exact keys (no markdown, just JSON):
 {
     "title": "SEO-optimized blog post title",
-    "body": "Full blog post content in HTML format with proper headings (h2, h3), paragraphs, lists, etc.",
+    "body": "Brief introduction text (1-2 paragraphs) for context",
     "excerpt": "Compelling 2-3 sentence excerpt for preview",
     "meta_title": "SEO meta title (max 60 characters)",
     "meta_description": "SEO meta description (155-160 characters)",
     "focus_keyword": "Primary focus keyword",
     "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
     "categories": ["Category1", "Category2"],
-    "internal_link_topics": ["Related topic 1", "Related topic 2"]
+    "internal_link_topics": ["Related topic 1", "Related topic 2"],
+    "type_data": {}
 }
 
 Available categories: {$categories}
 PROMPT;
+    }
+
+    private function buildPostTypeSection(PostGenerationRequest $request): string
+    {
+        return match ($request->postType) {
+            'quiz' => <<<'QUIZ'
+
+POST TYPE: Quiz
+Generate an interactive quiz. The "body" should be a brief intro (1-2 paragraphs).
+The "type_data" must contain:
+{
+    "questions": [
+        {
+            "question": "Question text?",
+            "answers": [
+                {"text": "Option A", "is_correct": false},
+                {"text": "Option B", "is_correct": true},
+                {"text": "Option C", "is_correct": false},
+                {"text": "Option D", "is_correct": false}
+            ],
+            "explanation": "Why the correct answer is correct."
+        }
+    ],
+    "passing_score": 60,
+    "show_answers": true
+}
+Generate 5-8 quiz questions with 4 answer options each. Only ONE answer should be correct per question.
+QUIZ,
+            'trivia' => <<<'TRIVIA'
+
+POST TYPE: Trivia
+Generate a collection of fascinating trivia facts. The "body" should be a brief intro (1-2 paragraphs).
+The "type_data" must contain:
+{
+    "facts": [
+        {"text": "An interesting fact about the topic.", "source": "Source name or publication"}
+    ],
+    "source_url": ""
+}
+Generate 8-12 surprising, well-researched trivia facts with sources.
+TRIVIA,
+            'poll' => <<<'POLL'
+
+POST TYPE: Poll
+Generate an opinion poll. The "body" should be a brief intro explaining the poll context (1-2 paragraphs).
+The "type_data" must contain:
+{
+    "options": [
+        {"text": "Option 1"},
+        {"text": "Option 2"},
+        {"text": "Option 3"}
+    ],
+    "allow_multiple": false,
+    "show_results_before_vote": false,
+    "ends_at": null
+}
+Generate 4-8 compelling poll options that cover different perspectives. Options should be concise and clear.
+POLL,
+            default => '',
+        };
     }
 
     private function buildTrendingKeywordsSection(PostGenerationRequest $request): string

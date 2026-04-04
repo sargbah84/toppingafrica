@@ -29,6 +29,8 @@ final readonly class PostData
         public array $suggestedTags = [],
         public array $suggestedCategories = [],
         public array $internalLinks = [],
+        public string $postType = 'article',
+        public array $typeData = [],
     ) {}
 
     public function toArray(): array

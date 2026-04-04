@@ -172,6 +172,11 @@ class Post extends Model implements HasMedia
         return $this->hasMany(PostView::class);
     }
 
+    public function pollVotes(): HasMany
+    {
+        return $this->hasMany(PollVote::class);
+    }
+
     public function seoAnalyses(): HasMany
     {
         return $this->hasMany(SeoAnalysis::class);

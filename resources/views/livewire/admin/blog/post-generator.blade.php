@@ -266,6 +266,18 @@
                                     placeholder="Enter a focus keyword for SEO...">
                             </div>
 
+                            <!-- Post Type -->
+                            <div>
+                                <label for="postType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Post Type</label>
+                                <select id="postType" wire:model="postType"
+                                    class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="article">Article</option>
+                                    <option value="quiz">Quiz</option>
+                                    <option value="trivia">Trivia</option>
+                                    <option value="poll">Poll</option>
+                                </select>
+                            </div>
+
                             <!-- AI Provider -->
                             <div>
                                 <label for="aiProvider" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">AI Provider</label>

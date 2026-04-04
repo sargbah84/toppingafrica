@@ -15,10 +15,11 @@ final class ReadabilityAnalyzer
         $this->config = config('seo-intelligence', []);
     }
 
-    public function analyze(string $content): array
+    public function analyze(string $content, string $postType = 'article'): array
     {
         try {
             $plainText = $this->stripHtml($content);
+            $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
             $scores = [];
 
             // 1. Flesch Reading Ease
@@ -29,17 +30,17 @@ final class ReadabilityAnalyzer
             $sentenceAnalysis = $this->analyzeSentenceLength($plainText);
             $scores['sentence_length'] = $sentenceAnalysis['score'];
 
-            // 3. Average paragraph length
+            // 3. Average paragraph length — interactive types have short intros, don't penalize
             $paragraphAnalysis = $this->analyzeParagraphLength($content);
-            $scores['paragraph_length'] = $paragraphAnalysis['score'];
+            $scores['paragraph_length'] = $isInteractive ? max(80, $paragraphAnalysis['score']) : $paragraphAnalysis['score'];
 
             // 4. Complex word percentage
             $complexWordAnalysis = $this->analyzeComplexWords($plainText);
             $scores['complex_words'] = $complexWordAnalysis['score'];
 
-            // 5. Transition word usage
+            // 5. Transition words — interactive types don't need transitions
             $transitionAnalysis = $this->analyzeTransitionWords($plainText);
-            $scores['transition_words'] = $transitionAnalysis['score'];
+            $scores['transition_words'] = $isInteractive ? max(70, $transitionAnalysis['score']) : $transitionAnalysis['score'];
 
             // 6. Passive voice detection
             $passiveAnalysis = $this->analyzePassiveVoice($plainText);

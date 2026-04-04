@@ -25,6 +25,7 @@ class PostGenerator extends Component
 
     public string $topic = '';
     public string $aiProvider = 'perplexity';
+    public string $postType = 'article';
     public string $length = 'medium';
     public string $tone = 'professional';
     public ?string $targetKeyword = null;
@@ -37,6 +38,7 @@ class PostGenerator extends Component
     protected $rules = [
         'topic' => 'required|min:5|max:200',
         'aiProvider' => 'required|in:openai,perplexity,anthropic',
+        'postType' => 'required|in:article,quiz,trivia,poll',
         'length' => 'required|in:short,medium,long',
         'tone' => 'required|in:professional,conversational,technical,beginner',
         'targetKeyword' => 'nullable|max:50',
@@ -91,6 +93,7 @@ class PostGenerator extends Component
         $this->inputMode = 'suggest';
         $this->topic = '';
         $this->aiProvider = 'perplexity';
+        $this->postType = 'article';
         $this->length = 'medium';
         $this->tone = 'professional';
         $this->targetKeyword = null;
@@ -197,6 +200,7 @@ class PostGenerator extends Component
                 length: $this->length,
                 tone: $this->tone,
                 targetKeyword: $this->targetKeyword,
+                postType: $this->postType,
                 additionalContext: $additionalContext,
             );
 
@@ -219,6 +223,8 @@ class PostGenerator extends Component
                 'internal_links' => $postData->internalLinks,
                 'ai_provider' => $postData->aiProvider,
                 'generation_params' => $postData->generationParams,
+                'post_type' => $postData->postType,
+                'type_data' => $postData->typeData,
             ];
 
             $this->dispatch('content-generated', content: $this->generatedContent);

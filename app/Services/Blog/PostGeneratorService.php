@@ -76,6 +76,8 @@ final class PostGeneratorService
             suggestedTags: $content['tags'],
             suggestedCategories: $content['categories'],
             internalLinks: $internalLinks,
+            postType: $request->postType,
+            typeData: $content['type_data'] ?? [],
         );
     }
 

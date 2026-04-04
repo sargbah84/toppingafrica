@@ -77,8 +77,8 @@
             @endif
         </header>
 
-        {{-- Featured Image --}}
-        @if($post->featured_image_url)
+        {{-- Featured Image (hidden for interactive post types) --}}
+        @if($post->featured_image_url && !in_array($post->post_type, ['video', 'poll', 'quiz', 'trivia']))
             <figure class="max-w-4xl mx-auto mb-10">
                 <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
                      class="w-full rounded-sm" loading="eager">
@@ -99,6 +99,21 @@
                         prose-img:rounded-sm">
                 {!! $post->content !!}
             </div>
+
+            {{-- Type-specific interactive content --}}
+            @if($post->post_type === 'quiz' && !empty($post->type_data['questions']))
+                <div class="mt-8 mb-8">
+                    <livewire:blog.quiz-player :post="$post" />
+                </div>
+            @elseif($post->post_type === 'trivia' && !empty($post->type_data['facts']))
+                <div class="mt-8 mb-8">
+                    <livewire:blog.trivia-cards :post="$post" />
+                </div>
+            @elseif($post->post_type === 'poll' && !empty($post->type_data['options']))
+                <div class="mt-8 mb-8">
+                    <livewire:blog.poll-widget :post="$post" />
+                </div>
+            @endif
 
             {{-- Ad: In Article --}}
             <x-ad-slot position="in_article" />

@@ -15,19 +15,20 @@ final class ContentQualityAnalyzer
         $this->config = config('seo-intelligence', []);
     }
 
-    public function analyze(string $content, ?string $focusKeyword): array
+    public function analyze(string $content, ?string $focusKeyword, string $postType = 'article'): array
     {
         try {
             $plainText = $this->stripHtml($content);
             $wordCount = str_word_count($plainText);
+            $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
             $scores = [];
 
-            // 1. Keyword placement & density
-            $keywordAnalysis = $this->analyzeKeywordUsage($plainText, $content, $focusKeyword);
+            // 1. Keyword placement & density (relaxed for interactive types)
+            $keywordAnalysis = $this->analyzeKeywordUsage($plainText, $content, $focusKeyword, $isInteractive);
             $scores['keyword_usage'] = $keywordAnalysis['score'];
 
-            // 2. Content length
-            $lengthScore = $this->scorContentLength($wordCount);
+            // 2. Content length (adjusted targets for interactive types)
+            $lengthScore = $this->scorContentLength($wordCount, $isInteractive);
             $scores['content_length'] = $lengthScore;
 
             // 3. Keyword stuffing detection
@@ -60,7 +61,7 @@ final class ContentQualityAnalyzer
         }
     }
 
-    private function analyzeKeywordUsage(string $plainText, string $html, ?string $keyword): array
+    private function analyzeKeywordUsage(string $plainText, string $html, ?string $keyword, bool $isInteractive = false): array
     {
         if (empty($keyword)) {
             return [
@@ -93,15 +94,18 @@ final class ContentQualityAnalyzer
         $score = 0;
         $targets = $this->config['targets']['keyword_density'] ?? ['min' => 1.0, 'max' => 2.0];
 
-        // Density scoring (40 points)
-        if ($density >= $targets['min'] && $density <= $targets['max']) {
+        // Density scoring (40 points) — relaxed for interactive types
+        $minDensity = $isInteractive ? 0.3 : $targets['min'];
+        $maxDensity = $isInteractive ? 5.0 : $targets['max'];
+
+        if ($density >= $minDensity && $density <= $maxDensity) {
             $score += 40;
-        } elseif ($density > 0 && $density < $targets['min']) {
-            $score += (int) round(($density / $targets['min']) * 30);
-        } elseif ($density > $targets['max'] && $density <= 3.0) {
+        } elseif ($density > 0 && $density < $minDensity) {
+            $score += (int) round(($density / $minDensity) * 30);
+        } elseif ($density > $maxDensity && $density <= 6.0) {
             $score += 25;
         } else {
-            $score += 10;
+            $score += $isInteractive ? 20 : 10;
         }
 
         // First paragraph (20 points)
@@ -109,8 +113,8 @@ final class ContentQualityAnalyzer
             $score += 20;
         }
 
-        // Headings (20 points)
-        if ($inHeadings) {
+        // Headings (20 points) — interactive types don't need headings
+        if ($inHeadings || $isInteractive) {
             $score += 20;
         }
 
@@ -128,8 +132,23 @@ final class ContentQualityAnalyzer
         ];
     }
 
-    private function scorContentLength(int $wordCount): int
+    private function scorContentLength(int $wordCount, bool $isInteractive = false): int
     {
+        if ($isInteractive) {
+            // Interactive posts: intro text + type_data content combined
+            // Much lower word count targets since the content IS the interactive element
+            if ($wordCount >= 100) {
+                return 100;
+            }
+            if ($wordCount >= 50) {
+                return 80;
+            }
+            if ($wordCount >= 20) {
+                return 60;
+            }
+            return 40;
+        }
+
         $targets = $this->config['targets']['word_count'] ?? ['min' => 1500, 'max' => 2500];
 
         if ($wordCount >= $targets['min'] && $wordCount <= $targets['max']) {
@@ -137,7 +156,6 @@ final class ContentQualityAnalyzer
         }
 
         if ($wordCount > $targets['max']) {
-            // Slightly penalize very long content
             $excess = $wordCount - $targets['max'];
             return max(60, 100 - (int) round($excess / 100));
         }

@@ -33,6 +33,7 @@ return [
         'quiz' => ['name' => 'Quiz', 'icon' => 'help-circle'],
         'trivia' => ['name' => 'Trivia', 'icon' => 'lightbulb'],
         'listicle' => ['name' => 'Listicle', 'icon' => 'list-ordered'],
+        'poll' => ['name' => 'Poll', 'icon' => 'bar-chart-2'],
     ],
 
     /*

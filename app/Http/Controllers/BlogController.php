@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\PostViewTracker;
+use App\Services\ContentShortcodeParser;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -105,6 +106,11 @@ class BlogController extends Controller
         $categories = Category::active()->ordered()
             ->withCount(['posts' => fn ($q) => $q->published()])
             ->get();
+
+        // Parse shortcodes (e.g. [poll:slug]) in article content
+        if ($post->post_type === 'article') {
+            $post->content = app(ContentShortcodeParser::class)->parse($post->content);
+        }
 
         return view('blog.show', compact('post', 'relatedPosts', 'categories'));
     }
