@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Blog;
 
+use App\Livewire\Concerns\HasRecaptcha;
 use App\Models\Comment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,7 @@ use Livewire\Component;
 
 class Comments extends Component
 {
+    use HasRecaptcha;
     public int $postId;
 
     // Comment form
@@ -60,6 +62,10 @@ class Comments extends Component
             'body' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
+        if (!$this->validateRecaptcha('comment')) {
+            return;
+        }
+
         Comment::create([
             'post_id' => $this->postId,
             'user_id' => Auth::id(),
@@ -87,6 +93,10 @@ class Comments extends Component
             'replyEmail' => ['required', 'email', 'max:255'],
             'replyBody' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
+
+        if (!$this->validateRecaptcha('comment_reply')) {
+            return;
+        }
 
         // Ensure max 2 levels: if parent is already a reply, use its parent_id
         $parent = Comment::findOrFail($this->replyingTo);

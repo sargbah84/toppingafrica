@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\RecaptchaService;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -7,6 +8,7 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.guest')] class extends Component
 {
     public string $email = '';
+    public string $recaptchaToken = '';
 
     /**
      * Send a password reset link to the provided email address.
@@ -16,6 +18,15 @@ new #[Layout('layouts.guest')] class extends Component
         $this->validate([
             'email' => ['required', 'string', 'email'],
         ]);
+
+        $recaptcha = app(RecaptchaService::class);
+        if ($recaptcha->isEnabled()) {
+            $result = $recaptcha->verify($this->recaptchaToken, 'forgot_password');
+            if (!$result['success']) {
+                $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
+                return;
+            }
+        }
 
         $status = Password::sendResetLink(
             $this->only('email')
@@ -48,7 +59,33 @@ new #[Layout('layouts.guest')] class extends Component
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <form wire:submit="sendPasswordResetLink">
+    @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
+
+    <form x-data="{ siteKey: '{{ $recaptchaSiteKey }}' }"
+          x-on:submit.prevent="
+              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                  grecaptcha.enterprise.ready(async () => {
+                      try {
+                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'forgot_password' });
+                          $wire.set('recaptchaToken', token);
+                      } catch (e) {
+                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+                      }
+                      $wire.sendPasswordResetLink();
+                  });
+              } else if (siteKey) {
+                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
+                  $wire.sendPasswordResetLink();
+              } else {
+                  $wire.sendPasswordResetLink();
+              }
+          ">
+        @error('recaptcha')
+            <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+            </div>
+        @enderror
+
         <!-- Email Address -->
         <div>
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>

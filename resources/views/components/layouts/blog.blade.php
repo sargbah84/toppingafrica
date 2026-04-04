@@ -67,6 +67,11 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+
+    {{-- Google reCAPTCHA Enterprise --}}
+    @if(app(\App\Services\RecaptchaService::class)->isEnabled())
+        <script src="https://www.google.com/recaptcha/enterprise.js?render={{ app(\App\Services\RecaptchaService::class)->getSiteKey() }}" defer></script>
+    @endif
 </head>
 <body class="bg-white dark:bg-[#1f1f1f] text-gray-900 dark:text-gray-100 font-sans antialiased transition-colors duration-300">
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\RecaptchaService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,7 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public string $recaptchaToken = '';
 
     /**
      * Handle an incoming registration request.
@@ -25,6 +27,15 @@ new #[Layout('layouts.guest')] class extends Component
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        $recaptcha = app(RecaptchaService::class);
+        if ($recaptcha->isEnabled()) {
+            $result = $recaptcha->verify($this->recaptchaToken, 'register');
+            if (!$result['success']) {
+                $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
+                return;
+            }
+        }
 
         $validated['password'] = Hash::make($validated['password']);
 
@@ -48,7 +59,33 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
     </div>
 
-    <form wire:submit="register">
+    @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
+
+    <form x-data="{ siteKey: '{{ $recaptchaSiteKey }}' }"
+          x-on:submit.prevent="
+              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                  grecaptcha.enterprise.ready(async () => {
+                      try {
+                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'register' });
+                          $wire.set('recaptchaToken', token);
+                      } catch (e) {
+                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+                      }
+                      $wire.register();
+                  });
+              } else if (siteKey) {
+                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
+                  $wire.register();
+              } else {
+                  $wire.register();
+              }
+          ">
+        @error('recaptcha')
+            <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+            </div>
+        @enderror
+
         <!-- Name -->
         <div>
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
