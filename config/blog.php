@@ -1,6 +1,6 @@
 <?php
 
-// Blog configuration for Topping Africa CMS
+// Topping Africa - Blog & Interactive Content Configuration
 
 return [
 
