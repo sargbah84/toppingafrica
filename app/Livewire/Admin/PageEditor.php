@@ -120,7 +120,11 @@ class PageEditor extends Component
 
         $providerConfig = config("blog.ai.providers.{$provider}");
 
-        $systemPrompt = "You are a professional content writer and SEO expert. Generate well-structured HTML content for a website page, plus SEO metadata. Use proper headings (h2, h3), paragraphs, and lists where appropriate. Do not include the page title as an h1 - start with the body content. Write in a {$this->aiTone} tone.\n\nReturn your response as JSON with this exact structure:\n{\"content\": \"<html content here>\", \"meta_title\": \"SEO title (max 60 chars)\", \"meta_description\": \"SEO description (max 155 chars)\"}\n\nReturn ONLY the JSON, no markdown fences.";
+        $siteName = \App\Models\Setting::get('site_name', config('app.name'));
+        $siteUrl = config('app.url');
+        $siteDescription = \App\Models\Setting::get('site_description', '');
+
+        $systemPrompt = "You are a professional content writer and SEO expert writing for \"{$siteName}\" ({$siteUrl}). {$siteDescription}\n\nGenerate well-structured HTML content for a website page, plus SEO metadata. Use the actual company/website name \"{$siteName}\" wherever relevant — never use placeholders like [Company Name]. Use proper headings (h2, h3), paragraphs, and lists where appropriate. Do not include the page title as an h1 - start with the body content. Write in a {$this->aiTone} tone.\n\nReturn your response as JSON with this exact structure:\n{\"content\": \"<html content here>\", \"meta_title\": \"SEO title (max 60 chars)\", \"meta_description\": \"SEO description (max 155 chars)\"}\n\nReturn ONLY the JSON, no markdown fences.";
 
         $userPrompt = "Write the content for a webpage about: {$this->aiPrompt}";
 
@@ -185,10 +189,17 @@ class PageEditor extends Component
         }
     }
 
+    private function siteContext(): string
+    {
+        $siteName = \App\Models\Setting::get('site_name', config('app.name'));
+
+        return "You are writing for \"{$siteName}\". Always use the actual name \"{$siteName}\" — never use placeholders like [Company Name] or [Website Name].";
+    }
+
     public function aiImproveContent(): void
     {
         $this->callAiInline(
-            'You are an expert editor. Improve the following HTML page content: make it more engaging, fix grammar, improve structure, and ensure proper HTML formatting. Keep the same general meaning and structure. Return only the improved HTML.',
+            $this->siteContext() . ' You are an expert editor. Improve the following HTML page content: make it more engaging, fix grammar, improve structure, and ensure proper HTML formatting. Keep the same general meaning and structure. Return only the improved HTML.',
             $this->content,
             'content',
             'page-improve',
@@ -198,7 +209,7 @@ class PageEditor extends Component
     public function aiRewriteContent(): void
     {
         $this->callAiInline(
-            'You are a professional content writer. Rewrite the following HTML page content in a fresh way while preserving the core information and meaning. Use proper HTML headings (h2, h3), paragraphs, and lists. Return only HTML.',
+            $this->siteContext() . ' You are a professional content writer. Rewrite the following HTML page content in a fresh way while preserving the core information and meaning. Use proper HTML headings (h2, h3), paragraphs, and lists. Return only HTML.',
             $this->content,
             'content',
             'page-rewrite',
@@ -207,8 +218,9 @@ class PageEditor extends Component
 
     public function aiGenerateSeo(): void
     {
+        $siteName = \App\Models\Setting::get('site_name', config('app.name'));
         $this->callAiInline(
-            'You are an SEO expert. Based on the page title and content provided, generate an optimized meta title (max 60 chars) and meta description (max 155 chars). Return as JSON: {"meta_title": "...", "meta_description": "..."}. Return ONLY the JSON, no markdown.',
+            "You are an SEO expert writing for \"{$siteName}\". Based on the page title and content provided, generate an optimized meta title (max 60 chars) and meta description (max 155 chars) using the brand name \"{$siteName}\". Return as JSON: {\"meta_title\": \"...\", \"meta_description\": \"...\"}. Return ONLY the JSON, no markdown.",
             "Title: {$this->title}\n\nContent: " . strip_tags(substr($this->content, 0, 2000)),
             'seo',
             'page-seo',
