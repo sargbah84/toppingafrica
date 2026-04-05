@@ -54,7 +54,6 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -72,32 +71,24 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @foreach($user->roles as $role)
-                                    <span class="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:text-indigo-300">
-                                        {{ ucfirst($role->name) }}
-                                    </span>
-                                @endforeach
-                                @if($user->roles->isEmpty())
-                                    <span class="text-sm text-gray-400 dark:text-gray-500">No role</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex flex-wrap gap-1">
-                                    @if($user->is_super_admin)
-                                        <span class="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">
-                                            Super Admin
+                                    @forelse($user->roles as $role)
+                                        @php
+                                            $roleColor = match ($role->name) {
+                                                'super-admin' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                                'staff' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                                'editor' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                                                'author' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+                                                'regular' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                                                default => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+                                            };
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $roleColor }}">
+                                            {{ str_replace('-', ' ', ucfirst($role->name)) }}
                                         </span>
-                                    @endif
-                                    @if($user->is_staff)
-                                        <span class="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-300">
-                                            Staff
-                                        </span>
-                                    @endif
-                                    @if(!$user->is_staff && !$user->is_super_admin)
-                                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                                            Member
-                                        </span>
-                                    @endif
+                                    @empty
+                                        <span class="text-sm text-gray-400 dark:text-gray-500">No role</span>
+                                    @endforelse
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -120,7 +111,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                            <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                                 No users found.
                             </td>
                         </tr>

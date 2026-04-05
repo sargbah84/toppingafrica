@@ -36,8 +36,10 @@ class DatabaseSeeder extends Seeder
         }
 
         $superAdmin = Role::create(['name' => 'super-admin']);
+        $staff = Role::create(['name' => 'staff']);
         $editor = Role::create(['name' => 'editor']);
         $author = Role::create(['name' => 'author']);
+        $regular = Role::create(['name' => 'regular']);
 
         $superAdmin->givePermissionTo(Permission::all());
         $editor->givePermissionTo([
