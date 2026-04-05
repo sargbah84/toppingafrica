@@ -442,6 +442,20 @@ class StatsOverview extends Component
     }
 
     #[Computed]
+    public function gscNeedsConnection(): bool
+    {
+        return GoogleSearchConsoleService::needsConnection();
+    }
+
+    #[Computed]
+    public function gscOAuthUrl(): string
+    {
+        return GoogleSearchConsoleService::hasCredentials()
+            ? GoogleSearchConsoleService::getOAuthUrl()
+            : '';
+    }
+
+    #[Computed]
     public function gscTopQueries(): Collection
     {
         return SearchConsoleData::select(

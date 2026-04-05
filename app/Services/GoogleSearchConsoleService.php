@@ -41,6 +41,17 @@ final class GoogleSearchConsoleService
             && !empty(config('services.google.search_console_site_url'));
     }
 
+    public static function hasCredentials(): bool
+    {
+        return !empty(config('services.google.client_id'))
+            && !empty(config('services.google.client_secret'));
+    }
+
+    public static function needsConnection(): bool
+    {
+        return self::hasCredentials() && !self::isConfigured();
+    }
+
     public static function getOAuthUrl(): string
     {
         $params = http_build_query([

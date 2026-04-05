@@ -534,7 +534,32 @@
 
     {{-- ═══ SEARCH (GSC) TAB ═══ --}}
     @elseif ($activeTab === 'search')
-        @if (!$this->gscIsConfigured)
+        @if ($this->gscNeedsConnection)
+            {{-- Has credentials but needs OAuth connection --}}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-8 text-center">
+                <div class="mx-auto w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                    <svg class="h-8 w-8 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Connect Google Search Console</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                    Your Google credentials are configured. Click below to sign in with the Google account that owns your Search Console property.
+                </p>
+                <a href="{{ $this->gscOAuthUrl }}"
+                   class="inline-flex items-center gap-3 px-6 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Sign in with Google</span>
+                </a>
+                <p class="text-xs text-gray-400 mt-4">You'll be redirected to Google to authorize read-only access to your Search Console data.</p>
+            </div>
+        @elseif (!$this->gscIsConfigured)
+            {{-- No credentials at all --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-8 text-center">
                 <svg class="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -548,14 +573,14 @@
                     <ol class="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-decimal list-inside">
                         <li>Create a Google Cloud project and enable the Search Console API</li>
                         <li>Create OAuth 2.0 credentials (Web application type)</li>
-                        <li>Add these environment variables to your <code class="bg-gray-200 dark:bg-gray-600 px-1 rounded">.env</code>:</li>
+                        <li>Set redirect URI to: <code class="bg-gray-200 dark:bg-gray-600 px-1 rounded text-xs">{{ route('admin.settings.gsc-callback') }}</code></li>
+                        <li>Add these to your <code class="bg-gray-200 dark:bg-gray-600 px-1 rounded">.env</code> and reload:</li>
                     </ol>
                     <pre class="mt-3 text-xs bg-gray-900 text-green-400 p-3 rounded-lg overflow-x-auto">GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
-GOOGLE_SEARCH_CONSOLE_REFRESH_TOKEN=your-refresh-token
 GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                        Then run <code class="bg-gray-200 dark:bg-gray-600 px-1 rounded">php artisan gsc:sync</code> to pull data, or schedule it daily.
+                        Once added, a "Sign in with Google" button will appear here to complete the connection.
                     </p>
                 </div>
             </div>
