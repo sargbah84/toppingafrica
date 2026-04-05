@@ -37,6 +37,7 @@ class SettingController extends Controller
         'meta_title',
         'meta_description',
         'footer_text',
+        'footer_pages',
         'posts_per_page',
         'allow_comments',
         'moderate_comments',
@@ -56,6 +57,9 @@ class SettingController extends Controller
             $settings[$key] ??= '';
         }
 
+        $pages = \App\Models\Page::orderBy('title')->get(['id', 'title', 'slug']);
+        $footerPageIds = json_decode(Setting::get('footer_pages', '[]'), true) ?: [];
+
         $monitoring = [
             'activity_count' => Activity::count(),
             'activity_today' => Activity::whereDate('created_at', today())->count(),
@@ -65,7 +69,7 @@ class SettingController extends Controller
             'failed_jobs' => DB::table('failed_jobs')->count(),
         ];
 
-        return view('admin.settings.index', compact('settings', 'monitoring'));
+        return view('admin.settings.index', compact('settings', 'monitoring', 'pages', 'footerPageIds'));
     }
 
     /**
@@ -91,10 +95,20 @@ class SettingController extends Controller
             'meta_title'          => ['nullable', 'string', 'max:255'],
             'meta_description'    => ['nullable', 'string', 'max:300'],
             'footer_text'         => ['nullable', 'string', 'max:1000'],
+            'footer_pages'        => ['nullable', 'array'],
+            'footer_pages.*'      => ['integer', 'exists:pages,id'],
             'posts_per_page'      => ['nullable', 'integer', 'min:1', 'max:100'],
             'allow_comments'      => ['nullable', 'string', 'in:0,1'],
             'moderate_comments'   => ['nullable', 'string', 'in:0,1'],
         ]);
+
+        // Store footer_pages as JSON
+        if (isset($validated['footer_pages'])) {
+            Setting::set('footer_pages', json_encode($validated['footer_pages']));
+            unset($validated['footer_pages']);
+        } else {
+            Setting::set('footer_pages', '[]');
+        }
 
         foreach ($validated as $key => $value) {
             if (in_array($key, self::SETTING_KEYS, true)) {

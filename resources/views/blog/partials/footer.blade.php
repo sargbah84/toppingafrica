@@ -37,15 +37,20 @@
             {{-- Right: Link Columns --}}
             <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-6">
                 {{-- About --}}
+                @php
+                    $footerPageIds = json_decode(\App\Models\Setting::get('footer_pages', '[]'), true) ?: [];
+                    $footerPages = $footerPageIds ? \App\Models\Page::whereIn('id', $footerPageIds)->published()->orderBy('title')->get() : collect();
+                @endphp
+                @if ($footerPages->isNotEmpty())
                 <div>
                     <h5 class="text-white text-xs font-bold uppercase tracking-wider mb-5">About</h5>
                     <ul class="space-y-3">
-                        <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Terms And Conditions</a></li>
-                        <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Help & Support Policy</a></li>
-                        <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Licensing Policy</a></li>
-                        <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Refund Policy</a></li>
+                        @foreach ($footerPages as $fPage)
+                            <li><a href="/{{ $fPage->slug }}" class="text-sm text-gray-400 hover:text-white transition-colors">{{ $fPage->title }}</a></li>
+                        @endforeach
                     </ul>
                 </div>
+                @endif
 
                 {{-- News --}}
                 <div>

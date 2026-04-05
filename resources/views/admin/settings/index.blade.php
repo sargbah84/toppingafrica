@@ -99,6 +99,29 @@
             </div>
         </div>
 
+        {{-- Footer Links --}}
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">Footer Links (About Section)</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which pages to show in the footer's About section.</p>
+            @if ($pages->isEmpty())
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic">No pages created yet. <a href="{{ route('admin.pages.create') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create a page</a> first.</p>
+            @else
+                <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    @foreach ($pages as $page)
+                        <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                            <input type="checkbox" name="footer_pages[]" value="{{ $page->id }}"
+                                {{ in_array($page->id, $footerPageIds) ? 'checked' : '' }}
+                                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $page->title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">/{{ $page->slug }}</span>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
         {{-- Social Media --}}
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Social Media</h3>
