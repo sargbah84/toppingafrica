@@ -85,6 +85,12 @@ class BlogController extends Controller
 
     public function show(Request $request, string $slug): View
     {
+        // Check for a published page first
+        $page = \App\Models\Page::where('slug', $slug)->published()->first();
+        if ($page) {
+            return view('blog.page', compact('page'));
+        }
+
         $post = Post::where('slug', $slug)
             ->with('author', 'categories', 'tags')
             ->firstOrFail();
