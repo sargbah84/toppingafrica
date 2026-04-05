@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\AI\Concerns;
 
+use App\Models\AiUsageLog;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
 
@@ -20,6 +21,22 @@ trait TracksAiUsage
     ): void {
         try {
             [$inputTokens, $outputTokens] = $this->extractTokenCounts($response, $providerSlug);
+            $totalTokens = $inputTokens + $outputTokens;
+            $estimatedCost = AiUsageLog::calculateCost($providerSlug, $model, $inputTokens, $outputTokens);
+
+            AiUsageLog::create([
+                'user_id' => auth()->id(),
+                'provider' => $providerSlug,
+                'model' => $model,
+                'feature' => $feature,
+                'input_tokens' => $inputTokens,
+                'output_tokens' => $outputTokens,
+                'total_tokens' => $totalTokens,
+                'estimated_cost' => $estimatedCost,
+                'duration_ms' => $durationMs,
+                'is_successful' => $isSuccessful,
+                'error_message' => $errorMessage ? mb_substr($errorMessage, 0, 500) : null,
+            ]);
 
             Log::info('AI usage tracked', [
                 'provider' => $providerSlug,
@@ -27,9 +44,10 @@ trait TracksAiUsage
                 'feature' => $feature,
                 'input_tokens' => $inputTokens,
                 'output_tokens' => $outputTokens,
+                'total_tokens' => $totalTokens,
+                'estimated_cost' => $estimatedCost,
                 'duration_ms' => $durationMs,
                 'is_successful' => $isSuccessful,
-                'error_message' => $errorMessage ? mb_substr($errorMessage, 0, 500) : null,
             ]);
         } catch (\Throwable $e) {
             Log::warning('AI usage tracking failed', [

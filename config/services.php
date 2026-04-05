@@ -42,4 +42,11 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'search_console_refresh_token' => env('GOOGLE_SEARCH_CONSOLE_REFRESH_TOKEN'),
+        'search_console_site_url' => env('GOOGLE_SEARCH_CONSOLE_SITE_URL'),
+    ],
+
 ];

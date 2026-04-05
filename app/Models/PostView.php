@@ -16,6 +16,8 @@ class PostView extends Model
         'user_id',
         'ip_hash',
         'user_agent',
+        'referer',
+        'device_type',
         'viewed_at',
     ];
 
@@ -33,7 +35,7 @@ class PostView extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null): void
+    public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
     {
         $ipHash = hash('sha256', $ip . config('app.key'));
 
@@ -48,11 +50,32 @@ class PostView extends Model
                 'user_id' => $userId,
                 'ip_hash' => $ipHash,
                 'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
+                'referer' => $referer ? substr($referer, 0, 255) : null,
+                'device_type' => static::detectDeviceType($userAgent),
                 'viewed_at' => now(),
             ]);
 
             $post->incrementViewsCount();
         }
+    }
+
+    public static function detectDeviceType(?string $userAgent): string
+    {
+        if (!$userAgent) {
+            return 'desktop';
+        }
+
+        $ua = strtolower($userAgent);
+
+        if (preg_match('/mobile|android|iphone|ipod|blackberry|opera mini|iemobile|wpdesktop/i', $ua)) {
+            return 'mobile';
+        }
+
+        if (preg_match('/tablet|ipad|playbook|silk/i', $ua)) {
+            return 'tablet';
+        }
+
+        return 'desktop';
     }
 
     public function scopeForPost($query, Post $post)

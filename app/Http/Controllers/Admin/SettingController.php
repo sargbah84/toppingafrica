@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\GoogleSearchConsoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -88,5 +89,28 @@ class SettingController extends Controller
         return redirect()
             ->route('admin.settings.index')
             ->with('success', 'Settings updated successfully.');
+    }
+
+    public function gscCallback(Request $request): RedirectResponse
+    {
+        $code = $request->query('code');
+
+        if (!$code) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Google Search Console authorization failed.');
+        }
+
+        $tokens = GoogleSearchConsoleService::exchangeCode($code);
+
+        if (!$tokens || empty($tokens['refresh_token'])) {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Failed to obtain Google Search Console tokens.');
+        }
+
+        // Store the refresh token in the .env or settings
+        Setting::set('gsc_refresh_token', $tokens['refresh_token']);
+
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Google Search Console connected successfully. Add the refresh token to your .env as GOOGLE_SEARCH_CONSOLE_REFRESH_TOKEN.');
     }
 }

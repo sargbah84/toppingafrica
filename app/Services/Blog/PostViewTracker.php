@@ -16,7 +16,8 @@ final class PostViewTracker
             $post,
             $request->ip(),
             auth()->id(),
-            $request->userAgent()
+            $request->userAgent(),
+            $request->headers->get('referer')
         );
     }
 
