@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>{{ config('app.name', 'Topping Africa') }}</title>
+        <title>{{ \App\Models\Setting::get('site_name', config('app.name')) }}</title>
         <link>{{ config('app.url') }}</link>
-        <description>African News, Entertainment, Business, Technology, Sports &amp; Culture</description>
+        <description>{{ \App\Models\Setting::get('site_description', config('app.name')) }}</description>
         <language>en</language>
         <lastBuildDate>{{ $posts->first()?->published_at?->toRssString() ?? now()->toRssString() }}</lastBuildDate>
         <atom:link href="{{ route('blog.feed') }}" rel="self" type="application/rss+xml"/>
-        <copyright>{{ date('Y') }} {{ config('app.name', 'Topping Africa') }}. All rights reserved.</copyright>
+        <copyright>{{ date('Y') }} {{ \App\Models\Setting::get('site_name', config('app.name')) }}. All rights reserved.</copyright>
 
         @foreach($posts as $post)
         <item>

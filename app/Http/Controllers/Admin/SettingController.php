@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\RequestLog;
 use App\Models\Setting;
 use App\Services\GoogleSearchConsoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Spatie\Activitylog\Models\Activity;
 
 class SettingController extends Controller
 {
@@ -22,6 +25,7 @@ class SettingController extends Controller
         'site_tagline',
         'site_logo',
         'site_favicon',
+        'site_address',
         'contact_email',
         'social_facebook',
         'social_twitter',
@@ -29,6 +33,7 @@ class SettingController extends Controller
         'social_linkedin',
         'social_youtube',
         'google_analytics_id',
+        'google_tag_manager_id',
         'meta_title',
         'meta_description',
         'footer_text',
@@ -51,7 +56,16 @@ class SettingController extends Controller
             $settings[$key] ??= '';
         }
 
-        return view('admin.settings.index', compact('settings'));
+        $monitoring = [
+            'activity_count' => Activity::count(),
+            'activity_today' => Activity::whereDate('created_at', today())->count(),
+            'request_count' => RequestLog::count(),
+            'request_errors' => RequestLog::where('status_code', '>=', 400)->count(),
+            'pending_jobs' => DB::table('jobs')->count(),
+            'failed_jobs' => DB::table('failed_jobs')->count(),
+        ];
+
+        return view('admin.settings.index', compact('settings', 'monitoring'));
     }
 
     /**
@@ -65,6 +79,7 @@ class SettingController extends Controller
             'site_tagline'        => ['nullable', 'string', 'max:255'],
             'site_logo'           => ['nullable', 'string', 'max:500'],
             'site_favicon'        => ['nullable', 'string', 'max:500'],
+            'site_address'        => ['nullable', 'string', 'max:500'],
             'contact_email'       => ['nullable', 'email', 'max:255'],
             'social_facebook'     => ['nullable', 'url', 'max:500'],
             'social_twitter'      => ['nullable', 'url', 'max:500'],
@@ -72,6 +87,7 @@ class SettingController extends Controller
             'social_linkedin'     => ['nullable', 'url', 'max:500'],
             'social_youtube'      => ['nullable', 'url', 'max:500'],
             'google_analytics_id' => ['nullable', 'string', 'max:50'],
+            'google_tag_manager_id' => ['nullable', 'string', 'max:50'],
             'meta_title'          => ['nullable', 'string', 'max:255'],
             'meta_description'    => ['nullable', 'string', 'max:300'],
             'footer_text'         => ['nullable', 'string', 'max:1000'],

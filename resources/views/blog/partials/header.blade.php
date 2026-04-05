@@ -43,7 +43,7 @@
 
             {{-- Center: Logo Image --}}
             <a href="{{ route('home') }}" class="absolute left-1/2 -translate-x-1/2">
-                <img src="{{ asset('img/topping-africa-logo.png') }}" alt="Topping Africa" class="h-12 dark:brightness-0 dark:invert">
+                <img src="{{ asset('img/topping-africa-logo.png') }}" alt="{{ \App\Models\Setting::get('site_name', config('app.name')) }}" class="h-12 dark:brightness-0 dark:invert">
             </a>
 
             {{-- Right: Actions --}}

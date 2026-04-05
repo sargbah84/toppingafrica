@@ -58,8 +58,11 @@
                 <div class="h-6 w-px bg-gray-200 dark:bg-gray-700 lg:hidden"></div>
 
                 <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-                    <div class="flex flex-1 items-center">
+                    <div class="flex flex-1 items-center gap-x-4">
                         <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $header ?? '' }}</h1>
+                        <a href="/" target="_blank" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                            View Site &rarr;
+                        </a>
                     </div>
                     <div class="flex items-center gap-x-4 lg:gap-x-6">
                         {{-- Dark mode toggle --}}
@@ -72,16 +75,63 @@
                             </svg>
                         </button>
 
-                        {{-- View site --}}
-                        <a href="/" target="_blank" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                            View Site &rarr;
-                        </a>
+                        {{-- Activity Notifications --}}
+                        <div x-data="{ open: false, logs: [] }" x-init="
+                            fetch('{{ route('admin.monitoring.activity-logs') }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        " class="relative">
+                            <button @click="open = !open" class="relative text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/>
+                                </svg>
+                                @php $recentCount = \Spatie\Activitylog\Models\Activity::where('created_at', '>=', now()->subDay())->count(); @endphp
+                                @if ($recentCount > 0)
+                                    <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $recentCount > 99 ? '99+' : $recentCount }}</span>
+                                @endif
+                            </button>
+
+                            <div x-show="open" @click.away="open = false" x-cloak
+                                 x-transition:enter="transition ease-out duration-150"
+                                 x-transition:enter-start="opacity-0 translate-y-1"
+                                 x-transition:enter-end="opacity-100 translate-y-0"
+                                 x-transition:leave="transition ease-in duration-100"
+                                 class="absolute right-0 z-10 mt-2 w-80 origin-top-right rounded-lg bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+                                <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+                                    <a href="{{ route('admin.monitoring.activity-logs') }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</a>
+                                </div>
+                                <div class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                                    @php $recentActivities = \Spatie\Activitylog\Models\Activity::with('causer')->latest()->limit(8)->get(); @endphp
+                                    @forelse ($recentActivities as $activity)
+                                        <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                            <div class="flex items-start gap-2">
+                                                @php
+                                                    $dotColor = match ($activity->event) {
+                                                        'created' => 'bg-green-500',
+                                                        'updated' => 'bg-blue-500',
+                                                        'deleted' => 'bg-red-500',
+                                                        default => 'bg-gray-400',
+                                                    };
+                                                @endphp
+                                                <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $dotColor }}"></span>
+                                                <div class="min-w-0 flex-1">
+                                                    <p class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $activity->description }}</p>
+                                                    <p class="text-xs text-gray-400 mt-0.5">
+                                                        {{ $activity->causer?->name ?? 'System' }} &middot; {{ $activity->created_at->diffForHumans() }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No recent activity</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
 
                         {{-- User dropdown --}}
                         <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open" class="flex items-center gap-x-2">
-                                <img class="h-8 w-8 rounded-full bg-gray-50" src="{{ auth()->user()->avatar_url }}" alt="">
-                                <span class="hidden lg:block text-sm font-semibold text-gray-900 dark:text-white">{{ auth()->user()->name }}</span>
+                            <button @click="open = !open" class="flex items-center">
+                                <img class="h-8 w-8 rounded-full bg-gray-50" src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}">
                             </button>
                             <div x-show="open" @click.away="open = false" x-cloak
                                  class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5">

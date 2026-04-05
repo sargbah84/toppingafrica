@@ -56,7 +56,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
         <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white">Create your account</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Join Topping Africa to stay connected with the latest African news and culture.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Join {{ \App\Models\Setting::get('site_name', config('app.name')) }} to stay connected with the latest content.</p>
         </div>
     </div>
 

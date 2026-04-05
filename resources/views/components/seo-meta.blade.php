@@ -16,11 +16,11 @@
 ])
 
 @php
-    $siteName = config('app.name', 'Topping Africa');
+    $siteName = \App\Models\Setting::get('site_name', config('app.name'));
     $siteUrl = config('app.url');
 
     $metaTitle = $title ?? $siteName;
-    $metaDescription = $description ?? 'African News, Entertainment, Business, Technology, Sports & Culture - Topping Africa';
+    $metaDescription = $description ?? \App\Models\Setting::get('site_description', $siteName);
     $metaCanonical = $canonical ?? url()->current();
 
     $defaultOgImage = file_exists(public_path('images/og-default.png'))
@@ -85,6 +85,10 @@
 <meta name="twitter:description" content="{{ Str::limit($metaDescription, 200) }}">
 <meta name="twitter:image" content="{{ $metaImage }}">
 <meta name="twitter:image:alt" content="{{ $metaImageAlt }}">
-@if(config('schema.organization.social_profiles.twitter'))
-<meta name="twitter:site" content="{{ '@' . ltrim(config('schema.organization.social_profiles.twitter'), '@') }}">
+@php
+    $twitterUrl = \App\Models\Setting::get('social_twitter', config('schema.organization.social_profiles.twitter'));
+    $twitterHandle = $twitterUrl ? preg_replace('#https?://(www\.)?(twitter\.com|x\.com)/#', '', $twitterUrl) : null;
+@endphp
+@if($twitterHandle)
+<meta name="twitter:site" content="{{ '@' . ltrim($twitterHandle, '@') }}">
 @endif

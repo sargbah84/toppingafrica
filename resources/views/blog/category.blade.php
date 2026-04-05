@@ -1,6 +1,6 @@
 <x-layouts.blog
     :title="$category->name"
-    :description="$category->description ?? 'Browse ' . $category->name . ' articles on Topping Africa.'"
+    :description="$category->description ?? 'Browse ' . $category->name . ' articles on ' . \App\Models\Setting::get('site_name', config('app.name')) . '.'"
     :canonical="route('blog.category', $category->slug)">
 
     @push('schema')

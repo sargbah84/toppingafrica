@@ -12,13 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Post extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, SoftDeletes;
+    use HasFactory, InteractsWithMedia, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'author_id',
@@ -286,5 +288,13 @@ class Post extends Model implements HasMedia
     public function scopeReadyToPublish($query)
     {
         return $query->where('status', 'scheduled')->where('scheduled_at', '<=', now());
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['title', 'status', 'author_id', 'post_type'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => "Post {$eventName}: {$this->title}");
     }
 }

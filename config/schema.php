@@ -2,31 +2,34 @@
 
 declare(strict_types=1);
 
+// Note: Setting::get() is used at runtime in views/services.
+// This config provides fallback defaults only — the DB settings take priority.
+
 return [
     'organization' => [
-        'name' => 'Topping Africa',
-        'legal_name' => 'Topping Africa',
-        'url' => env('APP_URL', 'https://toppingafrica.com'),
-        'logo' => env('APP_URL', 'https://toppingafrica.com') . '/images/logo.png',
-        'description' => 'Topping Africa is a leading African news and magazine platform covering breaking news, entertainment, business, technology, sports, politics, culture, and lifestyle from across the African continent.',
+        'name' => env('APP_NAME', 'My Blog'),
+        'legal_name' => env('APP_NAME', 'My Blog'),
+        'url' => env('APP_URL', 'https://example.com'),
+        'logo' => env('APP_URL', 'https://example.com') . '/images/logo.png',
+        'description' => env('APP_NAME', 'My Blog') . ' - News, Entertainment, Business & Culture.',
         'founding_date' => '2024',
-        'contact_email' => env('CONTACT_EMAIL', 'hello@toppingafrica.com'),
+        'contact_email' => env('CONTACT_EMAIL', 'hello@example.com'),
         'social_profiles' => [
-            'twitter' => env('SOCIAL_TWITTER', 'toppingafrica'),
-            'facebook' => env('SOCIAL_FACEBOOK', 'https://facebook.com/toppingafrica'),
-            'instagram' => env('SOCIAL_INSTAGRAM', 'https://instagram.com/toppingafrica'),
+            'twitter' => env('SOCIAL_TWITTER', ''),
+            'facebook' => env('SOCIAL_FACEBOOK', ''),
+            'instagram' => env('SOCIAL_INSTAGRAM', ''),
         ],
     ],
 
     'website' => [
-        'name' => 'Topping Africa',
-        'alternate_name' => 'Topping Africa - African News & Magazine',
-        'search_url_template' => env('APP_URL', 'https://toppingafrica.com') . '/search?q={search_term_string}',
+        'name' => env('APP_NAME', 'My Blog'),
+        'alternate_name' => env('APP_NAME', 'My Blog'),
+        'search_url_template' => env('APP_URL', 'https://example.com') . '/search?q={search_term_string}',
     ],
 
     'publisher' => [
-        'name' => 'Topping Africa',
-        'logo' => env('APP_URL', 'https://toppingafrica.com') . '/images/logo.png',
-        'url' => env('APP_URL', 'https://toppingafrica.com'),
+        'name' => env('APP_NAME', 'My Blog'),
+        'logo' => env('APP_URL', 'https://example.com') . '/images/logo.png',
+        'url' => env('APP_URL', 'https://example.com'),
     ],
 ];

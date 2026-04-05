@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Comment extends Model
 {
-    use SoftDeletes;
+    use LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'post_id',
@@ -57,5 +59,13 @@ class Comment extends Model
     public function scopeTopLevel($query)
     {
         return $query->whereNull('parent_id');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'post_id'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => "Comment {$eventName}");
     }
 }

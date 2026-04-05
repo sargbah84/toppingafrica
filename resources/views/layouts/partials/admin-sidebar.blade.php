@@ -1,7 +1,7 @@
 <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
     <div class="flex h-16 shrink-0 items-center">
         <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold text-white">
-            Topping Africa
+            {{ \App\Models\Setting::get('site_name', config('app.name')) }}
         </a>
     </div>
     <nav class="flex flex-1 flex-col">

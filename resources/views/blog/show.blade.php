@@ -140,7 +140,7 @@
                          class="w-16 h-16 rounded-full object-cover flex-shrink-0">
                     <div>
                         <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->name }}</h4>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at Topping Africa.' }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at ' . \App\Models\Setting::get('site_name', config('app.name')) . '.' }}</p>
                     </div>
                 </div>
             @endif

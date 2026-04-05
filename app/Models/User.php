@@ -11,12 +11,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use HasFactory, HasRoles, LogsActivity, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -65,5 +67,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute(): string
     {
         return $this->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=000000&color=ffffff';
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'is_staff', 'is_super_admin'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => "User {$eventName}");
     }
 }

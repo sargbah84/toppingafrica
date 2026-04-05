@@ -1,6 +1,6 @@
 <x-layouts.blog
     :title="$tag->name"
-    :description="'Articles tagged with ' . $tag->name . ' on Topping Africa.'"
+    :description="'Articles tagged with ' . $tag->name . ' on ' . \App\Models\Setting::get('site_name', config('app.name')) . '.'"
     :canonical="route('blog.tag', $tag->slug)">
 
     @push('schema')

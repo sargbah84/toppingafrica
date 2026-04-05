@@ -1,4 +1,4 @@
-<x-layouts.blog title="Home" description="African News, Entertainment, Business, Technology, Sports & Culture - Your source for what's happening across Africa.">
+<x-layouts.blog title="Home" :description="\App\Models\Setting::get('site_description')">
 
     @push('schema')
         <x-schema.json-ld page-type="home" :context="[]" />

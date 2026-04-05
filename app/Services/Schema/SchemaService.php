@@ -5,74 +5,72 @@ declare(strict_types=1);
 namespace App\Services\Schema;
 
 use App\Models\Post;
+use App\Models\Setting;
 
 final class SchemaService
 {
-    /**
-     * Generate Organization schema.
-     *
-     * @return array<string, mixed>
-     */
+    private function siteName(): string
+    {
+        return Setting::get('site_name', config('app.name'));
+    }
+
     public function organization(): array
     {
-        $config = config('schema.organization');
-        $socialProfiles = collect($config['social_profiles'] ?? [])
-            ->filter()
-            ->values()
-            ->toArray();
+        $siteName = $this->siteName();
+        $siteUrl = config('app.url');
+
+        $socialProfiles = collect([
+            Setting::get('social_facebook'),
+            Setting::get('social_twitter'),
+            Setting::get('social_instagram'),
+            Setting::get('social_youtube'),
+            Setting::get('social_linkedin'),
+        ])->filter()->values()->toArray();
 
         return [
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
-            'name' => $config['name'],
-            'legalName' => $config['legal_name'],
-            'url' => $config['url'],
-            'logo' => $config['logo'],
-            'description' => $config['description'],
-            'foundingDate' => $config['founding_date'],
+            'name' => $siteName,
+            'legalName' => $siteName,
+            'url' => $siteUrl,
+            'logo' => $siteUrl . '/images/logo.png',
+            'description' => Setting::get('site_description', $siteName),
+            'foundingDate' => config('schema.organization.founding_date', '2024'),
             'contactPoint' => [
                 '@type' => 'ContactPoint',
-                'email' => $config['contact_email'],
+                'email' => Setting::get('contact_email', config('schema.organization.contact_email')),
                 'contactType' => 'customer support',
             ],
             'sameAs' => $socialProfiles,
         ];
     }
 
-    /**
-     * Generate WebSite schema with search action.
-     *
-     * @return array<string, mixed>
-     */
     public function website(): array
     {
-        $config = config('schema.website');
+        $siteName = $this->siteName();
+        $siteUrl = config('app.url');
 
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
-            'name' => $config['name'],
-            'alternateName' => $config['alternate_name'],
-            'url' => config('schema.organization.url'),
+            'name' => $siteName,
+            'alternateName' => $siteName,
+            'url' => $siteUrl,
             'potentialAction' => [
                 '@type' => 'SearchAction',
                 'target' => [
                     '@type' => 'EntryPoint',
-                    'urlTemplate' => $config['search_url_template'],
+                    'urlTemplate' => $siteUrl . '/search?q={search_term_string}',
                 ],
                 'query-input' => 'required name=search_term_string',
             ],
         ];
     }
 
-    /**
-     * Generate Article schema for a blog post.
-     *
-     * @return array<string, mixed>
-     */
     public function article(Post $post): array
     {
-        $publisher = config('schema.publisher');
+        $siteName = $this->siteName();
+        $siteUrl = config('app.url');
 
         $schema = [
             '@context' => 'https://schema.org',
@@ -88,12 +86,12 @@ final class SchemaService
             ],
             'publisher' => [
                 '@type' => 'Organization',
-                'name' => $publisher['name'],
+                'name' => $siteName,
                 'logo' => [
                     '@type' => 'ImageObject',
-                    'url' => $publisher['logo'],
+                    'url' => $siteUrl . '/images/logo.png',
                 ],
-                'url' => $publisher['url'],
+                'url' => $siteUrl,
             ],
         ];
 

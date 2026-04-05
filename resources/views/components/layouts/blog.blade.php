@@ -14,11 +14,11 @@
     <link rel="manifest" href="/img/site.webmanifest">
     <meta name="theme-color" content="#d60842">
 
-    <title>{{ $title ?? 'Topping Africa' }} - {{ config('app.name') }}</title>
+    <title>{{ $title ?? \App\Models\Setting::get('site_name', config('app.name')) }} - {{ \App\Models\Setting::get('site_name', config('app.name')) }}</title>
 
     <x-seo-meta
-        :title="($title ?? 'Topping Africa') . ' - ' . config('app.name')"
-        :description="$metaDescription ?? 'African News, Entertainment, Business & Culture'"
+        :title="($title ?? \App\Models\Setting::get('site_name', config('app.name'))) . ' - ' . \App\Models\Setting::get('site_name', config('app.name'))"
+        :description="$metaDescription ?? \App\Models\Setting::get('site_description', 'News, Entertainment, Business & Culture')"
         :keywords="$keywords ?? null"
         :canonical="$canonical ?? null"
         :ogType="$ogType ?? 'website'"
@@ -34,7 +34,7 @@
     />
 
     {{-- RSS Feed --}}
-    <link rel="alternate" type="application/rss+xml" title="{{ config('app.name', 'Topping Africa') }} RSS Feed" href="{{ route('blog.feed') }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ \App\Models\Setting::get('site_name', config('app.name')) }} RSS Feed" href="{{ route('blog.feed') }}">
 
     {{-- Schema.org JSON-LD --}}
     @stack('schema')
@@ -72,6 +72,14 @@
         }
     </style>
 
+    {{-- Google Tag Manager / Analytics --}}
+    @if ($gtmId = \App\Models\Setting::get('google_tag_manager_id'))
+        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $gtmId }}');</script>
+    @elseif ($gaId = \App\Models\Setting::get('google_analytics_id'))
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
+        <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ $gaId }}');</script>
+    @endif
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 
@@ -81,6 +89,9 @@
     @endif
 </head>
 <body class="bg-white dark:bg-[#1f1f1f] text-gray-900 dark:text-gray-100 font-sans antialiased transition-colors duration-300">
+    @if ($gtmId = \App\Models\Setting::get('google_tag_manager_id'))
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ $gtmId }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    @endif
 
     {{-- Scroll Progress Bar --}}
     <div id="scroll-progress" class="fixed top-0 left-0 h-[3px] bg-primary z-[9999] transition-all duration-150" style="width: 0%"></div>
@@ -138,25 +149,25 @@
                 </nav>
 
                 {{-- Follow Us --}}
+                @php
+                    $socialLinks = [
+                        ['key' => 'social_facebook', 'label' => 'Facebook', 'icon' => 'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 1.092.063 1.376.126v3.205c-.25-.023-.685-.035-1.225-.035-1.74 0-2.413.659-2.413 2.373v1.889h3.476l-.597 3.667h-2.879v8.07C18.62 23.1 22.5 18.012 22.5 12.07c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.476 3.672 10.096 8.601 11.521'],
+                        ['key' => 'social_twitter', 'label' => 'X (Twitter)', 'icon' => 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z'],
+                        ['key' => 'social_youtube', 'label' => 'YouTube', 'icon' => 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12z'],
+                        ['key' => 'social_instagram', 'label' => 'Instagram', 'icon' => 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z'],
+                    ];
+                @endphp
                 <div class="mt-12">
                     <h3 class="text-sm font-bold uppercase tracking-wider text-white mb-5">Follow Us</h3>
                     <div class="space-y-3">
-                        <a href="https://facebook.com/toppingafrica" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 1.092.063 1.376.126v3.205c-.25-.023-.685-.035-1.225-.035-1.74 0-2.413.659-2.413 2.373v1.889h3.476l-.597 3.667h-2.879v8.07C18.62 23.1 22.5 18.012 22.5 12.07c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.476 3.672 10.096 8.601 11.521"/></svg>
-                            Facebook
-                        </a>
-                        <a href="https://x.com/toppingafrica" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                            X (Twitter)
-                        </a>
-                        <a href="https://youtube.com/@toppingafrica" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12z"/></svg>
-                            YouTube
-                        </a>
-                        <a href="https://instagram.com/toppingafrica" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
-                            Instagram
-                        </a>
+                        @foreach ($socialLinks as $social)
+                            @if ($url = \App\Models\Setting::get($social['key']))
+                                <a href="{{ $url }}" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="{{ $social['icon'] }}"/></svg>
+                                    {{ $social['label'] }}
+                                </a>
+                            @endif
+                        @endforeach
                     </div>
                 </div>
             </div>
