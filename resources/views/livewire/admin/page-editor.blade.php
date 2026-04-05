@@ -55,13 +55,13 @@
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-                <div class="sm:col-span-3">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Describe the page content</label>
-                    <input type="text" wire:model="aiPrompt" placeholder="e.g. About us page for an African news platform covering politics, culture, and technology"
+                    <input type="text" wire:model="aiPrompt" placeholder="e.g. Privacy policy for a news platform"
                         class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-purple-500 focus:border-purple-500">
                 </div>
-                <div>
+                <div class="w-full sm:w-40">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tone</label>
                     <select wire:model="aiTone" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-purple-500 focus:border-purple-500">
                         <option value="professional">Professional</option>
@@ -70,20 +70,15 @@
                         <option value="friendly">Friendly</option>
                     </select>
                 </div>
-            </div>
-            <div class="mt-4 flex items-center gap-3">
-                <button wire:click="generateWithAi" wire:loading.attr="disabled" wire:target="generateWithAi"
-                    class="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
-                    <span wire:loading.remove wire:target="generateWithAi">Generate Content</span>
-                    <span wire:loading wire:target="generateWithAi" class="flex items-center gap-2">
-                        <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        Generating...
-                    </span>
-                </button>
-                <p class="text-xs text-gray-500 dark:text-gray-400">This will replace the current content in the editor.</p>
+                <div class="flex items-end">
+                    <button wire:click="generateWithAi" wire:loading.attr="disabled" wire:target="generateWithAi"
+                        class="w-full sm:w-auto px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" wire:loading.remove wire:target="generateWithAi" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
+                        <svg class="animate-spin h-4 w-4" wire:loading wire:target="generateWithAi" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        <span wire:loading.remove wire:target="generateWithAi">Generate</span>
+                        <span wire:loading wire:target="generateWithAi">Generating...</span>
+                    </button>
+                </div>
             </div>
         </div>
     @endif
