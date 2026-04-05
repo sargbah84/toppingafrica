@@ -192,8 +192,24 @@ class PageEditor extends Component
     private function siteContext(): string
     {
         $siteName = \App\Models\Setting::get('site_name', config('app.name'));
+        $siteUrl = config('app.url');
+        $tagline = \App\Models\Setting::get('site_tagline', '');
+        $description = \App\Models\Setting::get('site_description', '');
+        $email = \App\Models\Setting::get('contact_email', '');
 
-        return "You are writing for \"{$siteName}\". Always use the actual name \"{$siteName}\" — never use placeholders like [Company Name] or [Website Name].";
+        $context = "You are writing for \"{$siteName}\" ({$siteUrl}).";
+        if ($tagline) {
+            $context .= " Tagline: \"{$tagline}\".";
+        }
+        if ($description) {
+            $context .= " About: {$description}";
+        }
+        if ($email) {
+            $context .= " Contact: {$email}.";
+        }
+        $context .= " Always use the actual name \"{$siteName}\" and URL \"{$siteUrl}\" — never use placeholders like [Company Name], [Website Name], or [website URL].";
+
+        return $context;
     }
 
     public function aiImproveContent(): void
