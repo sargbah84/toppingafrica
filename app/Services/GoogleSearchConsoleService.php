@@ -19,11 +19,17 @@ final class GoogleSearchConsoleService
         private readonly string $siteUrl,
     ) {}
 
+    private static function getRefreshToken(): ?string
+    {
+        return config('services.google.search_console_refresh_token')
+            ?: \App\Models\Setting::get('gsc_refresh_token');
+    }
+
     public static function fromConfig(): ?self
     {
         $clientId = config('services.google.client_id');
         $clientSecret = config('services.google.client_secret');
-        $refreshToken = config('services.google.search_console_refresh_token');
+        $refreshToken = self::getRefreshToken();
         $siteUrl = config('services.google.search_console_site_url');
 
         if (!$clientId || !$clientSecret || !$refreshToken || !$siteUrl) {
@@ -37,7 +43,7 @@ final class GoogleSearchConsoleService
     {
         return !empty(config('services.google.client_id'))
             && !empty(config('services.google.client_secret'))
-            && !empty(config('services.google.search_console_refresh_token'))
+            && !empty(self::getRefreshToken())
             && !empty(config('services.google.search_console_site_url'));
     }
 

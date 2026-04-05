@@ -130,36 +130,24 @@ class SettingController extends Controller
                 ->with('error', 'Google Search Console authorization failed.');
         }
 
-        $tokens = GoogleSearchConsoleService::exchangeCode($code);
+        try {
+            $tokens = GoogleSearchConsoleService::exchangeCode($code);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('GSC callback error', ['error' => $e->getMessage()]);
+
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Google Search Console connection failed: ' . $e->getMessage());
+        }
 
         if (!$tokens || empty($tokens['refresh_token'])) {
             return redirect()->route('admin.dashboard')
-                ->with('error', 'Failed to obtain Google Search Console tokens. Try again.');
+                ->with('error', 'Failed to obtain refresh token. Please try again.');
         }
 
-        // Write refresh token to .env
-        $this->setEnvValue('GOOGLE_SEARCH_CONSOLE_REFRESH_TOKEN', $tokens['refresh_token']);
-
-        // Clear config cache so the new value is picked up
-        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        // Store refresh token in database settings
+        Setting::set('gsc_refresh_token', $tokens['refresh_token']);
 
         return redirect()->route('admin.dashboard')
             ->with('success', 'Google Search Console connected successfully! Click the Search tab to sync your data.');
-    }
-
-    private function setEnvValue(string $key, string $value): void
-    {
-        $envPath = app()->environmentFilePath();
-        $contents = file_get_contents($envPath);
-
-        $escaped = str_contains($value, ' ') ? '"' . $value . '"' : $value;
-
-        if (preg_match("/^{$key}=.*/m", $contents)) {
-            $contents = preg_replace("/^{$key}=.*/m", "{$key}={$escaped}", $contents);
-        } else {
-            $contents .= "\n{$key}={$escaped}";
-        }
-
-        file_put_contents($envPath, $contents);
     }
 }
