@@ -176,6 +176,13 @@
                     <input type="text" name="google_tag_manager_id" value="{{ $settings['google_tag_manager_id'] ?? '' }}" placeholder="GTM-XXXXXXX" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">GTM includes Analytics, Ads, and any other tags you configure in Tag Manager.</p>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Exclude IPs from Analytics</label>
+                    <textarea name="excluded_ips" rows="3" placeholder="Enter one IP per line&#10;e.g. 127.0.0.1&#10;192.168.1.100" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono text-xs">{{ $settings['excluded_ips'] ?? '' }}</textarea>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Page views from these IPs won't be tracked. One IP per line. Your current IP: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ request()->ip() }}</code>
+                    </p>
+                </div>
             </div>
         </div>
 

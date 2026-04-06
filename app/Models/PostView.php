@@ -37,6 +37,12 @@ class PostView extends Model
 
     public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
     {
+        // Skip excluded IPs
+        $excludedIps = array_filter(array_map('trim', explode("\n", Setting::get('excluded_ips', ''))));
+        if (in_array($ip, $excludedIps, true)) {
+            return;
+        }
+
         $ipHash = hash('sha256', $ip . config('app.key'));
 
         $recentView = static::where('post_id', $post->id)
