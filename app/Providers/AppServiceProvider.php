@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogJobHistory;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
 use App\Services\RecaptchaService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,5 +46,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(Login::class, LogSuccessfulLogin::class);
         Event::listen(Logout::class, LogSuccessfulLogout::class);
+
+        $jobListener = new LogJobHistory;
+        Event::listen(JobProcessing::class, [$jobListener, 'handleProcessing']);
+        Event::listen(JobProcessed::class, [$jobListener, 'handleProcessed']);
+        Event::listen(JobFailed::class, [$jobListener, 'handleFailed']);
     }
 }
