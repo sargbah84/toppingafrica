@@ -224,26 +224,74 @@
                         <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
                             <p class="text-xs text-indigo-700 dark:text-indigo-400 mb-3">This page will display blog posts from the selected category or tag in a card grid layout.</p>
                             <div class="space-y-3">
-                                <div>
+                                {{-- Searchable Category Picker --}}
+                                @php $allCategories = \App\Models\Category::active()->ordered()->get(); @endphp
+                                <div x-data="{
+                                    open: false,
+                                    search: '',
+                                    items: {{ Js::from($allCategories->map(fn($c) => ['id' => $c->id, 'name' => $c->name])) }},
+                                    get filtered() { return this.search ? this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase())) : this.items },
+                                    selectedName: {{ Js::from($linked_category_id ? $allCategories->firstWhere('id', $linked_category_id)?->name : '') }},
+                                    select(item) { $wire.set('linked_category_id', item.id); $wire.set('linked_tag_id', null); this.selectedName = item.name; this.open = false; this.search = ''; },
+                                    clear() { $wire.set('linked_category_id', null); this.selectedName = ''; this.search = ''; }
+                                }" class="relative">
                                     <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-1">Category</label>
-                                    <select wire:model="linked_category_id"
-                                        class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                        <option value="">— Select category —</option>
-                                        @foreach (\App\Models\Category::active()->ordered()->get() as $cat)
-                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="relative">
+                                        <input type="text"
+                                            x-model="search"
+                                            @focus="open = true"
+                                            @click="open = true"
+                                            :placeholder="selectedName || 'Search categories...'"
+                                            class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <button x-show="selectedName" @click="clear()" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                    <div x-show="open" @click.away="open = false" x-cloak
+                                        class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+                                        <template x-for="item in filtered" :key="item.id">
+                                            <button type="button" @click="select(item)"
+                                                class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                                x-text="item.name"></button>
+                                        </template>
+                                        <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400">No categories match.</div>
+                                    </div>
                                 </div>
+
                                 <div class="text-center text-xs text-gray-400">— or —</div>
-                                <div>
+
+                                {{-- Searchable Tag Picker --}}
+                                @php $allTags = \App\Models\Tag::orderBy('name')->get(); @endphp
+                                <div x-data="{
+                                    open: false,
+                                    search: '',
+                                    items: {{ Js::from($allTags->map(fn($t) => ['id' => $t->id, 'name' => $t->name])) }},
+                                    get filtered() { return this.search ? this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase())) : this.items.slice(0, 50) },
+                                    selectedName: {{ Js::from($linked_tag_id ? $allTags->firstWhere('id', $linked_tag_id)?->name : '') }},
+                                    select(item) { $wire.set('linked_tag_id', item.id); $wire.set('linked_category_id', null); this.selectedName = item.name; this.open = false; this.search = ''; },
+                                    clear() { $wire.set('linked_tag_id', null); this.selectedName = ''; this.search = ''; }
+                                }" class="relative">
                                     <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-1">Tag</label>
-                                    <select wire:model="linked_tag_id"
-                                        class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                                        <option value="">— Select tag —</option>
-                                        @foreach (\App\Models\Tag::orderBy('name')->get() as $tag)
-                                            <option value="{{ $tag->id }}">{{ $tag->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="relative">
+                                        <input type="text"
+                                            x-model="search"
+                                            @focus="open = true"
+                                            @click="open = true"
+                                            :placeholder="selectedName || 'Search tags...'"
+                                            class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <button x-show="selectedName" @click="clear()" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                    <div x-show="open" @click.away="open = false" x-cloak
+                                        class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+                                        <template x-for="item in filtered" :key="item.id">
+                                            <button type="button" @click="select(item)"
+                                                class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                                                x-text="item.name"></button>
+                                        </template>
+                                        <div x-show="filtered.length === 0" class="px-3 py-2 text-xs text-gray-400">No tags match. Type to search.</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

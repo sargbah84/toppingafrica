@@ -31,6 +31,9 @@ class StatsOverview extends Component
 
     public ?string $dateTo = null;
 
+    // Page detail modal
+    public ?array $pageDetail = null;
+
     // Settings tab
     public string $newExclusionType = 'ip';
 
@@ -173,6 +176,73 @@ class StatsOverview extends Component
             ->orderByDesc('view_count')
             ->limit(10)
             ->get();
+    }
+
+    public function showPageDetail(string $slug): void
+    {
+        $post = \App\Models\Post::where('slug', $slug)->first();
+        if (!$post) {
+            return;
+        }
+
+        $start = $this->periodStart();
+        $end = $this->periodEnd();
+
+        $viewsQuery = PostView::where('post_id', $post->id);
+        if ($start) {
+            $viewsQuery->where('viewed_at', '>=', $start);
+        }
+        if ($end) {
+            $viewsQuery->where('viewed_at', '<=', $end);
+        }
+
+        $totalViews = (clone $viewsQuery)->count();
+        $uniqueVisitors = (clone $viewsQuery)->distinct('ip_hash')->count('ip_hash');
+
+        $referrers = (clone $viewsQuery)
+            ->whereNotNull('referer')
+            ->where('referer', '!=', '')
+            ->select('referer', DB::raw('COUNT(*) as count'))
+            ->groupBy('referer')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) {
+                $parsed = parse_url($item->referer);
+                $item->domain = $parsed['host'] ?? $item->referer;
+                return $item;
+            });
+
+        $devices = (clone $viewsQuery)
+            ->select('device_type', DB::raw('COUNT(*) as count'))
+            ->groupBy('device_type')
+            ->orderByDesc('count')
+            ->get();
+
+        $daily = [];
+        $days = 7;
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $daily[] = [
+                'date' => $date->format('M d'),
+                'views' => PostView::where('post_id', $post->id)->whereDate('viewed_at', $date->toDateString())->count(),
+            ];
+        }
+
+        $this->pageDetail = [
+            'title' => $post->title,
+            'slug' => $slug,
+            'total_views' => $totalViews,
+            'unique_visitors' => $uniqueVisitors,
+            'referrers' => $referrers->toArray(),
+            'devices' => $devices->toArray(),
+            'daily' => $daily,
+        ];
+    }
+
+    public function closePageDetail(): void
+    {
+        $this->pageDetail = null;
     }
 
     #[Computed]
