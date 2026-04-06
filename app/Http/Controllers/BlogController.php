@@ -85,9 +85,17 @@ class BlogController extends Controller
 
     public function show(Request $request, string $slug): View
     {
-        // Check for a published page first
-        $page = \App\Models\Page::where('slug', $slug)->published()->first();
+        // Check for a published page first (or draft with preview token)
+        $page = \App\Models\Page::where('slug', $slug)->first();
         if ($page) {
+            if (!$page->isPublished() && !$request->hasValidSignature()) {
+                abort(404);
+            }
+
+            if ($page->isBlogTemplate()) {
+                return $this->renderBlogPage($page, $request);
+            }
+
             return view('blog.page', compact('page'));
         }
 
@@ -95,7 +103,7 @@ class BlogController extends Controller
             ->with('author', 'categories', 'tags')
             ->firstOrFail();
 
-        if (!$post->isPublished()) {
+        if (!$post->isPublished() && !$request->hasValidSignature()) {
             abort(404);
         }
 
@@ -184,5 +192,22 @@ class BlogController extends Controller
 
         return response($content, 200)
             ->header('Content-Type', 'application/rss+xml; charset=UTF-8');
+    }
+
+    private function renderBlogPage(\App\Models\Page $page, Request $request): View
+    {
+        $query = Post::published()
+            ->with('author', 'categories')
+            ->latest('published_at');
+
+        if ($page->linked_category_id) {
+            $query->whereHas('categories', fn ($q) => $q->where('categories.id', $page->linked_category_id));
+        } elseif ($page->linked_tag_id) {
+            $query->whereHas('tags', fn ($q) => $q->where('tags.id', $page->linked_tag_id));
+        }
+
+        $posts = $query->paginate(config('blog.posts_per_page', 12));
+
+        return view('blog.page-blog', compact('page', 'posts'));
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -17,6 +18,8 @@ class Page extends Model
         'slug',
         'content',
         'template',
+        'linked_category_id',
+        'linked_tag_id',
         'meta_title',
         'meta_description',
         'status',
@@ -47,5 +50,20 @@ class Page extends Model
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
+    }
+
+    public function linkedCategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'linked_category_id');
+    }
+
+    public function linkedTag(): BelongsTo
+    {
+        return $this->belongsTo(Tag::class, 'linked_tag_id');
+    }
+
+    public function isBlogTemplate(): bool
+    {
+        return $this->template === 'blog';
     }
 }

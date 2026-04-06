@@ -37,10 +37,18 @@ class PostView extends Model
 
     public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
     {
-        // Skip excluded IPs
-        $excludedIps = array_filter(array_map('trim', explode("\n", Setting::get('excluded_ips', ''))));
-        if (in_array($ip, $excludedIps, true)) {
-            return;
+        // Skip excluded IPs and user agents
+        $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
+        foreach ($rules as $rule) {
+            if (!($rule['active'] ?? true)) {
+                continue;
+            }
+            if ($rule['type'] === 'ip' && $rule['value'] === $ip) {
+                return;
+            }
+            if ($rule['type'] === 'user_agent' && $userAgent && stripos($userAgent, $rule['value']) !== false) {
+                return;
+            }
         }
 
         $ipHash = hash('sha256', $ip . config('app.key'));

@@ -10,6 +10,7 @@ use App\Models\NewsletterSubscriber;
 use App\Models\Post;
 use App\Models\PostView;
 use App\Models\SearchConsoleData;
+use App\Models\Setting;
 use App\Models\SeoAnalysis;
 use App\Models\User;
 use App\Services\GoogleSearchConsoleService;
@@ -30,9 +31,16 @@ class StatsOverview extends Component
 
     public ?string $dateTo = null;
 
+    // Settings tab
+    public string $newExclusionType = 'ip';
+
+    public string $newExclusionValue = '';
+
+    public string $newExclusionLabel = '';
+
     public function setTab(string $tab): void
     {
-        if (in_array($tab, ['overview', 'traffic', 'search', 'tools', 'content', 'growth', 'engagement'], true)) {
+        if (in_array($tab, ['overview', 'traffic', 'search', 'tools', 'content', 'growth', 'engagement', 'settings'], true)) {
             $this->activeTab = $tab;
         }
     }
@@ -670,6 +678,105 @@ class StatsOverview extends Component
             'posts' => ['current' => $postsThisMonth, 'previous' => $postsLastMonth],
             'views' => ['current' => $viewsThisMonth, 'previous' => $viewsLastMonth],
         ];
+    }
+
+    // ── Settings Tab ──
+
+    #[Computed]
+    public function exclusionRules(): array
+    {
+        $raw = Setting::get('exclusion_rules', '[]');
+
+        return json_decode($raw, true) ?: [];
+    }
+
+    #[Computed]
+    public function currentIp(): string
+    {
+        return request()->ip() ?? '127.0.0.1';
+    }
+
+    #[Computed]
+    public function currentIpExcluded(): bool
+    {
+        $rules = $this->exclusionRules;
+        $ip = $this->currentIp;
+
+        foreach ($rules as $rule) {
+            if ($rule['type'] === 'ip' && $rule['value'] === $ip && ($rule['active'] ?? true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function addExclusion(): void
+    {
+        if (empty($this->newExclusionValue)) {
+            return;
+        }
+
+        $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
+
+        $rules[] = [
+            'id' => uniqid(),
+            'type' => $this->newExclusionType,
+            'value' => trim($this->newExclusionValue),
+            'label' => trim($this->newExclusionLabel) ?: null,
+            'active' => true,
+        ];
+
+        Setting::set('exclusion_rules', json_encode($rules));
+        $this->syncExcludedIps($rules);
+
+        $this->newExclusionValue = '';
+        $this->newExclusionLabel = '';
+        unset($this->exclusionRules, $this->currentIpExcluded);
+    }
+
+    public function excludeCurrentIp(): void
+    {
+        $this->newExclusionType = 'ip';
+        $this->newExclusionValue = $this->currentIp;
+        $this->newExclusionLabel = 'My IP';
+        $this->addExclusion();
+    }
+
+    public function toggleExclusion(string $id): void
+    {
+        $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
+
+        foreach ($rules as &$rule) {
+            if ($rule['id'] === $id) {
+                $rule['active'] = !($rule['active'] ?? true);
+                break;
+            }
+        }
+
+        Setting::set('exclusion_rules', json_encode($rules));
+        $this->syncExcludedIps($rules);
+        unset($this->exclusionRules, $this->currentIpExcluded);
+    }
+
+    public function removeExclusion(string $id): void
+    {
+        $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
+        $rules = array_values(array_filter($rules, fn ($r) => $r['id'] !== $id));
+
+        Setting::set('exclusion_rules', json_encode($rules));
+        $this->syncExcludedIps($rules);
+        unset($this->exclusionRules, $this->currentIpExcluded);
+    }
+
+    private function syncExcludedIps(array $rules): void
+    {
+        $ips = collect($rules)
+            ->filter(fn ($r) => $r['type'] === 'ip' && ($r['active'] ?? true))
+            ->pluck('value')
+            ->implode("\n");
+
+        Setting::set('excluded_ips', $ips);
     }
 
     public function render(): View

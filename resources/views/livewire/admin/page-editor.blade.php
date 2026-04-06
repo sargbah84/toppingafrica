@@ -19,6 +19,16 @@
                 </svg>
                 Processing...
             </span>
+            @if ($pageId && $slug)
+                <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('blog.show', now()->addHour(), ['slug' => $slug]) }}" target="_blank"
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    Preview
+                </a>
+            @endif
             @if (!$pageId)
                 <button wire:click="$toggle('showAiGenerator')" class="px-4 py-2 border border-purple-300 dark:border-purple-700 rounded-lg text-sm font-medium text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -201,13 +211,44 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Template</label>
-                        <select wire:model="template"
+                        <select wire:model.live="template"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm">
                             <option value="default">Default</option>
                             <option value="full-width">Full Width</option>
                             <option value="sidebar">With Sidebar</option>
+                            <option value="blog">Blog Listing</option>
                         </select>
                     </div>
+
+                    @if ($template === 'blog')
+                        <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+                            <p class="text-xs text-indigo-700 dark:text-indigo-400 mb-3">This page will display blog posts from the selected category or tag in a card grid layout.</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-1">Category</label>
+                                    <select wire:model="linked_category_id"
+                                        class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="">— Select category —</option>
+                                        @foreach (\App\Models\Category::active()->ordered()->get() as $cat)
+                                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="text-center text-xs text-gray-400">— or —</div>
+                                <div>
+                                    <label class="block text-xs font-medium text-indigo-700 dark:text-indigo-400 mb-1">Tag</label>
+                                    <select wire:model="linked_tag_id"
+                                        class="w-full px-3 py-1.5 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                        <option value="">— Select tag —</option>
+                                        @foreach (\App\Models\Tag::orderBy('name')->get() as $tag)
+                                            <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div>
                         <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Order</label>
                         <input type="number" wire:model="order" min="0"

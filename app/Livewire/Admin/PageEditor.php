@@ -22,6 +22,10 @@ class PageEditor extends Component
 
     public string $template = 'default';
 
+    public ?int $linked_category_id = null;
+
+    public ?int $linked_tag_id = null;
+
     public string $status = 'draft';
 
     public int $order = 0;
@@ -53,6 +57,8 @@ class PageEditor extends Component
         $this->slug = $page->slug;
         $this->content = $page->content ?? '';
         $this->template = $page->template ?? 'default';
+        $this->linked_category_id = $page->linked_category_id;
+        $this->linked_tag_id = $page->linked_tag_id;
         $this->status = $page->status;
         $this->order = $page->order ?? 0;
         $this->meta_title = $page->meta_title ?? '';
@@ -84,8 +90,10 @@ class PageEditor extends Component
         $validated = $this->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:pages,slug' . ($this->pageId ? ',' . $this->pageId : '')],
-            'content' => ['required', 'string'],
+            'content' => [$this->template === 'blog' ? 'nullable' : 'required', 'string'],
             'template' => ['nullable', 'string', 'max:100'],
+            'linked_category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'linked_tag_id' => ['nullable', 'integer', 'exists:tags,id'],
             'status' => ['required', 'in:draft,published'],
             'order' => ['nullable', 'integer', 'min:0'],
             'meta_title' => ['nullable', 'string', 'max:255'],
@@ -124,9 +132,17 @@ class PageEditor extends Component
         $siteUrl = config('app.url');
         $siteDescription = \App\Models\Setting::get('site_description', '');
 
-        $systemPrompt = "You are a professional content writer and SEO expert writing for \"{$siteName}\" ({$siteUrl}). {$siteDescription}\n\nGenerate well-structured HTML content for a website page, plus SEO metadata. Use the actual company/website name \"{$siteName}\" wherever relevant — never use placeholders like [Company Name]. Use proper headings (h2, h3), paragraphs, and lists where appropriate. Do not include the page title as an h1 - start with the body content. Write in a {$this->aiTone} tone.\n\nReturn your response as JSON with this exact structure:\n{\"content\": \"<html content here>\", \"meta_title\": \"SEO title (max 60 chars)\", \"meta_description\": \"SEO description (max 155 chars)\"}\n\nReturn ONLY the JSON, no markdown fences.";
+        $isBlogTemplate = $this->template === 'blog';
 
-        $userPrompt = "Write the content for a webpage about: {$this->aiPrompt}";
+        if ($isBlogTemplate) {
+            $systemPrompt = "You are a professional content writer and SEO expert writing for \"{$siteName}\" ({$siteUrl}). {$siteDescription}\n\nThis is a BLOG LISTING page that dynamically displays blog post cards. You only need to generate a short intro description (1-2 paragraphs max, in HTML) that appears above the post grid, plus SEO metadata. Do NOT write full article content — the page auto-populates with blog posts. Use the actual name \"{$siteName}\" — never placeholders. Write in a {$this->aiTone} tone.\n\nReturn your response as JSON with this exact structure:\n{\"content\": \"<short html intro>\", \"meta_title\": \"SEO title (max 60 chars)\", \"meta_description\": \"SEO description (max 155 chars)\"}\n\nReturn ONLY the JSON, no markdown fences.";
+        } else {
+            $systemPrompt = "You are a professional content writer and SEO expert writing for \"{$siteName}\" ({$siteUrl}). {$siteDescription}\n\nGenerate well-structured HTML content for a website page, plus SEO metadata. Use the actual company/website name \"{$siteName}\" wherever relevant — never use placeholders like [Company Name]. Use proper headings (h2, h3), paragraphs, and lists where appropriate. Do not include the page title as an h1 - start with the body content. Write in a {$this->aiTone} tone.\n\nReturn your response as JSON with this exact structure:\n{\"content\": \"<html content here>\", \"meta_title\": \"SEO title (max 60 chars)\", \"meta_description\": \"SEO description (max 155 chars)\"}\n\nReturn ONLY the JSON, no markdown fences.";
+        }
+
+        $userPrompt = $isBlogTemplate
+            ? "Write a short intro description and SEO metadata for a blog listing page about: {$this->aiPrompt}"
+            : "Write the content for a webpage about: {$this->aiPrompt}";
 
         if ($this->title) {
             $userPrompt .= "\n\nThe page title is: {$this->title}";
