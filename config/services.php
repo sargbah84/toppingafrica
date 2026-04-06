@@ -49,4 +49,13 @@ return [
         'search_console_site_url' => env('GOOGLE_SEARCH_CONSOLE_SITE_URL'),
     ],
 
+    'google_search' => [
+        'api_key' => env('GOOGLE_SEARCH_API_KEY'),
+        'cx' => env('GOOGLE_SEARCH_CX'),
+    ],
+
+    'serper' => [
+        'api_key' => env('SERPER_API_KEY'),
+    ],
+
 ];

@@ -279,11 +279,8 @@
                                 <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                                     <p class="text-sm text-yellow-700 dark:text-yellow-400">{{ $apiErrors['google'] }}</p>
                                     <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
-                                        Add <code class="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">GOOGLE_SEARCH_API_KEY</code> and
-                                        <code class="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">GOOGLE_SEARCH_CX</code> to your .env file.
-                                    </p>
-                                    <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
-                                        Alternatively, you can use <a href="https://serpapi.com/" target="_blank" class="underline">SerpApi</a> as a drop-in replacement for Google Image search.
+                                        Add <code class="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">SERPER_API_KEY</code> to your .env file.
+                                        Get a free key at <a href="https://serper.dev/" target="_blank" class="underline">serper.dev</a> (2,500 free searches/month).
                                     </p>
                                 </div>
                             @endif

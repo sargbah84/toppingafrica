@@ -58,48 +58,48 @@ final class ImageSearchService
     }
 
     /**
-     * Search Google Custom Search for images.
+     * Search Google Images via Serper.dev API.
      *
      * @return array{results: array<int, array<string, mixed>>, total_results: int, start: int}
      */
     public function searchGoogle(string $query, int $start = 1): array
     {
-        $apiKey = config('services.google_search.api_key', env('GOOGLE_SEARCH_API_KEY'));
-        $cx = config('services.google_search.cx', env('GOOGLE_SEARCH_CX'));
+        $apiKey = config('services.serper.api_key');
 
-        if (! $apiKey || ! $cx) {
-            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Google Custom Search API keys not configured.'];
+        if (! $apiKey) {
+            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Serper API key not configured. Add SERPER_API_KEY to your .env file.'];
         }
 
-        $response = Http::get('https://www.googleapis.com/customsearch/v1', [
-            'key' => $apiKey,
-            'cx' => $cx,
+        $page = max(1, (int) ceil($start / 10));
+
+        $response = Http::withHeaders([
+            'X-API-KEY' => $apiKey,
+            'Content-Type' => 'application/json',
+        ])->post('https://google.serper.dev/images', [
             'q' => $query,
-            'searchType' => 'image',
-            'start' => $start,
+            'page' => $page,
             'num' => 10,
-            'safe' => 'active',
         ]);
 
         if (! $response->successful()) {
-            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Google Search API request failed.'];
+            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Image search request failed: ' . $response->status()];
         }
 
         $data = $response->json();
 
-        $results = collect($data['items'] ?? [])->map(fn (array $item): array => [
-            'url' => $item['link'],
-            'thumb' => $item['image']['thumbnailLink'] ?? $item['link'],
+        $results = collect($data['images'] ?? [])->map(fn (array $item): array => [
+            'url' => $item['imageUrl'] ?? '',
+            'thumb' => $item['thumbnailUrl'] ?? $item['imageUrl'] ?? '',
             'title' => $item['title'] ?? '',
-            'context_url' => $item['image']['contextLink'] ?? '',
-            'width' => $item['image']['width'] ?? 0,
-            'height' => $item['image']['height'] ?? 0,
+            'context_url' => $item['link'] ?? '',
+            'width' => $item['imageWidth'] ?? 0,
+            'height' => $item['imageHeight'] ?? 0,
             'source' => 'google',
         ])->all();
 
         return [
             'results' => $results,
-            'total_results' => (int) ($data['searchInformation']['totalResults'] ?? 0),
+            'total_results' => count($results) > 0 ? 1000 : 0,
             'start' => $start,
         ];
     }
