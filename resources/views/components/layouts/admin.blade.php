@@ -165,6 +165,8 @@
         </div>
     </div>
 
+    <x-ui-modal />
+
     @livewireScripts
 </body>
 </html>

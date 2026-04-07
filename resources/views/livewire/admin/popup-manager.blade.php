@@ -326,10 +326,7 @@
                                     <button type="button" @click="document.execCommand('insertUnorderedList')" class="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Bullet List"><i class="fas fa-list-ul text-xs"></i></button>
                                     <button type="button" @click="document.execCommand('insertOrderedList')" class="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Numbered List"><i class="fas fa-list-ol text-xs"></i></button>
                                     <div class="w-px bg-gray-300 mx-1"></div>
-                                    <button type="button" @click="
-                                        let url = prompt('Enter link URL:');
-                                        if (url) document.execCommand('createLink', false, url);
-                                    " class="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Insert Link"><i class="fas fa-link text-xs"></i></button>
+                                    <button type="button" @click="window.tcModal.prompt('Enter link URL:', {title:'Insert Link', confirmText:'Insert'}).then(url => { if (url) document.execCommand('createLink', false, url); })" class="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Insert Link"><i class="fas fa-link text-xs"></i></button>
                                     <button type="button" @click="document.execCommand('removeFormat')" class="p-1.5 rounded hover:bg-gray-200 text-gray-600" title="Clear Formatting"><i class="fas fa-eraser text-xs"></i></button>
                                     <div class="w-px bg-gray-300 mx-1"></div>
                                     <select @change="document.execCommand('formatBlock', false, $event.target.value); $event.target.value = ''" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">

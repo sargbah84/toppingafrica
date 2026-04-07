@@ -24,6 +24,10 @@
                        class="text-sm font-semibold {{ request()->routeIs('home') ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
                         Home
                     </a>
+                    <a href="{{ route('trending') }}"
+                       class="text-sm font-semibold {{ request()->routeIs('trending') ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
+                        Trending
+                    </a>
                     @foreach($mainNav as $cat)
                         <a href="{{ route('blog.category', $cat->slug) }}"
                            class="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors">

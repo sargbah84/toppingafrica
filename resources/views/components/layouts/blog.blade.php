@@ -138,6 +138,10 @@
 
                 {{-- Categories --}}
                 <nav class="space-y-5">
+                    <a href="{{ route('trending') }}"
+                       class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
+                        Trending
+                    </a>
                     @php $menuCategories = \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get(); @endphp
                     @foreach($menuCategories as $cat)
                         <a href="{{ route('blog.category', $cat->slug) }}"

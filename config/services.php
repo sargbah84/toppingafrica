@@ -58,4 +58,12 @@ return [
         'api_key' => env('SERPER_API_KEY'),
     ],
 
+    'perplexity' => [
+        'key' => env('PERPLEXITY_API_KEY'),
+    ],
+
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+    ],
+
 ];

@@ -2,10 +2,10 @@
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Request Logs</h1>
         <div class="flex items-center gap-2">
-            <button wire:click="pruneOldLogs" wire:confirm="Delete logs older than 30 days?" class="px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg hover:bg-yellow-100">
+            <button type="button" @click="window.tcModal.confirm('Delete logs older than 30 days?', {variant:'warning', confirmText:'Prune'}).then(ok => ok && $wire.pruneOldLogs())" class="px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 rounded-lg hover:bg-yellow-100">
                 Prune Old
             </button>
-            <button wire:click="clearLogs" wire:confirm="Are you sure you want to clear all request logs?" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100">
+            <button type="button" @click="window.tcModal.confirm('Are you sure you want to clear all request logs?', {variant:'danger', confirmText:'Clear all'}).then(ok => ok && $wire.clearLogs())" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100">
                 Clear All
             </button>
         </div>

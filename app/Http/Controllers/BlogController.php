@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Creator;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\PostViewTracker;
@@ -77,9 +78,15 @@ class BlogController extends Controller
             ->withCount(['posts' => fn ($q) => $q->published()])
             ->get();
 
+        // Creators carousel — random for now; will switch to featured-only later
+        $creators = Creator::published()
+            ->inRandomOrder()
+            ->take(24)
+            ->get();
+
         return view('blog.index', compact(
             'heroPost', 'mostPopular', 'trending', 'featuredVideos',
-            'tvPosts', 'latestStories', 'editorsPicked', 'categories'
+            'tvPosts', 'latestStories', 'editorsPicked', 'categories', 'creators'
         ));
     }
 

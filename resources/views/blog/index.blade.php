@@ -113,6 +113,91 @@
     </section>
     @endif
 
+    {{-- Section: Creators carousel (8 per page, dot navigation) --}}
+    @if($creators->isNotEmpty())
+    @php $creatorPages = $creators->chunk(8); @endphp
+    <section class="max-w-container mx-auto px-4 py-10"
+             x-data="{ page: 0, total: {{ $creatorPages->count() }} }">
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <span class="inline-block w-8 h-[3px] bg-primary mr-2 align-middle"></span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-primary">People to Watch</span>
+                <h2 class="text-3xl font-black text-gray-900 dark:text-white mt-1">Creators</h2>
+            </div>
+            <a href="{{ route('creators.index') }}"
+               class="hidden md:inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-900 hover:text-white hover:border-gray-900 dark:hover:bg-white dark:hover:text-gray-900 transition-colors">
+                See All
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+            </a>
+        </div>
+
+        {{-- Pages viewport --}}
+        <div class="overflow-hidden">
+            <div class="flex transition-transform duration-500 ease-out"
+                 :style="`transform: translateX(-${page * 100}%)`">
+                @foreach($creatorPages as $pageIndex => $pageCreators)
+                    <div class="w-full flex-shrink-0 grid grid-cols-4 sm:grid-cols-8 gap-4">
+                        @foreach($pageCreators as $creator)
+                            <a href="{{ $creator->public_url }}" class="group text-center">
+                                <div class="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition">
+                                    @if($creator->profile_image_url)
+                                        <img src="{{ $creator->profile_image_url }}"
+                                             alt="{{ $creator->name }}"
+                                             loading="lazy"
+                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center text-white text-lg font-bold"
+                                             style="background-color: {{ $creator->avatar_color }}">
+                                            {{ $creator->initials }}
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if($creator->is_featured || $creator->is_trending || $creator->is_rising)
+                                    <div class="mt-1 flex justify-center">
+                                        @if($creator->is_featured)
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-bold uppercase tracking-wide">
+                                                <svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 0 0 .95.69h4.16c.969 0 1.371 1.24.588 1.81l-3.366 2.446a1 1 0 0 0-.364 1.118l1.286 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 0 0-1.176 0l-3.366 2.446c-.785.57-1.84-.196-1.54-1.118l1.286-3.957a1 1 0 0 0-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.16a1 1 0 0 0 .95-.69l1.286-3.957Z"/></svg>
+                                                Featured
+                                            </span>
+                                        @elseif($creator->is_trending)
+                                            <span class="inline-flex px-1.5 py-0.5 rounded-full bg-pink-500 text-white text-[10px] font-bold uppercase">Hot</span>
+                                        @elseif($creator->is_rising)
+                                            <span class="inline-flex px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold uppercase">New</span>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <div class="mt-1 text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ $creator->name }}">
+                                    {{ $creator->name }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {{ $creator->category }}
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Dots --}}
+        @if($creatorPages->count() > 1)
+            <div class="mt-6 flex justify-center items-center gap-2">
+                <template x-for="i in total" :key="i">
+                    <button type="button"
+                            @click="page = i - 1"
+                            :aria-label="`Go to page ${i}`"
+                            :class="page === i - 1
+                                ? 'w-6 h-2 bg-primary'
+                                : 'w-2 h-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'"
+                            class="rounded-full transition-all duration-300"></button>
+                </template>
+            </div>
+        @endif
+    </section>
+    @endif
+
     {{-- Section 4: Featured (Music Videos of the Week) --}}
     @if($featuredVideos->isNotEmpty())
     <section class="max-w-container mx-auto px-4 py-10">

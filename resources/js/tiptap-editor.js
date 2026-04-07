@@ -78,10 +78,13 @@ document.addEventListener('alpine:init', () => {
         setTextAlign(align) { this.editor.chain().focus().setTextAlign(align).run(); },
 
         addLink() {
-            const url = prompt('Enter URL:');
-            if (url) {
-                this.editor.chain().focus().setLink({ href: url }).run();
-            }
+            const editor = this.editor;
+            const promptFn = window.tcModal
+                ? window.tcModal.prompt('Enter URL:', { title: 'Insert Link', confirmText: 'Insert' })
+                : Promise.resolve(window.prompt('Enter URL:'));
+            promptFn.then(url => {
+                if (url) editor.chain().focus().setLink({ href: url }).run();
+            });
         },
         removeLink() { this.editor.chain().focus().unsetLink().run(); },
 
@@ -94,10 +97,13 @@ document.addEventListener('alpine:init', () => {
         },
 
         addYoutube() {
-            const url = prompt('Enter YouTube URL:');
-            if (url) {
-                this.editor.chain().focus().setYoutubeVideo({ src: url }).run();
-            }
+            const editor = this.editor;
+            const promptFn = window.tcModal
+                ? window.tcModal.prompt('Enter YouTube URL:', { title: 'Embed YouTube', confirmText: 'Embed' })
+                : Promise.resolve(window.prompt('Enter YouTube URL:'));
+            promptFn.then(url => {
+                if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
+            });
         },
 
         // State checks for active button styling

@@ -22,7 +22,7 @@
                         <svg class="w-3.5 h-3.5 inline animate-spin text-green-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     </span>
                 @else
-                    <button wire:click="runScheduler" wire:confirm="Run the scheduler manually?" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition">
+                    <button type="button" @click="window.tcModal.confirm('Run the scheduler manually?', {variant:'default', confirmText:'Run'}).then(ok => ok && $wire.runScheduler())" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
                         Run Now
                     </button>
@@ -43,7 +43,7 @@
         <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-4">
             <div class="flex items-center justify-between mb-1">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Queue Worker</p>
-                <button wire:click="restartQueueWorker" wire:confirm="Send restart signal to queue workers?" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
+                <button type="button" @click="window.tcModal.confirm('Send restart signal to queue workers?', {variant:'warning', confirmText:'Restart'}).then(ok => ok && $wire.restartQueueWorker())" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
                     Restart
                 </button>
@@ -82,7 +82,7 @@
             Auto-refresh (10s)
         </label>
         <div class="flex items-center gap-2">
-            <button wire:click="processScheduledPosts" wire:confirm="Publish all posts that are past their scheduled date?" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition shadow-sm">
+            <button type="button" @click="window.tcModal.confirm('Publish all posts that are past their scheduled date?', {variant:'default', confirmText:'Publish'}).then(ok => ok && $wire.processScheduledPosts())" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
                 Process Scheduled Posts
             </button>
@@ -228,10 +228,10 @@
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">Failed Jobs</h3>
                 @if ($failedCount > 0)
                     <div class="flex items-center gap-2">
-                        <button wire:click="retryAllFailed" wire:confirm="Retry all failed jobs?" class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition">
+                        <button type="button" @click="window.tcModal.confirm('Retry all failed jobs?', {variant:'default', confirmText:'Retry all'}).then(ok => ok && $wire.retryAllFailed())" class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition">
                             Retry All
                         </button>
-                        <button wire:click="flushFailedJobs" wire:confirm="Delete all failed jobs permanently?" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition">
+                        <button type="button" @click="window.tcModal.confirm('Delete all failed jobs permanently?', {variant:'danger', confirmText:'Flush all'}).then(ok => ok && $wire.flushFailedJobs())" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition">
                             Flush All
                         </button>
                     </div>
@@ -267,7 +267,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
                                     <button wire:click="retryFailedJob('{{ $job->uuid }}')" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mr-2">Retry</button>
-                                    <button wire:click="deleteFailedJob('{{ $job->uuid }}')" wire:confirm="Delete this failed job?" class="text-xs text-red-600 dark:text-red-400 hover:underline">Delete</button>
+                                    <button type="button" @click="window.tcModal.confirm('Delete this failed job?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteFailedJob(@js($job->uuid)))" class="text-xs text-red-600 dark:text-red-400 hover:underline">Delete</button>
                                 </td>
                             </tr>
                         @empty
@@ -288,7 +288,7 @@
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">Job History</h3>
                 @if ($jobHistory->isNotEmpty())
-                    <button wire:click="clearJobHistory" wire:confirm="Clear all job history?" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition">
+                    <button type="button" @click="window.tcModal.confirm('Clear all job history?', {variant:'danger', confirmText:'Clear'}).then(ok => ok && $wire.clearJobHistory())" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition">
                         Clear History
                     </button>
                 @endif

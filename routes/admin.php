@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\IsStaff;
+use App\Livewire\Admin\ManageCreators;
+use App\Livewire\Admin\ManageTrends;
 use App\Livewire\Admin\Monitoring\ActivityLogs;
 use App\Livewire\Admin\Monitoring\JobMonitor;
 use App\Livewire\Admin\Monitoring\RequestLogs;
@@ -69,6 +71,12 @@ Route::prefix('admin')
 
         // Popups
         Route::get('popups', fn () => view('admin.popups.index'))->name('popups.index');
+
+        // Creators
+        Route::get('creators', ManageCreators::class)->name('creators.index');
+
+        // Trends
+        Route::get('trends', ManageTrends::class)->name('trends.index');
 
         // Monitoring
         Route::get('monitoring/activity-logs', ActivityLogs::class)->name('monitoring.activity-logs');

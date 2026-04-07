@@ -1,4 +1,11 @@
-<div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
+<style>
+    .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+    .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+</style>
+<div class="sidebar-scroll flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
     <div class="flex h-16 shrink-0 items-center">
         <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold text-white">
             {{ \App\Models\Setting::get('site_name', config('app.name')) }}
@@ -94,6 +101,31 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/>
                             </svg>
                             Popups
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            {{-- Others Section --}}
+            <li>
+                <div class="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider">Others</div>
+                <ul role="list" class="-mx-2 mt-2 space-y-1">
+                    <li>
+                        <a href="{{ route('admin.creators.index') }}"
+                           class="{{ request()->routeIs('admin.creators.index') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6">
+                            <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/>
+                            </svg>
+                            Creators
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.trends.index') }}"
+                           class="{{ request()->routeIs('admin.trends.index') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6">
+                            <svg class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/>
+                            </svg>
+                            Trending
                         </a>
                     </li>
                 </ul>

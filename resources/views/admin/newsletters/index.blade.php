@@ -94,11 +94,12 @@
                                 {{ $subscriber->subscribed_at?->format('M d, Y') ?? '-' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <form method="POST" action="{{ route('admin.newsletters.destroy', $subscriber) }}"
-                                      onsubmit="return confirm('Are you sure you want to delete this subscriber?')">
+                                <form method="POST" action="{{ route('admin.newsletters.destroy', $subscriber) }}" x-data>
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
+                                    <button type="button"
+                                            @click="window.tcModal.confirm('Are you sure you want to delete this subscriber?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $el.closest('form').submit())"
+                                            class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
                                 </form>
                             </td>
                         </tr>

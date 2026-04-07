@@ -133,8 +133,9 @@
                                 <span wire:loading.remove wire:target="aiImproveContent">Improve</span>
                                 <span wire:loading wire:target="aiImproveContent">Improving...</span>
                             </button>
-                            <button wire:click="aiRewriteContent" wire:loading.attr="disabled" wire:target="aiRewriteContent"
-                                wire:confirm="This will rewrite the entire content. Continue?"
+                            <button type="button"
+                                @click="window.tcModal.confirm('This will rewrite the entire content. Continue?', {variant:'warning', confirmText:'Rewrite'}).then(ok => ok && $wire.aiRewriteContent())"
+                                wire:loading.attr="disabled" wire:target="aiRewriteContent"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3"/></svg>
                                 <span wire:loading.remove wire:target="aiRewriteContent">Rewrite</span>

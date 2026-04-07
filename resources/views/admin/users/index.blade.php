@@ -99,11 +99,12 @@
                                     <a href="{{ route('admin.users.edit', $user) }}"
                                        class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</a>
                                     @if($user->id !== auth()->id())
-                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
-                                              onsubmit="return confirm('Are you sure you want to delete this user?')">
+                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}" x-data>
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
+                                            <button type="button"
+                                                    @click="window.tcModal.confirm('Are you sure you want to delete this user?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $el.closest('form').submit())"
+                                                    class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
                                         </form>
                                     @endif
                                 </div>

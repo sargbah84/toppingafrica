@@ -16,6 +16,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+
 </head>
 <body class="h-full bg-gray-50 dark:bg-gray-900 font-sans antialiased">
     <div class="min-h-full" x-data="{ sidebarOpen: false }">
@@ -113,6 +114,8 @@
             </main>
         </div>
     </div>
+
+    <x-ui-modal />
 
     @livewireScripts
 </body>

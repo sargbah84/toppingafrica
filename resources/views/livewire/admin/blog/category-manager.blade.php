@@ -237,8 +237,8 @@
                                             </svg>
                                         </button>
                                         <button
-                                            wire:click="deleteCategory({{ $category->id }})"
-                                            wire:confirm="Are you sure you want to delete this category?"
+                                            type="button"
+                                            @click="window.tcModal.confirm('Are you sure you want to delete this category?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteCategory({{ $category->id }}))"
                                             class="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                                             title="Delete"
                                         >
@@ -271,8 +271,8 @@
                                                 </svg>
                                             </button>
                                             <button
-                                                wire:click="deleteCategory({{ $child->id }})"
-                                                wire:confirm="Are you sure you want to delete this category?"
+                                                type="button"
+                                                @click="window.tcModal.confirm('Are you sure you want to delete this category?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteCategory({{ $child->id }}))"
                                                 class="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                                                 title="Delete"
                                             >

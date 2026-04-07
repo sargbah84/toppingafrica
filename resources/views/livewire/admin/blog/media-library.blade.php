@@ -159,8 +159,8 @@
                             </svg>
                         </button>
                         <button
-                            wire:click.stop="deleteMedia({{ $item->id }})"
-                            wire:confirm="Are you sure you want to delete this media?"
+                            type="button"
+                            @click.stop="window.tcModal.confirm('Are you sure you want to delete this media?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteMedia({{ $item->id }}))"
                             class="p-2 bg-white dark:bg-gray-700 rounded-full shadow-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
                             title="Delete"
                         >
@@ -235,8 +235,8 @@
                         Insert
                     </button>
                     <button
-                        wire:click="deleteMedia({{ $selectedMediaId }})"
-                        wire:confirm="Are you sure you want to delete this media?"
+                        type="button"
+                        @click="window.tcModal.confirm('Are you sure you want to delete this media?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteMedia({{ $selectedMediaId }}))"
                         class="px-3 py-1.5 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                         Delete

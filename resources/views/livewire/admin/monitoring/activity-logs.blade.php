@@ -1,7 +1,7 @@
 <div>
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Activity Logs</h1>
-        <button wire:click="clearLogs" wire:confirm="Are you sure you want to clear all activity logs?" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30">
+        <button type="button" @click="window.tcModal.confirm('Are you sure you want to clear all activity logs?', {variant:'danger', confirmText:'Clear all'}).then(ok => ok && $wire.clearLogs())" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30">
             Clear All
         </button>
     </div>

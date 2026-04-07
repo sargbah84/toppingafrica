@@ -223,11 +223,11 @@
                                             <button wire:click="restorePost({{ $post->id }})" @click="open = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">
                                                 Restore
                                             </button>
-                                            <button wire:click="forceDeletePost({{ $post->id }})" @click="open = false" wire:confirm="Are you sure you want to permanently delete this post?" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <button type="button" @click="open = false; window.tcModal.confirm('Are you sure you want to permanently delete this post?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.forceDeletePost({{ $post->id }}))" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
                                                 Delete Permanently
                                             </button>
                                         @else
-                                            <button wire:click="deletePost({{ $post->id }})" @click="open = false" wire:confirm="Are you sure you want to move this post to trash?" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <button type="button" @click="open = false; window.tcModal.confirm('Are you sure you want to move this post to trash?', {variant:'warning', confirmText:'Move to trash'}).then(ok => ok && $wire.deletePost({{ $post->id }}))" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600">
                                                 Move to Trash
                                             </button>
                                         @endif

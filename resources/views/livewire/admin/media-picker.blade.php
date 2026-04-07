@@ -414,7 +414,7 @@
             var maxSize = 5 * 1024 * 1024;
             Array.from(files).forEach(function(file) {
                 if (!file.type.startsWith('image/')) return;
-                if (file.size > maxSize) { alert(file.name + ' is too large (max 5MB)'); return; }
+                if (file.size > maxSize) { window.tcModal && window.tcModal.alert(file.name + ' is too large (max 5MB)', {variant:'warning'}); return; }
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     pendingFiles.push({ file: file, name: file.name, size: file.size, type: file.type, preview: e.target.result });
@@ -445,7 +445,7 @@
                         if (!resp.ok) throw new Error(data.error || data.message || 'Upload failed with status ' + resp.status);
                         wire.call('onUploadComplete', data.url, f.name, f.type, f.size);
                     } catch (err) {
-                        alert('Failed to upload ' + f.name + ': ' + err.message);
+                        window.tcModal && window.tcModal.alert('Failed to upload ' + f.name + ': ' + err.message, {variant:'danger', title:'Upload failed'});
                     }
                 }
                 pendingFiles = [];

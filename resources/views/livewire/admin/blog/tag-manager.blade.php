@@ -128,8 +128,8 @@
                                         </svg>
                                     </button>
                                     <button
-                                        wire:click="deleteTag({{ $tag->id }})"
-                                        wire:confirm="Are you sure? This will detach the tag from all posts and delete it."
+                                        type="button"
+                                        @click="window.tcModal.confirm('Are you sure? This will detach the tag from all posts and delete it.', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.deleteTag({{ $tag->id }}))"
                                         class="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                                         title="Delete"
                                     >

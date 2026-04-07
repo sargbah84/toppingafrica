@@ -108,11 +108,12 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('admin.ads.edit', $ad) }}"
                                        class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</a>
-                                    <form method="POST" action="{{ route('admin.ads.destroy', $ad) }}"
-                                          onsubmit="return confirm('Are you sure you want to delete this ad?')">
+                                    <form method="POST" action="{{ route('admin.ads.destroy', $ad) }}" x-data>
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
+                                        <button type="button"
+                                                @click="window.tcModal.confirm('Are you sure you want to delete this ad?', {variant:'danger', confirmText:'Delete'}).then(ok => ok && $el.closest('form').submit())"
+                                                class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">Delete</button>
                                     </form>
                                 </div>
                             </td>
