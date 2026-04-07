@@ -40,17 +40,44 @@
     {{-- Filters --}}
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
         {{-- Category Pills --}}
-        <div class="flex flex-wrap gap-2">
+        @php
+            $visibleCategories = $categories->take(5);
+            $otherCategories = $categories->slice(5);
+            $activeCategory = request('category');
+            $activeIsInOthers = $activeCategory && $otherCategories->contains($activeCategory);
+        @endphp
+        <div class="flex flex-wrap gap-2 items-center">
             <a href="{{ template_url('creators') }}"
-               class="px-3 py-1.5 rounded-full text-xs font-semibold transition {{ !request('category') ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
+               class="px-3 py-1.5 rounded-full text-xs font-semibold transition {{ !$activeCategory ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
                 All
             </a>
-            @foreach($categories as $cat)
+            @foreach($visibleCategories as $cat)
                 <a href="{{ route('creators.index', ['category' => $cat, 'country' => request('country')]) }}"
-                   class="px-3 py-1.5 rounded-full text-xs font-semibold transition {{ request('category') === $cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
+                   class="px-3 py-1.5 rounded-full text-xs font-semibold transition {{ $activeCategory === $cat ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
                     {{ $cat }}
                 </a>
             @endforeach
+
+            @if($otherCategories->isNotEmpty())
+                <div x-data="{ open: false }" @click.outside="open = false" class="relative">
+                    <button type="button" @click="open = !open"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition {{ $activeIsInOthers ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
+                        {{ $activeIsInOthers ? 'Others: ' . $activeCategory : 'Others' }}
+                        <svg class="w-3 h-3" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 20 20" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 8l4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <div x-show="open" x-cloak x-transition.opacity
+                         class="absolute left-0 mt-2 w-44 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20 py-1 max-h-72 overflow-y-auto">
+                        @foreach($otherCategories as $cat)
+                            <a href="{{ route('creators.index', ['category' => $cat, 'country' => request('country')]) }}"
+                               class="block px-4 py-2 text-xs font-semibold transition {{ $activeCategory === $cat ? 'bg-primary text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                                {{ $cat }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Country Filter --}}

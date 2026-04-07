@@ -36,6 +36,15 @@
                 @endforeach
             </select>
 
+            <select wire:model.live="perPage"
+                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="10">10 / page</option>
+                <option value="20">20 / page</option>
+                <option value="50">50 / page</option>
+                <option value="100">100 / page</option>
+                <option value="200">200 / page</option>
+            </select>
+
             @if(count($selected) > 0 && $filter !== 'claimed')
                 <button type="button" @click="window.tcModal.confirm(@js('Approve '.count($selected).' selected creators?'), {variant:'default', confirmText:'Approve'}).then(ok => ok && $wire.bulkApprove())"
                         class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 transition">

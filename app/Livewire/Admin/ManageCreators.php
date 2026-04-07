@@ -36,6 +36,9 @@ class ManageCreators extends Component
     #[Url]
     public string $countryFilter = '';
 
+    #[Url]
+    public int $perPage = 20;
+
     // Edit modal state
     public bool $showEditModal = false;
     public ?int $editingCreatorId = null;
@@ -102,6 +105,13 @@ class ManageCreators extends Component
     }
 
     public function updatedCountryFilter(): void
+    {
+        $this->resetPage();
+        $this->selected = [];
+        $this->selectAll = false;
+    }
+
+    public function updatedPerPage(): void
     {
         $this->resetPage();
         $this->selected = [];
@@ -691,7 +701,9 @@ class ManageCreators extends Component
             default => $query,
         };
 
-        return $query->latest()->paginate(20);
+        $perPage = in_array($this->perPage, [10, 20, 50, 100, 200], true) ? $this->perPage : 20;
+
+        return $query->latest()->paginate($perPage);
     }
 
     public function render(): View
