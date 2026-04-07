@@ -70,12 +70,21 @@ class ManageTrends extends Component
 
         try {
             // Run synchronously so admin sees immediate results even if queue/scheduler is broken
-            $created = (new FetchAfricaTrendsJob($count))->handle();
+            $result = (new FetchAfricaTrendsJob($count))->handle();
 
-            if ($created > 0) {
-                session()->flash('success', "Fetched {$created} new trend(s).");
+            if ($result['error']) {
+                session()->flash('error', $result['error']);
+            } elseif ($result['created'] > 0) {
+                session()->flash('success', "Fetched {$result['created']} new trend(s).");
+            } elseif ($result['received'] > 0) {
+                // APIs both succeeded and returned trends, but every one was
+                // already in the DB for today. Not an error.
+                session()->flash('success', "Both APIs responded successfully but all {$result['received']} trends were already in the database for today. Try again later — the next batch will probably contain fresh headlines.");
             } else {
-                session()->flash('error', 'Fetch returned no new trends. Check storage/logs/laravel.log for API errors (Perplexity / Anthropic).');
+                // APIs succeeded but returned zero items. This is usually
+                // Perplexity's `search_recency_filter=day` finding no new
+                // African content in the last 24h.
+                session()->flash('error', 'Both APIs responded but returned zero trends. Perplexity may not have found fresh African content in the last 24 hours — try again later, or relax the recency filter in FetchAfricaTrendsJob::fetchFromPerplexity().');
             }
         } catch (\Throwable $e) {
             session()->flash('error', 'Fetch failed: ' . $e->getMessage());

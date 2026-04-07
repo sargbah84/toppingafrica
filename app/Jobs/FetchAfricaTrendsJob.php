@@ -24,24 +24,42 @@ class FetchAfricaTrendsJob implements ShouldQueue
 
     public function __construct(public int $count = 15) {}
 
-    public function handle(): int
+    /**
+     * Run the fetch and return a structured result so the calling Livewire
+     * component can show a precise message to the admin instead of forcing
+     * them to grep laravel.log.
+     *
+     * The scheduled queue caller doesn't use the return value — it simply
+     * fires and forgets — so changing the shape is safe.
+     *
+     * @return array{created: int, received: int, error: ?string}
+     */
+    public function handle(): array
     {
-        $rawContent = $this->fetchFromPerplexity();
-
-        if ($rawContent === null) {
-            return 0;
+        $perplexity = $this->fetchFromPerplexity();
+        if (! $perplexity['ok']) {
+            return ['created' => 0, 'received' => 0, 'error' => $perplexity['error']];
         }
 
-        $trends = $this->formatWithClaude($rawContent);
-
-        if (empty($trends)) {
-            return 0;
+        $claude = $this->formatWithClaude($perplexity['data']);
+        if (! $claude['ok']) {
+            return ['created' => 0, 'received' => 0, 'error' => $claude['error']];
         }
 
-        return $this->saveTrends($trends);
+        $trends = $claude['data'];
+        $created = $this->saveTrends($trends);
+
+        return [
+            'created' => $created,
+            'received' => count($trends),
+            'error' => null,
+        ];
     }
 
-    private function fetchFromPerplexity(): ?string
+    /**
+     * @return array{ok: bool, data: ?string, error: ?string}
+     */
+    private function fetchFromPerplexity(): array
     {
         try {
             $apiKey = config('services.perplexity.key');
@@ -49,7 +67,7 @@ class FetchAfricaTrendsJob implements ShouldQueue
             if (! $apiKey) {
                 Log::error('FetchAfricaTrendsJob: Perplexity API key not configured');
 
-                return null;
+                return ['ok' => false, 'data' => null, 'error' => 'Perplexity API key is not configured. Set PERPLEXITY_API_KEY in .env.'];
             }
 
             $today = now()->format('F j, Y');
@@ -104,7 +122,14 @@ PROMPT;
 
                 $this->trackUsage($response, 'perplexity', 'sonar', 'trending_fetch', false, $durationMs, $response->body());
 
-                return null;
+                $apiMsg = $response->json('error.message');
+
+                return [
+                    'ok' => false,
+                    'data' => null,
+                    'error' => 'Perplexity API error (HTTP ' . $response->status() . ')'
+                        . ($apiMsg ? ': ' . $apiMsg : '. Check storage/logs/laravel.log for the full response body.'),
+                ];
             }
 
             $this->trackUsage($response, 'perplexity', 'sonar', 'trending_fetch', true, $durationMs);
@@ -114,19 +139,22 @@ PROMPT;
             if (empty($content)) {
                 Log::error('FetchAfricaTrendsJob: Empty response from Perplexity');
 
-                return null;
+                return ['ok' => false, 'data' => null, 'error' => 'Perplexity returned an empty response.'];
             }
 
-            return $content;
+            return ['ok' => true, 'data' => $content, 'error' => null];
         } catch (\Throwable $e) {
             Log::error('FetchAfricaTrendsJob: Exception calling Perplexity', [
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            return ['ok' => false, 'data' => null, 'error' => 'Perplexity request threw an exception: ' . $e->getMessage()];
         }
     }
 
+    /**
+     * @return array{ok: bool, data: array, error: ?string}
+     */
     private function formatWithClaude(string $rawContent): array
     {
         try {
@@ -135,7 +163,7 @@ PROMPT;
             if (! $apiKey) {
                 Log::error('FetchAfricaTrendsJob: Anthropic API key not configured');
 
-                return [];
+                return ['ok' => false, 'data' => [], 'error' => 'Anthropic API key is not configured. Set ANTHROPIC_API_KEY in .env.'];
             }
 
             $systemPrompt = 'You are a data formatter. You will receive raw trend data about Africa. Clean it up, ensure each item has: title, summary, category, country, country_code, source_label, source_url. Category must be one of: Music, Business, Sports, Culture, Tech, Lifestyle. Return ONLY a valid JSON array, no markdown, no explanation.';
@@ -168,7 +196,14 @@ PROMPT;
 
                 $this->trackUsage($response, 'anthropic', 'claude-haiku-4-5', 'trending_format', false, $durationMs, $response->body());
 
-                return [];
+                $apiMsg = $response->json('error.message');
+
+                return [
+                    'ok' => false,
+                    'data' => [],
+                    'error' => 'Anthropic API error (HTTP ' . $response->status() . ')'
+                        . ($apiMsg ? ': ' . $apiMsg : '. Check storage/logs/laravel.log for the full response body.'),
+                ];
             }
 
             $this->trackUsage($response, 'anthropic', 'claude-haiku-4-5', 'trending_format', true, $durationMs);
@@ -187,16 +222,20 @@ PROMPT;
                     'content' => $content,
                 ]);
 
-                return [];
+                return [
+                    'ok' => false,
+                    'data' => [],
+                    'error' => 'Anthropic returned text that is not valid JSON. Check storage/logs/laravel.log for the raw content.',
+                ];
             }
 
-            return $trends;
+            return ['ok' => true, 'data' => $trends, 'error' => null];
         } catch (\Throwable $e) {
             Log::error('FetchAfricaTrendsJob: Exception calling Claude', [
                 'error' => $e->getMessage(),
             ]);
 
-            return [];
+            return ['ok' => false, 'data' => [], 'error' => 'Anthropic request threw an exception: ' . $e->getMessage()];
         }
     }
 
