@@ -33,6 +33,9 @@ class ManageCreators extends Component
     #[Url]
     public string $filter = 'all';
 
+    #[Url]
+    public string $countryFilter = '';
+
     // Edit modal state
     public bool $showEditModal = false;
     public ?int $editingCreatorId = null;
@@ -92,6 +95,13 @@ class ManageCreators extends Component
     }
 
     public function updatedFilter(): void
+    {
+        $this->resetPage();
+        $this->selected = [];
+        $this->selectAll = false;
+    }
+
+    public function updatedCountryFilter(): void
     {
         $this->resetPage();
         $this->selected = [];
@@ -669,6 +679,10 @@ class ManageCreators extends Component
             $query->search($this->search);
         }
 
+        if ($this->countryFilter !== '') {
+            $query->where('country', $this->countryFilter);
+        }
+
         $query = match ($this->filter) {
             'pending' => $query->where('status', 'pending'),
             'published' => $query->where('status', 'published'),
@@ -686,6 +700,13 @@ class ManageCreators extends Component
             'creators' => $this->getCreators(),
             'categories' => $this->categories,
             'africanCountries' => $this->africanCountries,
+            'availableCountries' => Creator::query()
+                ->whereNotNull('country')
+                ->where('country', '!=', '')
+                ->distinct()
+                ->orderBy('country')
+                ->pluck('country')
+                ->all(),
             'counts' => [
                 'all' => Creator::count(),
                 'pending' => Creator::where('status', 'pending')->count(),

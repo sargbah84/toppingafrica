@@ -28,6 +28,14 @@
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search creators..."
                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm w-64">
 
+            <select wire:model.live="countryFilter"
+                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="">All countries</option>
+                @foreach($availableCountries as $country)
+                    <option value="{{ $country }}">{{ $country }}</option>
+                @endforeach
+            </select>
+
             @if(count($selected) > 0 && $filter !== 'claimed')
                 <button type="button" @click="window.tcModal.confirm(@js('Approve '.count($selected).' selected creators?'), {variant:'default', confirmText:'Approve'}).then(ok => ok && $wire.bulkApprove())"
                         class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-md hover:bg-green-700 transition">
