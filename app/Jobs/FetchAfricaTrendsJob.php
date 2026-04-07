@@ -109,7 +109,11 @@ PROMPT;
                     ],
                 ],
                 'temperature' => 0.2,
-                'search_recency_filter' => 'day',
+                // Allow Perplexity to search the last 7 days. The prompt
+                // still asks for stories from the last 24-48 hours, so the
+                // model self-prioritises freshness; this filter just stops
+                // returning zero results on a slow news day for Africa.
+                'search_recency_filter' => 'week',
             ]);
 
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
