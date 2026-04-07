@@ -44,6 +44,7 @@
             <span wire:loading.remove wire:target="fetchNow">Fetch Now</span>
             <span wire:loading wire:target="fetchNow">Fetching… (may take 30–90s)</span>
         </button>
+        </div>
     </div>
 
     {{-- Filter Tabs --}}
