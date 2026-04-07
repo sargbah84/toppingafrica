@@ -23,12 +23,18 @@ Route::get('/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
 // to route('trending') / route('creators.index') (sitemap, schema markup,
 // homepage carousel, footer, etc.) automatically follows the canonical slug
 // the admin has chosen — even after a slug rename.
-Route::get('/_trending-redirect', function () {
-    return redirect(template_url('trending', '/'));
+Route::get('/_trending-redirect', function (\Illuminate\Http\Request $request) {
+    $target = template_url('trending', '/');
+    $qs = $request->getQueryString();
+
+    return redirect($qs ? $target . (str_contains($target, '?') ? '&' : '?') . $qs : $target);
 })->name('trending');
 
-Route::get('/_creators-redirect', function () {
-    return redirect(template_url('creators', '/'));
+Route::get('/_creators-redirect', function (\Illuminate\Http\Request $request) {
+    $target = template_url('creators', '/');
+    $qs = $request->getQueryString();
+
+    return redirect($qs ? $target . (str_contains($target, '?') ? '&' : '?') . $qs : $target);
 })->name('creators.index');
 Route::get('/creators/claim/{token}', [CreatorClaimController::class, 'show'])->name('creators.claim');
 Route::post('/creators/claim/{token}', [CreatorClaimController::class, 'update'])->name('creators.claim.update');

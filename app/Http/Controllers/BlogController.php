@@ -244,24 +244,18 @@ class BlogController extends Controller
                 $q->where('status', 'published')->orWhere('status', 'claimed');
             });
 
-        $hasFilter = false;
-
         if ($category = $request->query('category')) {
             $query->where('category', $category);
-            $hasFilter = true;
         }
 
         if ($country = $request->query('country')) {
             $query->where('country', $country);
-            $hasFilter = true;
         }
 
-        if ($hasFilter) {
-            $query->latest();
-        } else {
-            $seed = (int) ($request->query('seed') ?: now()->format('Ymd'));
-            $query->inRandomOrder($seed);
-        }
+        // Always randomize so niches and countries are mixed within the result set.
+        // Seed is stable per-day so pagination stays consistent while a user is browsing.
+        $seed = (int) ($request->query('seed') ?: now()->format('Ymd'));
+        $query->inRandomOrder($seed);
 
         $creators = $query->paginate(24)->withQueryString();
 
