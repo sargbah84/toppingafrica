@@ -36,7 +36,7 @@
 <section class="max-w-container mx-auto px-4 py-8">
     {{-- Breadcrumb --}}
     <nav class="mb-6 text-sm text-gray-500 dark:text-gray-400">
-        <a href="{{ route('creators.index') }}" class="hover:text-primary transition-colors">Creators</a>
+        <a href="{{ template_url('creators') }}" class="hover:text-primary transition-colors">Creators</a>
         <span class="mx-2">/</span>
         <span class="text-gray-900 dark:text-white">{{ $creator->name }}</span>
     </nav>

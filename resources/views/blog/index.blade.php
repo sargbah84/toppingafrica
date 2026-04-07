@@ -124,7 +124,7 @@
                 <span class="text-xs font-semibold uppercase tracking-wider text-primary">People to Watch</span>
                 <h2 class="text-3xl font-black text-gray-900 dark:text-white mt-1">Creators</h2>
             </div>
-            <a href="{{ route('creators.index') }}"
+            <a href="{{ template_url('creators') }}"
                class="hidden md:inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-900 hover:text-white hover:border-gray-900 dark:hover:bg-white dark:hover:text-gray-900 transition-colors">
                 See All
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>

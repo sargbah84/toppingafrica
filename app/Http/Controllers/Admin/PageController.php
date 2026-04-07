@@ -93,6 +93,14 @@ class PageController extends Controller
      */
     public function destroy(Page $page): RedirectResponse
     {
+        if ($page->isProtectedTemplate()) {
+            return redirect()
+                ->route('admin.pages.index')
+                ->with('error', 'This page is a built-in section ('
+                    . (\App\Models\Page::TEMPLATES[$page->template]['label'] ?? $page->template)
+                    . ') and cannot be deleted. You can edit its title, slug or intro copy instead, or set it to draft to hide it.');
+        }
+
         $page->delete();
 
         return redirect()

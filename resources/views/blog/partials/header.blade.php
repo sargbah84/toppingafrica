@@ -1,7 +1,28 @@
 @php
-    $navCategories = \App\Models\Category::active()->ordered()->get();
-    $mainNav = $navCategories->take(2);
-    $moreNav = $navCategories->skip(2);
+    // Header nav items: a single ordered list of CMS pages picked by the
+    // admin in Settings → Header Navigation. Built-in sections like Trending
+    // and Creators live in this list too because they were converted into
+    // template-backed CMS pages by the seed_template_pages migration.
+    $savedHeaderPages = \App\Http\Controllers\Admin\SettingController::normaliseSavedHeaderPages(
+        json_decode(\App\Models\Setting::get('header_pages', '[]'), true) ?: []
+    );
+    $headerPageIds = array_column($savedHeaderPages, 'id');
+    $headerPages = ! empty($headerPageIds)
+        ? \App\Models\Page::whereIn('id', $headerPageIds)
+            ->where('status', 'published')
+            ->get(['id', 'title', 'slug'])
+            ->keyBy('id')
+        : collect();
+    $headerPagesOrdered = collect($savedHeaderPages)
+        ->filter(fn($row) => $headerPages->has($row['id']))
+        ->map(function ($row) use ($headerPages) {
+            $page = $headerPages->get($row['id']);
+            return [
+                'page' => $page,
+                'label' => $row['label'] ?? $page->title,
+            ];
+        })
+        ->values();
 @endphp
 
 <header x-data="{ sticky: false }"
@@ -20,28 +41,13 @@
 
                 {{-- Desktop Nav --}}
                 <nav class="hidden md:flex items-center gap-6">
-                    <a href="{{ route('home') }}"
-                       class="text-sm font-semibold {{ request()->routeIs('home') ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
-                        Home
-                    </a>
-                    <a href="{{ route('trending') }}"
-                       class="text-sm font-semibold {{ request()->routeIs('trending') ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
-                        Trending
-                    </a>
-                    @foreach($mainNav as $cat)
-                        <a href="{{ route('blog.category', $cat->slug) }}"
-                           class="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors">
-                            {{ $cat->name }}
+                    @foreach($headerPagesOrdered as $row)
+                        @php $page = $row['page']; @endphp
+                        <a href="{{ url('/' . $page->slug) }}"
+                           class="text-sm font-semibold {{ request()->is($page->slug) ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
+                            {{ $row['label'] }}
                         </a>
                     @endforeach
-
-                    {{-- + More (opens slide-in menu) --}}
-                    @if($moreNav->isNotEmpty())
-                    <button @click="$dispatch('toggle-mobile-menu')"
-                            class="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
-                        <span class="text-xs">&#9679;</span> More
-                    </button>
-                    @endif
                 </nav>
             </div>
 

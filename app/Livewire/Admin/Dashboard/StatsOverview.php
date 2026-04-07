@@ -441,6 +441,52 @@ class StatsOverview extends Component
         return (float) AiUsageLog::sum('estimated_cost');
     }
 
+    /**
+     * Project a monthly AI spend based on the average daily cost over the
+     * trailing 30 days (only days with activity), then compare against the
+     * prior 30 days to show a direction-of-travel arrow.
+     *
+     * @return array{monthly: float, daily_avg: float, change_pct: float|null, direction: string, sample_days: int}
+     */
+    #[Computed]
+    public function aiCostForecast(): array
+    {
+        $last30Start = now()->subDays(30)->startOfDay();
+        $prior30Start = now()->subDays(60)->startOfDay();
+        $prior30End = now()->subDays(30)->endOfDay();
+
+        $last30 = (float) AiUsageLog::where('created_at', '>=', $last30Start)->sum('estimated_cost');
+        $prior30 = (float) AiUsageLog::whereBetween('created_at', [$prior30Start, $prior30End])->sum('estimated_cost');
+
+        $sampleDays = (int) AiUsageLog::where('created_at', '>=', $last30Start)
+            ->select(DB::raw('COUNT(DISTINCT DATE(created_at)) as days'))
+            ->value('days');
+
+        // Use active days when we have a small sample (avoids underestimating
+        // when the team only ran AI a couple of times this month).
+        $denominator = $sampleDays > 0 && $sampleDays < 30 ? $sampleDays : 30;
+        $dailyAvg = $denominator > 0 ? $last30 / $denominator : 0.0;
+
+        $monthly = $dailyAvg * 30;
+
+        $changePct = null;
+        $direction = 'flat';
+        if ($prior30 > 0.0001) {
+            $changePct = round((($last30 - $prior30) / $prior30) * 100, 1);
+            $direction = $changePct > 1 ? 'up' : ($changePct < -1 ? 'down' : 'flat');
+        } elseif ($last30 > 0) {
+            $direction = 'up';
+        }
+
+        return [
+            'monthly' => round($monthly, 2),
+            'daily_avg' => round($dailyAvg, 4),
+            'change_pct' => $changePct,
+            'direction' => $direction,
+            'sample_days' => $sampleDays,
+        ];
+    }
+
     #[Computed]
     public function aiSuccessRate(): float
     {

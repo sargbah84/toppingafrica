@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\AI\Concerns\TracksAiUsage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PerplexityService
 {
+    use TracksAiUsage;
+
+    private const MODEL = 'sonar';
+    private const FEATURE = 'creator-discovery';
+
     public function discoverCreators(string $niche, string $country, int $count = 10): array
     {
+        $startedAt = microtime(true);
+
         try {
             $apiKey = config('services.perplexity.key');
 
@@ -61,14 +69,35 @@ PROMPT;
                 'temperature' => 0.1,
             ]);
 
+            $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+
             if (! $response->successful()) {
                 Log::error('PerplexityService: API request failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
 
+                $this->trackUsage(
+                    response: $response,
+                    providerSlug: 'perplexity',
+                    model: self::MODEL,
+                    feature: self::FEATURE,
+                    isSuccessful: false,
+                    durationMs: $durationMs,
+                    errorMessage: 'HTTP ' . $response->status() . ': ' . mb_substr($response->body(), 0, 400),
+                );
+
                 return [];
             }
+
+            $this->trackUsage(
+                response: $response,
+                providerSlug: 'perplexity',
+                model: self::MODEL,
+                feature: self::FEATURE,
+                isSuccessful: true,
+                durationMs: $durationMs,
+            );
 
             $content = $response->json('choices.0.message.content', '');
 

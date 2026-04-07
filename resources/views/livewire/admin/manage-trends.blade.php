@@ -25,6 +25,10 @@
                 @endif
             </p>
         </div>
+        <div class="flex items-center gap-2">
+            <label class="text-xs text-gray-600 dark:text-gray-400">Count</label>
+            <input wire:model="fetchCount" type="number" min="1" max="50"
+                   class="w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
         <button type="button"
                 wire:click="fetchNow"
                 wire:loading.attr="disabled"

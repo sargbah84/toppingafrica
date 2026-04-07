@@ -29,6 +29,8 @@ class ManageTrends extends Component
 
     public bool $fetching = false;
 
+    public int $fetchCount = 15;
+
     // Edit modal state
     public bool $showEditModal = false;
     public ?int $editingTrendId = null;
@@ -64,9 +66,11 @@ class ManageTrends extends Component
     {
         $this->fetching = true;
 
+        $count = max(1, min(50, $this->fetchCount));
+
         try {
             // Run synchronously so admin sees immediate results even if queue/scheduler is broken
-            $created = (new FetchAfricaTrendsJob)->handle();
+            $created = (new FetchAfricaTrendsJob($count))->handle();
 
             if ($created > 0) {
                 session()->flash('success', "Fetched {$created} new trend(s).");

@@ -99,6 +99,43 @@
             </div>
         </div>
 
+        {{-- Header Navigation Pages --}}
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">Header Navigation</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Tick the pages you want in the public top navigation bar. Drag rows to reorder.
+                Override the menu label by typing in the right-hand input — leave it blank to use the page title.
+                Built-in sections like Trending and Creators are pages too — find them in the list below.
+            </p>
+            @if ($headerPages->isEmpty())
+                <p class="text-sm text-gray-500 dark:text-gray-400 italic">No pages created yet. <a href="{{ route('admin.pages.create') }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create a page</a> first.</p>
+            @else
+                <ul class="space-y-2 sortable-list max-h-96 overflow-y-auto overflow-x-auto pr-1" data-sortable="header-pages">
+                    @foreach ($headerPages as $row)
+                        @php $page = $row['page']; @endphp
+                        <li class="sortable-item flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 min-w-max">
+                            <span class="sortable-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Drag to reorder">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm0 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm9-13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm1 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>
+                            </span>
+                            <input type="checkbox" name="header_pages[]" value="{{ $page->id }}"
+                                {{ $row['enabled'] ? 'checked' : '' }}
+                                class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ $page->title }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">/{{ $page->slug }}</div>
+                            </div>
+                            <input type="text"
+                                name="header_page_labels[{{ $page->id }}]"
+                                value="{{ $row['label'] ?? '' }}"
+                                placeholder="{{ $page->title }}"
+                                maxlength="60"
+                                class="w-44 sm:w-52 text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+
         {{-- Footer Links --}}
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">Footer Links (About Section)</h3>
@@ -185,4 +222,20 @@
             </button>
         </div>
     </form>
+
+    {{-- Sortable.js for drag-to-reorder header nav lists --}}
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.sortable-list').forEach(function (list) {
+                new Sortable(list, {
+                    animation: 150,
+                    handle: '.sortable-handle',
+                    ghostClass: 'opacity-40',
+                    chosenClass: 'ring-2',
+                    dragClass: 'shadow-lg',
+                });
+            });
+        });
+    </script>
 </x-layouts.admin>

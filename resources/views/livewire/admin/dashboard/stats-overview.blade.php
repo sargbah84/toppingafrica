@@ -707,7 +707,8 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
     {{-- ═══ TOOLS (AI USAGE) TAB ═══ --}}
     @elseif ($activeTab === 'tools')
         {{-- AI Usage Summary Cards --}}
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        @php $forecast = $this->aiCostForecast; @endphp
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5 mb-6">
             <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Requests</p>
                 <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ number_format($this->aiTotalRequests) }}</p>
@@ -719,6 +720,35 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
             <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estimated Cost</p>
                 <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">${{ number_format($this->aiTotalCost, 2) }}</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Forecast / mo</p>
+                    @if (! is_null($forecast['change_pct']))
+                        @php
+                            $arrowColor = match ($forecast['direction']) {
+                                'up' => 'text-red-500',
+                                'down' => 'text-green-500',
+                                default => 'text-gray-400',
+                            };
+                        @endphp
+                        <span class="inline-flex items-center gap-0.5 text-[11px] font-semibold {{ $arrowColor }}">
+                            @if ($forecast['direction'] === 'up')
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.5-5.75a.75.75 0 0 1 1.08 0l5.5 5.75a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z" clip-rule="evenodd"/></svg>
+                            @elseif ($forecast['direction'] === 'down')
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.5 5.75a.75.75 0 0 1-1.08 0l-5.5-5.75a.75.75 0 1 1 1.08-1.04l3.96 4.158V3.75A.75.75 0 0 1 10 3Z" clip-rule="evenodd"/></svg>
+                            @endif
+                            {{ abs($forecast['change_pct']) }}%
+                        </span>
+                    @endif
+                </div>
+                <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">${{ number_format($forecast['monthly'], 2) }}</p>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                    ${{ number_format($forecast['daily_avg'], 4) }}/day avg
+                    @if ($forecast['sample_days'] > 0 && $forecast['sample_days'] < 30)
+                        &middot; {{ $forecast['sample_days'] }} active {{ \Illuminate\Support\Str::plural('day', $forecast['sample_days']) }}
+                    @endif
+                </p>
             </div>
             <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Success Rate</p>
@@ -801,6 +831,8 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                         'blog-social-sharing' => 'bg-pink-500',
                         'title-suggestion' => 'bg-cyan-500',
                         'seo-analysis' => 'bg-yellow-500',
+                        'creator-discovery' => 'bg-blue-500',
+                        'creator-bio' => 'bg-orange-500',
                     ];
                     $featureTotal = max($this->aiUsageByFeature->sum('requests'), 1);
                 @endphp

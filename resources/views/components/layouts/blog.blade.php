@@ -138,7 +138,7 @@
 
                 {{-- Categories --}}
                 <nav class="space-y-5">
-                    <a href="{{ route('trending') }}"
+                    <a href="{{ template_url('trending') }}"
                        class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
                         Trending
                     </a>

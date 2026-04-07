@@ -14,47 +14,8 @@ use Illuminate\View\View;
 
 class CreatorController extends Controller
 {
-    public function index(Request $request): View
-    {
-        $query = Creator::with('socialLinks')
-            ->where(function ($q) {
-                $q->where('status', 'published')
-                  ->orWhere('status', 'claimed');
-            });
-
-        $hasFilter = false;
-
-        if ($category = $request->query('category')) {
-            $query->where('category', $category);
-            $hasFilter = true;
-        }
-
-        if ($country = $request->query('country')) {
-            $query->where('country', $country);
-            $hasFilter = true;
-        }
-
-        // When unfiltered, mix countries and niches together so the page feels diverse.
-        // Use a per-page seed so pagination stays consistent within a visit.
-        if ($hasFilter) {
-            $query->latest();
-        } else {
-            $seed = (int) ($request->query('seed') ?: now()->format('Ymd'));
-            $query->inRandomOrder($seed);
-        }
-
-        $creators = $query->paginate(24)->withQueryString();
-
-        $categories = Creator::where(function ($q) {
-            $q->where('status', 'published')->orWhere('status', 'claimed');
-        })->distinct()->pluck('category')->sort()->values();
-
-        $countries = Creator::where(function ($q) {
-            $q->where('status', 'published')->orWhere('status', 'claimed');
-        })->distinct()->pluck('country')->sort()->values();
-
-        return view('creators.index', compact('creators', 'categories', 'countries'));
-    }
+    // index() was removed: the public /creators URL is now a CMS page backed
+    // by the 'creators' template and rendered by BlogController::renderCreatorsPage.
 
     public function show(string $slug): View
     {

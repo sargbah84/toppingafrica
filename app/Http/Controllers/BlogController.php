@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Creator;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\PostViewTracker;
@@ -101,6 +102,14 @@ class BlogController extends Controller
 
             if ($page->isBlogTemplate()) {
                 return $this->renderBlogPage($page, $request);
+            }
+
+            if ($page->isTrendingTemplate()) {
+                return $this->renderTrendingPage($page, $request);
+            }
+
+            if ($page->isCreatorsTemplate()) {
+                return $this->renderCreatorsPage($page, $request);
             }
 
             return view('blog.page', compact('page'));
@@ -216,5 +225,62 @@ class BlogController extends Controller
         $posts = $query->paginate(config('blog.posts_per_page', 12));
 
         return view('blog.page-blog', compact('page', 'posts'));
+    }
+
+    private function renderTrendingPage(Page $page, Request $request): View
+    {
+        // The Trending listing itself is rendered by the existing
+        // <livewire:trending-page> full-page component. The wrapper view
+        // injects the page's intro copy above it.
+        return view('blog.page-trending', compact('page'));
+    }
+
+    private function renderCreatorsPage(Page $page, Request $request): View
+    {
+        // Reuse the existing creator directory query (previously in
+        // CreatorController::index) so the listing keeps its filter UI.
+        $query = Creator::with('socialLinks')
+            ->where(function ($q) {
+                $q->where('status', 'published')->orWhere('status', 'claimed');
+            });
+
+        $hasFilter = false;
+
+        if ($category = $request->query('category')) {
+            $query->where('category', $category);
+            $hasFilter = true;
+        }
+
+        if ($country = $request->query('country')) {
+            $query->where('country', $country);
+            $hasFilter = true;
+        }
+
+        if ($hasFilter) {
+            $query->latest();
+        } else {
+            $seed = (int) ($request->query('seed') ?: now()->format('Ymd'));
+            $query->inRandomOrder($seed);
+        }
+
+        $creators = $query->paginate(24)->withQueryString();
+
+        $categories = Creator::where(function ($q) {
+                $q->where('status', 'published')->orWhere('status', 'claimed');
+            })
+            ->distinct()
+            ->pluck('category')
+            ->sort()
+            ->values();
+
+        $countries = Creator::where(function ($q) {
+                $q->where('status', 'published')->orWhere('status', 'claimed');
+            })
+            ->distinct()
+            ->pluck('country')
+            ->sort()
+            ->values();
+
+        return view('creators.index', compact('page', 'creators', 'categories', 'countries'));
     }
 }

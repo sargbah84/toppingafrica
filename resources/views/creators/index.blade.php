@@ -1,6 +1,13 @@
+@php
+    $page = $page ?? null;
+    $pageTitle = $page?->meta_title ?: ($page?->title ?? 'African Content Creators');
+    $pageDescription = $page?->meta_description ?: 'Discover rising and trending African content creators across comedy, fashion, food, music and more.';
+    $heroTitle = $page?->title ?? 'African Content Creators';
+@endphp
+
 <x-layouts.blog
-    title="African Content Creators"
-    :metaDescription="'Discover rising and trending African content creators across comedy, fashion, food, music and more.'"
+    :title="$pageTitle"
+    :metaDescription="$pageDescription"
 >
 
 @push('schema')
@@ -8,9 +15,9 @@
 {
     "@@context": "https://schema.org",
     "@@type": "CollectionPage",
-    "name": "African Content Creators — Topping Africa",
-    "description": "Discover rising and trending African content creators across comedy, fashion, food, music and more.",
-    "url": "{{ url('/creators') }}"
+    "name": "{{ $pageTitle }}",
+    "description": "{{ $pageDescription }}",
+    "url": "{{ url()->current() }}"
 }
 </script>
 @endpush
@@ -18,17 +25,23 @@
 <section class="max-w-container mx-auto px-4 py-8">
     {{-- Page Header --}}
     <div class="text-center mb-8">
-        <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2">African Content Creators</h1>
+        <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2">{{ $heroTitle }}</h1>
         <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Discover rising and trending African content creators across comedy, fashion, food, music and more.
+            {{ $pageDescription }}
         </p>
     </div>
+
+    @if (! empty($page?->content))
+        <div class="prose dark:prose-invert max-w-3xl mx-auto mb-8">
+            {!! $page->content !!}
+        </div>
+    @endif
 
     {{-- Filters --}}
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
         {{-- Category Pills --}}
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('creators.index') }}"
+            <a href="{{ template_url('creators') }}"
                class="px-3 py-1.5 rounded-full text-xs font-semibold transition {{ !request('category') ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }}">
                 All
             </a>

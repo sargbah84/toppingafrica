@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\AI\Concerns\TracksAiUsage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ClaudeBioService
 {
+    use TracksAiUsage;
+
+    private const MODEL = 'claude-haiku-4-5';
+    private const FEATURE = 'creator-bio';
+
     public function generateBio(array $creatorData): string
     {
         $fallback = $creatorData['bio_summary'] ?? 'An African content creator.';
+        $startedAt = microtime(true);
 
         try {
             $apiKey = config('services.anthropic.key');
@@ -54,14 +61,35 @@ PROMPT;
                 ],
             ]);
 
+            $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+
             if (! $response->successful()) {
                 Log::error('ClaudeBioService: API request failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
 
+                $this->trackUsage(
+                    response: $response,
+                    providerSlug: 'anthropic',
+                    model: self::MODEL,
+                    feature: self::FEATURE,
+                    isSuccessful: false,
+                    durationMs: $durationMs,
+                    errorMessage: 'HTTP ' . $response->status() . ': ' . mb_substr($response->body(), 0, 400),
+                );
+
                 return $fallback;
             }
+
+            $this->trackUsage(
+                response: $response,
+                providerSlug: 'anthropic',
+                model: self::MODEL,
+                feature: self::FEATURE,
+                isSuccessful: true,
+                durationMs: $durationMs,
+            );
 
             $bio = $response->json('content.0.text', '');
 

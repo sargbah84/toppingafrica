@@ -38,6 +38,7 @@ class SettingController extends Controller
         'meta_description',
         'footer_text',
         'footer_pages',
+        'header_pages',
         'excluded_ips',
         'posts_per_page',
         'allow_comments',
@@ -58,8 +59,44 @@ class SettingController extends Controller
             $settings[$key] ??= '';
         }
 
-        $pages = \App\Models\Page::orderBy('title')->get(['id', 'title', 'slug']);
+        $allPages = \App\Models\Page::orderBy('title')->get(['id', 'title', 'slug', 'template']);
         $footerPageIds = json_decode(Setting::get('footer_pages', '[]'), true) ?: [];
+        $pages = $allPages; // footer picker stays alphabetical / no ordering UI
+
+        // ── Header navigation: CMS pages ──────────────────────────────────
+        // The Header nav is now a single picker over CMS pages. Built-in
+        // sections like Trending and Creators were converted into seeded
+        // pages by the 2026_04_07_140000_seed_template_pages migration so
+        // they appear here alongside any custom pages the admin creates.
+        $savedHeaderPages = self::normaliseSavedHeaderPages(
+            json_decode(Setting::get('header_pages', '[]'), true) ?: []
+        );
+
+        // Same ordering rule: enabled first (saved order), then disabled.
+        $headerPages = collect();
+        $seenPageIds = [];
+        foreach ($savedHeaderPages as $row) {
+            $page = $allPages->firstWhere('id', $row['id']);
+            if (! $page) {
+                continue;
+            }
+            $headerPages->push([
+                'page' => $page,
+                'enabled' => true,
+                'label' => $row['label'],
+            ]);
+            $seenPageIds[] = $page->id;
+        }
+        foreach ($allPages as $page) {
+            if (in_array($page->id, $seenPageIds, true)) {
+                continue;
+            }
+            $headerPages->push([
+                'page' => $page,
+                'enabled' => false,
+                'label' => null,
+            ]);
+        }
 
         $monitoring = [
             'activity_count' => Activity::count(),
@@ -70,7 +107,9 @@ class SettingController extends Controller
             'failed_jobs' => DB::table('failed_jobs')->count(),
         ];
 
-        return view('admin.settings.index', compact('settings', 'monitoring', 'pages', 'footerPageIds'));
+        return view('admin.settings.index', compact(
+            'settings', 'monitoring', 'pages', 'footerPageIds', 'headerPages',
+        ));
     }
 
     /**
@@ -97,8 +136,12 @@ class SettingController extends Controller
             'meta_description'    => ['nullable', 'string', 'max:300'],
             'footer_text'         => ['nullable', 'string', 'max:1000'],
             'excluded_ips'        => ['nullable', 'string', 'max:2000'],
-            'footer_pages'        => ['nullable', 'array'],
-            'footer_pages.*'      => ['integer', 'exists:pages,id'],
+            'footer_pages'             => ['nullable', 'array'],
+            'footer_pages.*'           => ['integer', 'exists:pages,id'],
+            'header_pages'             => ['nullable', 'array'],
+            'header_pages.*'           => ['integer', 'exists:pages,id'],
+            'header_page_labels'       => ['nullable', 'array'],
+            'header_page_labels.*'     => ['nullable', 'string', 'max:60'],
             'posts_per_page'      => ['nullable', 'integer', 'min:1', 'max:100'],
             'allow_comments'      => ['nullable', 'string', 'in:0,1'],
             'moderate_comments'   => ['nullable', 'string', 'in:0,1'],
@@ -111,6 +154,19 @@ class SettingController extends Controller
         } else {
             Setting::set('footer_pages', '[]');
         }
+
+        // Store header_pages as a JSON array of {id, label} objects in form order.
+        $headerPageLabels = $validated['header_page_labels'] ?? [];
+        $headerPagesStructured = [];
+        foreach ($validated['header_pages'] ?? [] as $id) {
+            $label = trim((string) ($headerPageLabels[$id] ?? ''));
+            $headerPagesStructured[] = [
+                'id' => (int) $id,
+                'label' => $label !== '' ? $label : null,
+            ];
+        }
+        Setting::set('header_pages', json_encode($headerPagesStructured));
+        unset($validated['header_pages'], $validated['header_page_labels']);
 
         foreach ($validated as $key => $value) {
             if (in_array($key, self::SETTING_KEYS, true)) {
@@ -151,5 +207,35 @@ class SettingController extends Controller
 
         return redirect()->route('admin.dashboard')
             ->with('success', 'Google Search Console connected successfully! Click the Search tab to sync your data.');
+    }
+
+    /**
+     * Coerce a saved header_pages value into the canonical
+     * [['id' => int, 'label' => string|null], ...] shape.
+     * Accepts both the new {id,label} object form and the legacy plain
+     * int-array form so existing data keeps working.
+     *
+     * @param  mixed  $raw
+     * @return array<int, array{id: int, label: string|null}>
+     */
+    public static function normaliseSavedHeaderPages($raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $entry) {
+            if (is_int($entry) || (is_string($entry) && ctype_digit($entry))) {
+                $out[] = ['id' => (int) $entry, 'label' => null];
+            } elseif (is_array($entry) && isset($entry['id'])) {
+                $label = isset($entry['label']) && trim((string) $entry['label']) !== ''
+                    ? (string) $entry['label']
+                    : null;
+                $out[] = ['id' => (int) $entry['id'], 'label' => $label];
+            }
+        }
+
+        return $out;
     }
 }

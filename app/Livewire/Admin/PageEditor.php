@@ -87,10 +87,15 @@ class PageEditor extends Component
 
     public function save(): void
     {
+        // Dynamic templates (trending, creators, blog) don't require body
+        // content — they generate their own listing markup.
+        $tplMeta = Page::TEMPLATES[$this->template] ?? null;
+        $isDynamic = (bool) ($tplMeta['dynamic'] ?? false);
+
         $validated = $this->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:pages,slug' . ($this->pageId ? ',' . $this->pageId : '')],
-            'content' => [$this->template === 'blog' ? 'nullable' : 'required', 'string'],
+            'content' => [$isDynamic ? 'nullable' : 'required', 'string'],
             'template' => ['nullable', 'string', 'max:100'],
             'linked_category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'linked_tag_id' => ['nullable', 'integer', 'exists:tags,id'],
@@ -99,6 +104,23 @@ class PageEditor extends Component
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:300'],
         ]);
+
+        // Singleton template enforcement: only one page may use a singleton
+        // template at a time. Trying to save a second one is rejected with a
+        // pointer back to the existing one so the admin can edit it instead.
+        if (! empty($tplMeta['singleton'])) {
+            $existing = Page::where('template', $this->template)
+                ->when($this->pageId, fn ($q) => $q->where('id', '!=', $this->pageId))
+                ->first();
+
+            if ($existing) {
+                $this->addError('template',
+                    'A ' . $tplMeta['label'] . ' page already exists at /' . $existing->slug
+                    . '. Edit that page instead — only one ' . $tplMeta['label'] . ' page is allowed.'
+                );
+                return;
+            }
+        }
 
         if ($this->pageId) {
             $page = Page::findOrFail($this->pageId);
