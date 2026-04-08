@@ -226,7 +226,10 @@ class CreatorClaimController extends Controller
             'email_verified_at' => now(), // verified by virtue of clicking the email link
         ]);
 
-        $user->assignRole('creator');
+        // Single-role rule — syncRoles REPLACES any existing role with
+        // exactly 'creator'. A regular user registering via the claim
+        // flow transitions from regular → creator in one step.
+        $user->syncRoles(['creator']);
 
         $this->linkCreatorToUser($creator, $user);
 
@@ -235,13 +238,15 @@ class CreatorClaimController extends Controller
         Auth::login($user, remember: true);
         $request->session()->regenerate();
 
-        return redirect()->route('creator.dashboard')
+        return redirect()->route('dashboard')
             ->with('success', "Welcome, {$user->name}! Your account is set up.");
     }
 
     /**
      * Link a creator row to a user, clear the claim token, and ensure
-     * the user has the "creator" role. Idempotent.
+     * the user has the "creator" role. Idempotent under the single-role
+     * rule: syncRoles replaces whatever role the user had before with
+     * exactly 'creator'.
      */
     private function linkCreatorToUser(Creator $creator, User $user): void
     {
@@ -253,8 +258,6 @@ class CreatorClaimController extends Controller
             'status' => $creator->status === 'pending' ? 'claimed' : $creator->status,
         ])->save();
 
-        if (! $user->hasRole('creator')) {
-            $user->assignRole('creator');
-        }
+        $user->syncRoles(['creator']);
     }
 }

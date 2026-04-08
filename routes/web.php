@@ -3,7 +3,7 @@
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CreatorClaimController;
 use App\Http\Controllers\CreatorController;
-use App\Http\Controllers\CreatorDashboardController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -45,15 +45,28 @@ Route::post('/creators/claim/{token}', [CreatorClaimController::class, 'update']
 Route::get('/creators/claim/{token}/register', [CreatorClaimController::class, 'showRegister'])->name('creators.claim.register.show');
 Route::post('/creators/claim/{token}/register', [CreatorClaimController::class, 'register'])->name('creators.claim.register');
 
-// Authenticated edit routes — used by registered creators editing their
-// profiles via the dashboard. Ownership checked via creator.user_id.
+// Unified frontend dashboard — everyone who isn't a staff/admin lands
+// here after login. The landing page branches by role: creators see
+// their claimed profile cards inline, everyone else sees their
+// Recently Viewed + Comments history inline.
 Route::middleware('auth')->group(function () {
-    Route::get('/creator/dashboard', [CreatorDashboardController::class, 'index'])->name('creator.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/settings', [DashboardController::class, 'settings'])->name('dashboard.settings');
+
+    // Authenticated creator profile edit routes — intentionally kept at
+    // /creator/profile/* because they're semantically creator-specific
+    // actions, not dashboard-area navigation. Moving them would break
+    // any existing inbound links without meaningful benefit.
     Route::get('/creator/profile/{creatorId}/edit', [CreatorClaimController::class, 'editAsOwner'])
         ->name('creators.claim.edit-as-owner');
     Route::post('/creator/profile/{creatorId}/update', [CreatorClaimController::class, 'updateAsOwner'])
         ->name('creators.claim.update-as-owner');
 });
+
+// Legacy redirect: any creator with a bookmarked /creator/dashboard URL
+// (or an open tab from before the refactor) lands on the new /dashboard.
+// 301 so browsers update their bookmarks.
+Route::permanentRedirect('/creator/dashboard', '/dashboard');
 
 Route::get('/creators/{slug}', [CreatorController::class, 'show'])->name('creators.show');
 Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])
@@ -61,10 +74,23 @@ Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'reques
     ->name('creators.request-claim');
 Route::post('/creators/{slug}/follow', [CreatorController::class, 'toggleFollow'])->middleware('auth')->name('creators.follow');
 
-// Regular user pages (use blog layout)
+// Legacy account redirects — /my-account and its sub-pages were the
+// pre-refactor home for logged-in user content (Recently Viewed,
+// Comments, profile/password/delete forms). All of that now lives
+// under /dashboard and /dashboard/settings. We keep these two URLs
+// alive as 301 redirects so any bookmarks or externally-cached links
+// still land on the correct destination.
+Route::permanentRedirect('/my-account/profile', '/dashboard/settings');
+Route::permanentRedirect('/my-account', '/dashboard');
+
+// The route names 'account' and 'profile' used to point at /my-account
+// and /my-account/profile respectively. They're kept alive here as
+// aliases so any Blade template or controller that still calls
+// route('account') or route('profile') continues to work during the
+// transition. Both resolve to the new dashboard URLs.
 Route::middleware(['auth'])->group(function () {
-    Route::view('my-account', 'account.index')->name('dashboard');
-    Route::view('my-account/profile', 'account.profile')->name('profile');
+    Route::redirect('/account', '/dashboard')->name('account');
+    Route::redirect('/profile', '/dashboard/settings')->name('profile');
 });
 
 // Logout route for admin panel

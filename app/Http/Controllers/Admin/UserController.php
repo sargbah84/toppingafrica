@@ -78,8 +78,11 @@ class UserController extends Controller
             'website'        => $validated['website'] ?? null,
         ]);
 
+        // Single-role rule — syncRoles replaces any existing role with
+        // exactly the one provided. On a fresh user this behaves the
+        // same as assignRole, but kept consistent with the project rule.
         if (! empty($validated['role'])) {
-            $user->assignRole($validated['role']);
+            $user->syncRoles([$validated['role']]);
         }
 
         return redirect()->route('admin.users.index')

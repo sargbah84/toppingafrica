@@ -42,7 +42,8 @@ new #[Layout('layouts.guest')] class extends Component
 
         event(new Registered($user = User::create($validated)));
 
-        $user->assignRole('regular');
+        // Single-role rule — every new registration is a 'regular' user.
+        $user->syncRoles(['regular']);
 
         Auth::login($user);
 

@@ -124,9 +124,10 @@ class CreatorController extends Controller
                 'claim_token_expires_at' => null,
             ])->save();
 
-            if (! $user->hasRole('creator')) {
-                $user->assignRole('creator');
-            }
+            // Single-role rule — syncRoles replaces the user's existing
+            // role with exactly 'creator', whether they were a regular
+            // user or already a creator claiming a second profile.
+            $user->syncRoles(['creator']);
 
             return redirect()->route('creators.claim.edit-as-owner', ['creatorId' => $creator->id])
                 ->with('success', "You've claimed {$creator->name}. Update your profile below.");
