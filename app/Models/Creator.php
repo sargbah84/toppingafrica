@@ -12,12 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Creator extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, LogsActivity;
 
     protected $fillable = [
         'user_id',
@@ -90,6 +92,35 @@ class Creator extends Model implements HasMedia
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Spatie Activitylog config — track all meaningful field changes so
+     * the admin "Pending Edits" review modal can show diffs and roll
+     * back individual entries. Skips noisy/internal fields (timestamps,
+     * claim tokens, the pending_claim_edit flag itself).
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'name',
+                'bio',
+                'country',
+                'category',
+                'contact_email',
+                'profile_image_url',
+                'follower_count',
+                'follower_platform',
+                'is_rising',
+                'is_trending',
+                'is_featured',
+                'status',
+                'user_id',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => "Creator {$eventName}");
     }
 
     public function followers(): BelongsToMany

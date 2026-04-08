@@ -148,9 +148,9 @@
                                     </button>
                                 @endif
                                 @if($creator->pending_claim_edit)
-                                    <button wire:click="approveClaim({{ $creator->id }})"
+                                    <button wire:click="openReviewModal({{ $creator->id }})"
                                             class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
-                                        Approve Claim
+                                        Review
                                     </button>
                                 @endif
                                 <button wire:click="edit({{ $creator->id }})"
@@ -576,5 +576,92 @@
             </div>
         </div>
     </div>
+    @endif
+
+    {{-- Review Pending Edits Modal --}}
+    @if($showReviewModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="review-modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeReviewModal"></div>
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="review-modal-title">
+                            Review changes to {{ $reviewingCreatorName }}
+                        </h3>
+                        <button wire:click="closeReviewModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                        @forelse($this->reviewActivities as $activity)
+                            @php
+                                $changes = $activity->changes();
+                                $oldValues = $changes['old'] ?? [];
+                                $newValues = $changes['attributes'] ?? [];
+                                $causerName = $activity->causer?->name ?? 'System';
+                            @endphp
+                            <div class="mb-4 rounded-md border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            {{ $activity->created_at->diffForHumans() }} &middot; by {{ $causerName }}
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            @click="window.tcModal.confirm(@js('Roll back this edit? The previous values will be restored.'), {variant:'warning', confirmText:'Roll back'}).then(ok => ok && $wire.rollbackActivity({{ $activity->id }}))"
+                                            class="px-2.5 py-1 text-xs font-semibold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/30 rounded hover:bg-orange-200 dark:hover:bg-orange-900/50 transition-colors">
+                                        Roll back
+                                    </button>
+                                </div>
+
+                                @if(empty($newValues))
+                                    <p class="text-xs text-gray-400 italic">No field changes recorded.</p>
+                                @else
+                                    <div class="space-y-2">
+                                        @foreach($newValues as $field => $newValue)
+                                            <div class="text-xs">
+                                                <div class="font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ $field }}</div>
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    <div class="rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-2 py-1.5">
+                                                        <div class="text-[10px] uppercase tracking-wide text-red-700 dark:text-red-400 font-semibold mb-0.5">Before</div>
+                                                        <div class="text-gray-700 dark:text-gray-300 break-words">
+                                                            {{ is_scalar($oldValues[$field] ?? null) ? ($oldValues[$field] ?: '—') : json_encode($oldValues[$field] ?? null) }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-2 py-1.5">
+                                                        <div class="text-[10px] uppercase tracking-wide text-green-700 dark:text-green-400 font-semibold mb-0.5">After</div>
+                                                        <div class="text-gray-700 dark:text-gray-300 break-words">
+                                                            {{ is_scalar($newValue) ? ($newValue ?: '—') : json_encode($newValue) }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
+                                No edit history found for this creator.
+                            </p>
+                        @endforelse
+                    </div>
+
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
+                        <button type="button" wire:click="closeReviewModal"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+                            Close
+                        </button>
+                        <button type="button" wire:click="markReviewed({{ $reviewingCreatorId }})"
+                                class="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md">
+                            Mark reviewed
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 </div>

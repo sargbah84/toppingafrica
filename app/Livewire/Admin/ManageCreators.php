@@ -59,6 +59,11 @@ class ManageCreators extends Component
     public ?int $editFollowerCount = null;
     public ?string $editFollowerPlatform = null;
 
+    // Review modal state — for the Pending Edits tab
+    public bool $showReviewModal = false;
+    public ?int $reviewingCreatorId = null;
+    public ?string $reviewingCreatorName = null;
+
     // Generate modal state
     public bool $showGenerateModal = false;
     public array $generateNiches = [];
@@ -399,6 +404,98 @@ class ManageCreators extends Component
         ]);
 
         session()->flash('success', "{$creator->name}'s claim has been approved.");
+    }
+
+    // ── Pending Edit Review ──────────────────────────────────
+
+    /**
+     * Open the review modal for a creator with pending claim edits.
+     * Shows the activity log diffs so staff can see what changed and
+     * roll back individual edits if needed.
+     */
+    public function openReviewModal(int $id): void
+    {
+        $creator = Creator::findOrFail($id);
+        $this->reviewingCreatorId = $creator->id;
+        $this->reviewingCreatorName = $creator->name;
+        $this->showReviewModal = true;
+    }
+
+    public function closeReviewModal(): void
+    {
+        $this->showReviewModal = false;
+        $this->reviewingCreatorId = null;
+        $this->reviewingCreatorName = null;
+    }
+
+    /**
+     * Roll back a single activity log entry — applies the "old" values
+     * back to the creator. Logs a new activity entry as the staff user
+     * (so the rollback itself is auditable).
+     */
+    public function rollbackActivity(int $activityId): void
+    {
+        $activity = \Spatie\Activitylog\Models\Activity::query()
+            ->where('id', $activityId)
+            ->where('subject_type', Creator::class)
+            ->firstOrFail();
+
+        $creator = Creator::findOrFail($activity->subject_id);
+
+        $changes = $activity->changes();
+        $oldValues = $changes['old'] ?? [];
+
+        if (empty($oldValues)) {
+            session()->flash('error', 'Nothing to roll back — this entry has no recorded "old" values.');
+            return;
+        }
+
+        // Filter out fields we don't want admins to roll back via this UI
+        // (e.g. user_id changes are managed elsewhere).
+        $rollbackable = collect($oldValues)
+            ->except(['user_id', 'status'])
+            ->toArray();
+
+        if (empty($rollbackable)) {
+            session()->flash('error', 'Nothing rollbackable in this entry.');
+            return;
+        }
+
+        $creator->update($rollbackable);
+
+        session()->flash('success', "Rolled back " . count($rollbackable) . " field(s) on {$creator->name}.");
+    }
+
+    /**
+     * Mark a pending edit as reviewed without rolling back — used when
+     * staff have eyeballed the changes and they look fine.
+     */
+    public function markReviewed(int $id): void
+    {
+        $creator = Creator::findOrFail($id);
+        $creator->update(['pending_claim_edit' => false]);
+
+        $this->closeReviewModal();
+        session()->flash('success', "{$creator->name}'s changes marked as reviewed.");
+    }
+
+    /**
+     * Computed property: the activity log entries for the creator
+     * currently being reviewed in the modal.
+     */
+    public function getReviewActivitiesProperty()
+    {
+        if (! $this->reviewingCreatorId) {
+            return collect();
+        }
+
+        return \Spatie\Activitylog\Models\Activity::query()
+            ->where('subject_type', Creator::class)
+            ->where('subject_id', $this->reviewingCreatorId)
+            ->where('description', 'like', 'Creator updated%')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
     }
 
     public function edit(int $id): void
