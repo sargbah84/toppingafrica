@@ -20,7 +20,7 @@
                     {{-- Body --}}
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="color: #111827; margin: 0 0 16px; font-size: 20px;">Hi {{ $creator->name }},</h2>
+                            <h2 style="color: #111827; margin: 0 0 16px; font-size: 20px;">Hi {{ $recipientName ?? 'there' }},</h2>
 
                             <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
                                 You've requested to claim <strong>{{ $creator->name }}</strong> on Topping Africa.
