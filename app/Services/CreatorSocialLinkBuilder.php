@@ -98,12 +98,15 @@ class CreatorSocialLinkBuilder
 
     private function extractHandleFromUrl(string $url, string $platform): ?string
     {
+        // Use ~ as the regex delimiter because the character class [^/?#]
+        // contains # — using # as the delimiter would terminate the pattern
+        // prematurely and cause a "Unknown modifier ']'" error.
         $patterns = [
-            'instagram' => '#instagram\.com/([^/?#]+)#i',
-            'tiktok' => '#tiktok\.com/@?([^/?#]+)#i',
-            'youtube' => '#youtube\.com/@?([^/?#]+)#i',
-            'twitter' => '#(?:x|twitter)\.com/([^/?#]+)#i',
-            'facebook' => '#facebook\.com/([^/?#]+)#i',
+            'instagram' => '~instagram\.com/([^/?#]+)~i',
+            'tiktok' => '~tiktok\.com/@?([^/?#]+)~i',
+            'youtube' => '~youtube\.com/@?([^/?#]+)~i',
+            'twitter' => '~(?:x|twitter)\.com/([^/?#]+)~i',
+            'facebook' => '~facebook\.com/([^/?#]+)~i',
         ];
 
         if (! isset($patterns[$platform])) {
