@@ -296,6 +296,11 @@ class Post extends Model implements HasMedia
         return LogOptions::defaults()
             ->logOnly(['title', 'status', 'author_id', 'post_type'])
             ->logOnlyDirty()
+            // Critical — without this, every $post->increment('views_count')
+            // from the ViewTracker would write an activity log row with
+            // empty changes (because views_count isn't in logOnly). At site
+            // traffic scale this accumulates thousands of noise rows per day.
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => "Post {$eventName}: {$this->title}");
     }
 }

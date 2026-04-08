@@ -66,6 +66,10 @@ class Comment extends Model
         return LogOptions::defaults()
             ->logOnly(['status', 'post_id'])
             ->logOnlyDirty()
+            // Defensive — suppresses log rows where no tracked field changed
+            // (e.g. an increment on an untracked counter column). Matches
+            // the pattern used on Post and Creator.
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => "Comment {$eventName}");
     }
 }

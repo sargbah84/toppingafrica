@@ -83,6 +83,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return LogOptions::defaults()
             ->logOnly(['name', 'email', 'is_staff', 'is_super_admin'])
             ->logOnlyDirty()
+            // Defensive — suppresses log rows where no tracked field changed.
+            // Also has the side effect of suppressing "User deleted" events
+            // (they have empty changes by nature); we accept that trade-off
+            // because the alternative is noise-heavy logs. If auditable user
+            // deletion is needed later, add a dedicated soft-delete observer.
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => "User {$eventName}");
     }
 }
