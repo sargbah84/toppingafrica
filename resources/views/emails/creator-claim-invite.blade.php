@@ -27,7 +27,7 @@
                             </p>
 
                             <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
-                                Claiming this profile lets you update the bio, upload a photo, and manage social media links. Click the button below to continue.
+                                Claiming this profile lets you update the bio, upload a photo, manage social media links, and see your page metrics. Click the button below to continue.
                             </p>
 
                             {{-- CTA Button --}}
