@@ -30,6 +30,52 @@ class DiscoverCreatorsJob implements ShouldQueue
         public string $country,
     ) {}
 
+    private const VALID_PLATFORMS = ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook'];
+
+    /**
+     * Parse the LLM's `estimated_follower_count` field into a clean integer
+     * or null. Accepts plain ints, "250K" / "1.5M" shorthand, and comma-formatted
+     * strings because the model doesn't always follow the "integer" instruction.
+     */
+    public static function normalizeFollowerCount(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_string($value)) {
+            $v = strtolower(str_replace([',', ' '], '', $value));
+            if (preg_match('/^([\d.]+)([km])?$/', $v, $m)) {
+                $n = (float) $m[1];
+                $mult = ($m[2] ?? '') === 'm' ? 1_000_000 : (($m[2] ?? '') === 'k' ? 1_000 : 1);
+                $value = (int) round($n * $mult);
+            } else {
+                return null;
+            }
+        }
+
+        $value = (int) $value;
+
+        // Cap at 10B to guard against hallucinated absurdities while still
+        // comfortably covering every real creator on the planet.
+        if ($value <= 0 || $value > 10_000_000_000) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    public static function normalizeFollowerPlatform(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $v = strtolower(trim($value));
+
+        return in_array($v, self::VALID_PLATFORMS, true) ? $v : null;
+    }
+
     public function handle(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
@@ -74,6 +120,8 @@ class DiscoverCreatorsJob implements ShouldQueue
                     'profile_image_url' => $image['image_url'] ?? null,
                     'profile_image_attribution' => $image['attribution'] ?? null,
                     'profile_image_license' => $image['license'] ?? null,
+                    'follower_count' => self::normalizeFollowerCount($creatorData['estimated_follower_count'] ?? null),
+                    'follower_platform' => self::normalizeFollowerPlatform($creatorData['follower_platform'] ?? null),
                 ]);
 
                 $linkBuilder->build($creator, $creatorData);

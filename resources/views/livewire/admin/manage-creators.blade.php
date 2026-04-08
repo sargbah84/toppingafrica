@@ -51,6 +51,13 @@
                     Approve {{ count($selected) }} selected
                 </button>
             @endif
+
+            @if(count($selected) > 0)
+                <button type="button" @click="window.tcModal.confirm(@js('Re-pull '.count($selected).' selected creators from AI? This dispatches background jobs and may take a while.'), {variant:'default', confirmText:'Re-pull'}).then(ok => ok && $wire.bulkRepull())"
+                        class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition">
+                    Re-pull {{ count($selected) }} selected
+                </button>
+            @endif
         </div>
         <button wire:click="openGenerateModal"
                 class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition">
@@ -243,6 +250,21 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email</label>
                             <input wire:model="editContactEmail" type="email" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
+                    </div>
+
+                    {{-- Read-only AI-estimated followers --}}
+                    <div class="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Estimated Followers (AI)</div>
+                        @if($editFollowerCount)
+                            <div class="mt-0.5 text-sm text-gray-900 dark:text-white">
+                                <span class="font-semibold">{{ \App\Support\FollowerFormat::short($editFollowerCount) }}</span>
+                                @if($editFollowerPlatform)
+                                    <span class="text-gray-500 dark:text-gray-400">on {{ ucfirst($editFollowerPlatform) }}</span>
+                                @endif
+                            </div>
+                        @else
+                            <div class="mt-0.5 text-sm text-gray-500 dark:text-gray-400 italic">No estimate — use Re-pull to fetch from AI.</div>
+                        @endif
                     </div>
 
                     <div>

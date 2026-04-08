@@ -45,8 +45,12 @@ Respond ONLY with valid JSON. No markdown, no preamble, no explanation. Return a
 - twitter_handle (string or null, just the username without @)
 - facebook_url (string or null, full URL)
 - website_url (string or null, full URL)
+- estimated_follower_count (integer or null, a rough estimate of the creator's follower count on their LARGEST platform. Use a single integer like 250000 for 250K, 1500000 for 1.5M. Round to 2 significant figures — this is a rough estimate, not a precise number. Return null ONLY if you genuinely have no idea of their rough size)
+- follower_platform (string or null, the platform that the estimated_follower_count refers to — one of: "instagram", "tiktok", "youtube", "twitter", "facebook". Must be set whenever estimated_follower_count is set)
 
 REMEMBER: These are SOCIAL MEDIA creators — almost all of them will have Instagram and/or TikTok handles. Only return null if you genuinely cannot find a handle. Make every effort to populate the social media fields.
+
+For estimated_follower_count: pick the platform where the creator is biggest and give your best rough estimate. Typical ranges: nano (1K-10K), micro (10K-100K), mid (100K-500K), large (500K-1M), mega (1M+). A rough ballpark is far better than null.
 
 Return ONLY the JSON array, nothing else.
 PROMPT;

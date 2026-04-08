@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Admin;
 
 use App\Jobs\DiscoverCreatorsJob;
+use App\Jobs\RepullCreatorJob;
 use App\Mail\CreatorClaimInvite;
 use App\Models\Creator;
 use App\Services\ClaudeBioService;
@@ -52,6 +53,11 @@ class ManageCreators extends Component
     public ?string $editPhotoName = null;
     public string $editBadge = ''; // '', 'rising', 'trending', 'featured'
     public array $editSocialLinks = [];
+
+    // Read-only display of AI-estimated follower data (not editable in the modal,
+    // but refreshed when the admin clicks "Re-pull AI Data" inside the modal).
+    public ?int $editFollowerCount = null;
+    public ?string $editFollowerPlatform = null;
 
     // Generate modal state
     public bool $showGenerateModal = false;
@@ -255,6 +261,8 @@ class ManageCreators extends Component
                     'profile_image_url' => $image['image_url'] ?? null,
                     'profile_image_attribution' => $image['attribution'] ?? null,
                     'profile_image_license' => $image['license'] ?? null,
+                    'follower_count' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($creatorData['estimated_follower_count'] ?? null),
+                    'follower_platform' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($creatorData['follower_platform'] ?? null),
                 ]);
 
                 $linkBuilder->build($creator, $creatorData);
@@ -346,6 +354,26 @@ class ManageCreators extends Component
         session()->flash('success', "{$creator->name} has been published.");
     }
 
+    public function bulkRepull(): void
+    {
+        $ids = array_map('intval', $this->selected);
+
+        if (empty($ids)) {
+            return;
+        }
+
+        // Dispatch one job per selection — the queue handles the rate.
+        foreach ($ids as $id) {
+            RepullCreatorJob::dispatch($id);
+        }
+
+        $count = count($ids);
+        $this->selected = [];
+        $this->selectAll = false;
+
+        session()->flash('success', "{$count} creator re-pull job(s) queued. Watch the Job Monitor for progress.");
+    }
+
     public function bulkApprove(): void
     {
         $creators = Creator::whereIn('id', $this->selected)->where('status', 'pending')->get();
@@ -383,6 +411,8 @@ class ManageCreators extends Component
         $this->editCountry = $creator->country;
         $this->editCategory = $creator->category;
         $this->editContactEmail = $creator->contact_email ?? '';
+        $this->editFollowerCount = $creator->follower_count;
+        $this->editFollowerPlatform = $creator->follower_platform;
         $this->editPhotoData = null;
         $this->editPhotoName = null;
 
@@ -611,15 +641,31 @@ class ManageCreators extends Component
             $this->editSocialLinks = $newLinks;
         }
 
-        // Update image if found
-        if (! empty($image['image_url'])) {
-            $creator = Creator::find($this->editingCreatorId);
-            if ($creator) {
-                $creator->update([
-                    'profile_image_url' => $image['image_url'],
-                    'profile_image_attribution' => $image['attribution'] ?? null,
-                    'profile_image_license' => $image['license'] ?? null,
-                ]);
+        // Update image and follower estimate directly (these aren't part of the
+        // editable form fields — image is stored server-side, follower data is
+        // read-only in the modal — so we persist them immediately rather than
+        // wait for a Save Changes click that wouldn't touch them anyway).
+        $creator = Creator::find($this->editingCreatorId);
+        if ($creator) {
+            $updates = [];
+            if (! empty($image['image_url'])) {
+                $updates['profile_image_url'] = $image['image_url'];
+                $updates['profile_image_attribution'] = $image['attribution'] ?? null;
+                $updates['profile_image_license'] = $image['license'] ?? null;
+            }
+
+            $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
+            $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
+
+            if ($newFollowerCount !== null) {
+                $updates['follower_count'] = $newFollowerCount;
+                $updates['follower_platform'] = $newFollowerPlatform;
+                $this->editFollowerCount = $newFollowerCount;
+                $this->editFollowerPlatform = $newFollowerPlatform;
+            }
+
+            if (! empty($updates)) {
+                $creator->update($updates);
             }
         }
 
@@ -655,12 +701,19 @@ class ManageCreators extends Component
         $bio = $claude->generateBio($match);
         $image = $wikimedia->searchCreatorImage($creator->name);
 
+        $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
+        $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
+
         $creator->update([
             'bio' => $bio,
             'contact_email' => $match['contact_email'] ?? $creator->contact_email,
             'profile_image_url' => $image['image_url'] ?? $creator->getRawOriginal('profile_image_url'),
             'profile_image_attribution' => $image['attribution'] ?? $creator->profile_image_attribution,
             'profile_image_license' => $image['license'] ?? $creator->profile_image_license,
+            // Only overwrite follower data when AI returned something — a failed
+            // estimate shouldn't wipe a previously-good value.
+            'follower_count' => $newFollowerCount ?? $creator->follower_count,
+            'follower_platform' => $newFollowerPlatform ?? $creator->follower_platform,
         ]);
 
         // Re-build social links (updateOrCreate prevents duplicates)

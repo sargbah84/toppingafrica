@@ -37,6 +37,8 @@ class Creator extends Model implements HasMedia
         'is_rising',
         'is_trending',
         'is_featured',
+        'follower_count',
+        'follower_platform',
     ];
 
     protected $casts = [
@@ -46,6 +48,7 @@ class Creator extends Model implements HasMedia
         'is_rising' => 'boolean',
         'is_trending' => 'boolean',
         'is_featured' => 'boolean',
+        'follower_count' => 'integer',
     ];
 
     protected static function boot(): void
