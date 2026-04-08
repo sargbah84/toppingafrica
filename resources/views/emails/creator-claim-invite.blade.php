@@ -12,7 +12,7 @@
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
                     {{-- Header --}}
                     <tr>
-                        <td style="background-color: #d60842; padding: 30px 40px; text-align: center;">
+                        <td style="background-color: #000000; padding: 30px 40px; text-align: center;">
                             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Topping Africa</h1>
                         </td>
                     </tr>
@@ -23,17 +23,17 @@
                             <h2 style="color: #111827; margin: 0 0 16px; font-size: 20px;">Hi {{ $creator->name }},</h2>
 
                             <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-                                You've been featured on <strong>Topping Africa</strong> as one of the rising {{ $creator->category }} content creators from {{ $creator->country }}!
+                                You've requested to claim <strong>{{ $creator->name }}</strong> on Topping Africa.
                             </p>
 
                             <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
-                                Claim your profile to upload your own photo, update your bio, and manage your social links. Your profile is already live and being discovered by audiences across Africa.
+                                Claiming this profile lets you update the bio, upload a photo, and manage social media links. Click the button below to continue.
                             </p>
 
                             {{-- CTA Button --}}
                             <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
                                 <tr>
-                                    <td style="background-color: #d60842; border-radius: 6px;">
+                                    <td style="background-color: #000000; border-radius: 6px;">
                                         <a href="{{ $claimUrl }}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
                                             Claim Your Profile
                                         </a>
@@ -42,12 +42,12 @@
                             </table>
 
                             <p style="color: #9ca3af; font-size: 14px; line-height: 1.5; margin: 0 0 8px;">
-                                This link expires in 48 hours. If you didn't expect this email, you can safely ignore it.
+                                This link expires in 48 hours. If you didn't request this, you can safely ignore this email.
                             </p>
 
                             <p style="color: #9ca3af; font-size: 14px; line-height: 1.5; margin: 0;">
                                 If the button doesn't work, copy and paste this URL into your browser:<br>
-                                <a href="{{ $claimUrl }}" style="color: #d60842; word-break: break-all;">{{ $claimUrl }}</a>
+                                <a href="{{ $claimUrl }}" style="color: #111827; word-break: break-all;">{{ $claimUrl }}</a>
                             </p>
                         </td>
                     </tr>
