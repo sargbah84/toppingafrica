@@ -64,6 +64,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(PostView::class);
     }
 
+    /**
+     * Creator profiles this user has claimed and registered for.
+     * One user may own multiple creator pages.
+     */
+    public function claimedCreators(): HasMany
+    {
+        return $this->hasMany(Creator::class);
+    }
+
     public function getAvatarUrlAttribute(): string
     {
         return $this->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=000000&color=ffffff';

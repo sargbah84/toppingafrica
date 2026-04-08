@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +20,7 @@ class Creator extends Model implements HasMedia
     use HasFactory, InteractsWithMedia;
 
     protected $fillable = [
+        'user_id',
         'name',
         'slug',
         'bio',
@@ -80,9 +82,37 @@ class Creator extends Model implements HasMedia
         return $this->hasMany(CreatorSocialLink::class);
     }
 
+    /**
+     * The User who has claimed and registered this creator profile.
+     * Null when the creator has not yet been claimed, or has been claimed
+     * via the email-only flow without account registration.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'creator_follows')->withTimestamps();
+    }
+
+    /**
+     * Whether the given user is allowed to edit this creator's profile via
+     * the public/creator-facing edit form. True if the user owns the
+     * creator (linked via user_id) or holds the super-admin flag.
+     */
+    public function canBeEditedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->is_super_admin || $user->is_staff) {
+            return true;
+        }
+
+        return $this->user_id !== null && $this->user_id === $user->id;
     }
 
     public function isFollowedBy(?User $user): bool

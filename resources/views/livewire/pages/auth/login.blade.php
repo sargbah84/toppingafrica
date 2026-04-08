@@ -32,9 +32,11 @@ new #[Layout('layouts.guest')] class extends Component
         Session::regenerate();
 
         $user = auth()->user();
-        $default = ($user && ($user->is_staff || $user->is_super_admin))
-            ? route('admin.dashboard', absolute: false)
-            : route('dashboard', absolute: false);
+        $default = match (true) {
+            $user && ($user->is_staff || $user->is_super_admin) => route('admin.dashboard', absolute: false),
+            $user && $user->hasRole('creator') => route('creator.dashboard', absolute: false),
+            default => route('dashboard', absolute: false),
+        };
 
         $this->redirectIntended(default: $default, navigate: true);
     }

@@ -65,9 +65,16 @@ class CreatorController extends Controller
 
         $this->verifyRecaptcha($request, 'request_creator_claim');
 
-        $creator = Creator::where('slug', $slug)
-            ->where('status', '!=', 'claimed')
-            ->firstOrFail();
+        $creator = Creator::where('slug', $slug)->firstOrFail();
+
+        // Already-claimed creators can still be re-claimed by their existing
+        // owner via the "logged in shortcut" branch below; otherwise we
+        // refuse to issue a fresh token for an actively-owned profile.
+        $isAlreadyClaimedBySomeoneElse = $creator->status === 'claimed'
+            && (! auth()->check() || $creator->user_id !== auth()->id());
+        if ($isAlreadyClaimedBySomeoneElse) {
+            abort(404);
+        }
 
         $email = $request->input('email');
 
@@ -76,6 +83,35 @@ class CreatorController extends Controller
         // no invalid address ever reaches the queued mail job.
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return back()->withErrors(['email' => 'Please enter a valid email address.']);
+        }
+
+        // Logged-in shortcut: if the authenticated user's own email matches
+        // BOTH the form's submitted email AND the creator's contact email,
+        // we have unambiguous proof of identity — link the creator to this
+        // user immediately and skip the email round-trip. Any mismatch falls
+        // through to the standard email-verification flow.
+        $user = auth()->user();
+        if ($user
+            && strcasecmp($user->email, $email) === 0
+            && $creator->contact_email
+            && strcasecmp($creator->contact_email, $email) === 0
+        ) {
+            $creator->forceFill([
+                'user_id' => $user->id,
+                'claimed_by_email' => $email,
+                'claimed_at' => $creator->claimed_at ?? now(),
+                'status' => 'claimed',
+                'pending_claim_edit' => true,
+                'claim_token' => null,
+                'claim_token_expires_at' => null,
+            ])->save();
+
+            if (! $user->hasRole('creator')) {
+                $user->assignRole('creator');
+            }
+
+            return redirect()->route('creators.claim.edit-as-owner', ['creatorId' => $creator->id])
+                ->with('success', "You've claimed {$creator->name}. Update your profile below.");
         }
 
         $creator->update([

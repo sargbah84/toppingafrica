@@ -3,6 +3,7 @@
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CreatorClaimController;
 use App\Http\Controllers\CreatorController;
+use App\Http\Controllers\CreatorDashboardController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -38,8 +39,26 @@ Route::get('/_creators-redirect', function (\Illuminate\Http\Request $request) {
 })->name('creators.index');
 Route::get('/creators/claim/{token}', [CreatorClaimController::class, 'show'])->name('creators.claim');
 Route::post('/creators/claim/{token}', [CreatorClaimController::class, 'update'])->name('creators.claim.update');
+
+// "Complete your account" registration flow — opt-in upgrade from
+// token-based claim to a full User account with the creator role.
+Route::get('/creators/claim/{token}/register', [CreatorClaimController::class, 'showRegister'])->name('creators.claim.register.show');
+Route::post('/creators/claim/{token}/register', [CreatorClaimController::class, 'register'])->name('creators.claim.register');
+
+// Authenticated edit routes — used by registered creators editing their
+// profiles via the dashboard. Ownership checked via creator.user_id.
+Route::middleware('auth')->group(function () {
+    Route::get('/creator/dashboard', [CreatorDashboardController::class, 'index'])->name('creator.dashboard');
+    Route::get('/creator/profile/{creatorId}/edit', [CreatorClaimController::class, 'editAsOwner'])
+        ->name('creators.claim.edit-as-owner');
+    Route::post('/creator/profile/{creatorId}/update', [CreatorClaimController::class, 'updateAsOwner'])
+        ->name('creators.claim.update-as-owner');
+});
+
 Route::get('/creators/{slug}', [CreatorController::class, 'show'])->name('creators.show');
-Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])->name('creators.request-claim');
+Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])
+    ->middleware('throttle:5,1')
+    ->name('creators.request-claim');
 Route::post('/creators/{slug}/follow', [CreatorController::class, 'toggleFollow'])->middleware('auth')->name('creators.follow');
 
 // Regular user pages (use blog layout)

@@ -40,6 +40,8 @@ class DatabaseSeeder extends Seeder
         $editor = Role::create(['name' => 'editor']);
         $author = Role::create(['name' => 'author']);
         $regular = Role::create(['name' => 'regular']);
+        // "creator" has no permissions — it's a marker role for routing.
+        $creator = Role::create(['name' => 'creator']);
 
         $superAdmin->givePermissionTo(Permission::all());
         $editor->givePermissionTo([
