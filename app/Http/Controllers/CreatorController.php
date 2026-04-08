@@ -20,7 +20,7 @@ class CreatorController extends Controller
     // index() was removed: the public /creators URL is now a CMS page backed
     // by the 'creators' template and rendered by BlogController::renderCreatorsPage.
 
-    public function show(string $slug): View
+    public function show(string $slug, Request $request): View
     {
         $creator = Creator::with('socialLinks')
             ->where('slug', $slug)
@@ -32,7 +32,25 @@ class CreatorController extends Controller
 
         $isFollowing = $creator->isFollowedBy(auth()->user());
 
-        return view('creators.show', compact('creator', 'isFollowing'));
+        // True when the currently-authenticated viewer owns this creator —
+        // used by the view to swap the "Claim this profile" CTA for an
+        // "Edit your profile" shortcut. False for guests and for other
+        // logged-in users who don't own this row.
+        $isOwner = auth()->check() && $creator->user_id === auth()->id();
+
+        // True when the profile has been claimed by anyone (owner or not).
+        // Used to render a disabled "Claimed" pill for non-owner viewers.
+        $isClaimed = $creator->user_id !== null || $creator->status === 'claimed';
+
+        // Track the view. Skip owners viewing their own profile so creators
+        // don't inflate their own counts while testing edits. Staff IP
+        // exclusions are still applied via the global exclusion_rules setting
+        // inside View::recordView().
+        if (! $isOwner) {
+            app(\App\Services\ViewTracker::class)->track($creator, $request);
+        }
+
+        return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed'));
     }
 
     public function toggleFollow(Request $request, string $slug): \Illuminate\Http\JsonResponse

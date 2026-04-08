@@ -5,7 +5,12 @@
 >
 
 <section class="max-w-container mx-auto px-4 py-8">
-    <div class="max-w-3xl mx-auto">
+    <div class="flex flex-col sm:flex-row gap-6">
+        {{-- Left sidebar --}}
+        @include('creators.partials.dashboard-sidebar')
+
+        {{-- Main content --}}
+        <div class="flex-1 min-w-0">
         {{-- Header --}}
         <div class="flex items-start justify-between mb-6">
             <div>
@@ -66,14 +71,20 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
                                     {{ $creator->category }} &middot; {{ $creator->country }}
                                 </p>
-                                @if($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
-                                    <p class="mt-0.5 text-xs font-semibold text-primary">
-                                        {{ $followerShort }} followers
-                                        @if($creator->follower_platform)
-                                            on {{ ucfirst($creator->follower_platform) }}
-                                        @endif
-                                    </p>
-                                @endif
+
+                                {{-- Stats row: followers · views · updated --}}
+                                @php
+                                    $stats = [];
+                                    if ($followerShort = \App\Support\FollowerFormat::short($creator->follower_count)) {
+                                        $stats[] = $followerShort . ' followers';
+                                    }
+                                    $viewsShort = \App\Support\FollowerFormat::short($creator->views_count) ?? '0';
+                                    $stats[] = $viewsShort . ' ' . \Illuminate\Support\Str::plural('view', $creator->views_count);
+                                    $stats[] = 'Updated ' . $creator->updated_at->diffForHumans(null, true) . ' ago';
+                                @endphp
+                                <p class="mt-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                    {{ implode(' · ', $stats) }}
+                                </p>
                             </div>
 
                             {{-- Actions --}}
@@ -99,7 +110,8 @@
                 </a>
             </div>
         @endif
-    </div>
+        </div>{{-- end main content column --}}
+    </div>{{-- end flex row --}}
 </section>
 
 </x-layouts.blog>

@@ -44,7 +44,7 @@
                     <button @click="tab = 'history'"
                             :class="tab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'"
                             class="pb-3 text-sm font-semibold border-b-2 transition-colors">
-                        Reading History
+                        Recently Viewed
                     </button>
                     <button @click="tab = 'comments'"
                             :class="tab === 'comments' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'"

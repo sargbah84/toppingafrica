@@ -6,10 +6,11 @@ namespace App\Livewire\Admin\Dashboard;
 
 use App\Models\AiUsageLog;
 use App\Models\Comment;
+use App\Models\Creator;
 use App\Models\NewsletterSubscriber;
 use App\Models\Post;
-use App\Models\PostView;
 use App\Models\SearchConsoleData;
+use App\Models\View as ViewRecord;
 use App\Models\Setting;
 use App\Models\SeoAnalysis;
 use App\Models\User;
@@ -86,7 +87,9 @@ class StatsOverview extends Component
 
     private function viewsQuery()
     {
-        $query = PostView::query();
+        // Site-wide view query — counts views of any viewable type
+        // (posts AND creators). Per-type filtering can be added later.
+        $query = ViewRecord::query();
         $start = $this->periodStart();
         $end = $this->periodEnd();
 
@@ -138,7 +141,7 @@ class StatsOverview extends Component
             $date = now()->subDays($i);
             $data[] = [
                 'date' => $date->format('M d'),
-                'views' => PostView::whereDate('viewed_at', $date->toDateString())->count(),
+                'views' => ViewRecord::whereDate('viewed_at', $date->toDateString())->count(),
             ];
         }
 
@@ -158,37 +161,83 @@ class StatsOverview extends Component
     #[Computed]
     public function topPages(): Collection
     {
-        $query = PostView::query()
-            ->join('posts', 'post_views.post_id', '=', 'posts.id')
-            ->select('posts.title', 'posts.slug', DB::raw('COUNT(post_views.id) as view_count'));
-
         $start = $this->periodStart();
         $end = $this->periodEnd();
 
-        if ($start) {
-            $query->where('post_views.viewed_at', '>=', $start);
-        }
-        if ($end) {
-            $query->where('post_views.viewed_at', '<=', $end);
-        }
+        // Two separate queries (posts + creators) merged in PHP. A real SQL
+        // UNION would be more efficient at scale, but for the data sizes this
+        // dashboard handles (~thousands of view rows) the readability win
+        // outweighs the perf cost. If this query ever shows up in a slow log,
+        // we can refactor to a UNION subquery.
+        $applyPeriod = function ($q) use ($start, $end) {
+            if ($start) {
+                $q->where('views.viewed_at', '>=', $start);
+            }
+            if ($end) {
+                $q->where('views.viewed_at', '<=', $end);
+            }
 
-        return $query->groupBy('posts.id', 'posts.title', 'posts.slug')
-            ->orderByDesc('view_count')
-            ->limit(10)
-            ->get();
+            return $q;
+        };
+
+        $postRows = $applyPeriod(
+            ViewRecord::query()
+                ->where('views.viewable_type', Post::class)
+                ->join('posts', 'views.viewable_id', '=', 'posts.id')
+                ->select(
+                    DB::raw("'post' as type"),
+                    'posts.title as title',
+                    'posts.slug as slug',
+                    DB::raw('COUNT(views.id) as view_count'),
+                )
+                ->groupBy('posts.id', 'posts.title', 'posts.slug')
+        )->get();
+
+        $creatorRows = $applyPeriod(
+            ViewRecord::query()
+                ->where('views.viewable_type', Creator::class)
+                ->join('creators', 'views.viewable_id', '=', 'creators.id')
+                ->select(
+                    DB::raw("'creator' as type"),
+                    'creators.name as title',
+                    'creators.slug as slug',
+                    DB::raw('COUNT(views.id) as view_count'),
+                )
+                ->groupBy('creators.id', 'creators.name', 'creators.slug')
+        )->get();
+
+        // Concat (NOT merge!) the two result sets. EloquentCollection::merge()
+        // uses the primary key for uniqueness, so rows with the same id from
+        // posts vs creators would shadow each other and the merged set would
+        // collapse to nothing. concat() is a plain append with no dedup.
+        return $postRows->concat($creatorRows)
+            ->sortByDesc('view_count')
+            ->take(10)
+            ->values();
     }
 
-    public function showPageDetail(string $slug): void
+    public function showPageDetail(string $slug, string $type = 'post'): void
     {
-        $post = \App\Models\Post::where('slug', $slug)->first();
-        if (!$post) {
+        // Resolve the subject (post or creator) by slug.
+        $subject = match ($type) {
+            'creator' => Creator::where('slug', $slug)->first(),
+            default => Post::where('slug', $slug)->first(),
+        };
+
+        if (! $subject) {
             return;
         }
 
+        $viewableType = $type === 'creator' ? Creator::class : Post::class;
+        $title = $type === 'creator' ? $subject->name : $subject->title;
+
         $start = $this->periodStart();
         $end = $this->periodEnd();
 
-        $viewsQuery = PostView::where('post_id', $post->id);
+        $viewsQuery = ViewRecord::query()
+            ->where('viewable_type', $viewableType)
+            ->where('viewable_id', $subject->id);
+
         if ($start) {
             $viewsQuery->where('viewed_at', '>=', $start);
         }
@@ -225,13 +274,18 @@ class StatsOverview extends Component
             $date = now()->subDays($i);
             $daily[] = [
                 'date' => $date->format('M d'),
-                'views' => PostView::where('post_id', $post->id)->whereDate('viewed_at', $date->toDateString())->count(),
+                'views' => ViewRecord::query()
+                    ->where('viewable_type', $viewableType)
+                    ->where('viewable_id', $subject->id)
+                    ->whereDate('viewed_at', $date->toDateString())
+                    ->count(),
             ];
         }
 
         $this->pageDetail = [
-            'title' => $post->title,
+            'title' => $title,
             'slug' => $slug,
+            'type' => $type,
             'total_views' => $totalViews,
             'unique_visitors' => $uniqueVisitors,
             'referrers' => $referrers->toArray(),
@@ -248,7 +302,7 @@ class StatsOverview extends Component
     #[Computed]
     public function topReferrers(): Collection
     {
-        $query = PostView::query()
+        $query = ViewRecord::query()
             ->whereNotNull('referer')
             ->where('referer', '!=', '');
 
@@ -321,8 +375,8 @@ class StatsOverview extends Component
         $data = [];
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $dayViews = PostView::whereDate('viewed_at', $date->toDateString())->count();
-            $uniqueViews = PostView::whereDate('viewed_at', $date->toDateString())->distinct('ip_hash')->count('ip_hash');
+            $dayViews = ViewRecord::whereDate('viewed_at', $date->toDateString())->count();
+            $uniqueViews = ViewRecord::whereDate('viewed_at', $date->toDateString())->distinct('ip_hash')->count('ip_hash');
             $data[] = [
                 'date' => $date->format('M d'),
                 'views' => $dayViews,
@@ -346,7 +400,7 @@ class StatsOverview extends Component
             'today' => 1,
             'week' => 7,
             'month' => 30,
-            'all' => max(1, (int) PostView::min('viewed_at') ? now()->diffInDays(PostView::min('viewed_at')) : 1),
+            'all' => max(1, (int) ViewRecord::min('viewed_at') ? now()->diffInDays(ViewRecord::min('viewed_at')) : 1),
             default => 30,
         };
 
@@ -785,8 +839,8 @@ class StatsOverview extends Component
         $postsThisMonth = Post::where('created_at', '>=', $thisMonth)->count();
         $postsLastMonth = Post::whereBetween('created_at', [$lastMonth, $lastMonthEnd])->count();
 
-        $viewsThisMonth = PostView::where('viewed_at', '>=', $thisMonth)->count();
-        $viewsLastMonth = PostView::whereBetween('viewed_at', [$lastMonth, $lastMonthEnd])->count();
+        $viewsThisMonth = ViewRecord::where('viewed_at', '>=', $thisMonth)->count();
+        $viewsLastMonth = ViewRecord::whereBetween('viewed_at', [$lastMonth, $lastMonthEnd])->count();
 
         return [
             'users' => ['current' => $usersThisMonth, 'previous' => $usersLastMonth],

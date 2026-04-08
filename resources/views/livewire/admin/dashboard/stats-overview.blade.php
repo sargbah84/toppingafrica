@@ -183,9 +183,23 @@
                 </div>
                 <div class="space-y-1">
                     @forelse ($this->topPages as $page)
-                        <button wire:click="showPageDetail('{{ $page->slug }}')" class="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
-                            <span class="text-sm text-gray-700 dark:text-gray-300 truncate flex-1" title="/{{ $page->slug }}">
-                                /{{ Str::limit($page->slug, 25) }}
+                        @php
+                            // Type-aware path prefix: posts live at /{slug}, creators at /creators/{slug}.
+                            $pathPrefix = $page->type === 'creator' ? '/creators/' : '/';
+                            $displayPath = $pathPrefix . $page->slug;
+                        @endphp
+                        <button wire:click="showPageDetail('{{ $page->slug }}', '{{ $page->type }}')"
+                                class="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
+                            <span class="flex items-center gap-2 min-w-0 flex-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded
+                                             {{ $page->type === 'creator'
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }}">
+                                    {{ $page->type }}
+                                </span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300 truncate" title="{{ $displayPath }}">
+                                    {{ Str::limit($page->title ?? $page->slug, 30) }}
+                                </span>
                             </span>
                             <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ number_format($page->view_count) }}</span>
                         </button>

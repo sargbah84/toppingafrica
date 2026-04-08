@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
@@ -169,9 +170,9 @@ class Post extends Model implements HasMedia
         return $this->hasMany(Comment::class);
     }
 
-    public function views(): HasMany
+    public function views(): MorphMany
     {
-        return $this->hasMany(PostView::class);
+        return $this->morphMany(View::class, 'viewable');
     }
 
     public function pollVotes(): HasMany

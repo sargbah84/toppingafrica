@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Post;
-use App\Models\PostView;
+use App\Models\View as ViewRecord;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -24,7 +24,9 @@ class DashboardController extends Controller
             'published_posts'  => Post::where('status', 'published')->count(),
             'draft_posts'      => Post::where('status', 'draft')->count(),
             'scheduled_posts'  => Post::where('status', 'scheduled')->count(),
-            'total_views'      => PostView::count(),
+            // Site-wide views (posts + creators + any future viewable type),
+            // not just blog posts. Per the polymorphic refactor.
+            'total_views'      => ViewRecord::count(),
             'total_comments'   => Comment::count(),
             'pending_comments' => Comment::where('status', 'pending')->count(),
             'total_categories' => Category::count(),

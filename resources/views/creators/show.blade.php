@@ -46,16 +46,30 @@
         <div class="relative"
              x-data="{ shareOpen: false, claimOpen: false }">
 
-            {{-- Top-right action: Claim (only when unclaimed) --}}
-            @if($creator->status !== 'claimed')
-                <div class="absolute top-4 right-4 z-20">
+            {{-- Top-right action — three states:
+                 1. Unclaimed → "Claim Profile" button (opens modal)
+                 2. Claimed and viewer owns it → "Edit your profile" link
+                 3. Claimed but viewer is a stranger → disabled "Claimed" pill --}}
+            <div class="absolute top-4 right-4 z-20">
+                @if($isOwner)
+                    <a href="{{ route('creators.claim.edit-as-owner', ['creatorId' => $creator->id]) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900 text-sm font-semibold text-white hover:bg-gray-800 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg>
+                        Edit your profile
+                    </a>
+                @elseif($isClaimed)
+                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400 cursor-default" title="This profile has been claimed by its owner">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                        Claimed
+                    </span>
+                @else
                     <button type="button" @click="claimOpen = true"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition">
                         <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/></svg>
                         Claim Profile
                     </button>
-                </div>
-            @endif
+                @endif
+            </div>
 
             {{-- Avatar (centered) --}}
             <div class="relative pt-12 flex justify-center px-6">
@@ -110,9 +124,6 @@
                     </div>
                     @php($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
                     <div class="mt-1 text-2xl font-black text-gray-900 dark:text-white">{{ $followerShort ?? '—' }}</div>
-                    @if($followerShort && $creator->follower_platform)
-                        <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">on {{ ucfirst($creator->follower_platform) }}</div>
-                    @endif
                 </div>
                 <div class="text-center">
                     <div class="flex items-center justify-center gap-1.5 text-gray-400 dark:text-gray-500">
@@ -206,7 +217,7 @@
             {{-- About --}}
             <div class="px-6 sm:px-10 py-6">
                 <h2 class="text-center text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">About Me</h2>
-                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl mx-auto">
+                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
                     {{ $creator->bio }}
                 </p>
             </div>

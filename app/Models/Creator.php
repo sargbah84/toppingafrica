@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
@@ -43,6 +44,7 @@ class Creator extends Model implements HasMedia
         'is_featured',
         'follower_count',
         'follower_platform',
+        'views_count',
     ];
 
     protected $casts = [
@@ -53,6 +55,7 @@ class Creator extends Model implements HasMedia
         'is_trending' => 'boolean',
         'is_featured' => 'boolean',
         'follower_count' => 'integer',
+        'views_count' => 'integer',
     ];
 
     protected static function boot(): void
@@ -126,6 +129,24 @@ class Creator extends Model implements HasMedia
     public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'creator_follows')->withTimestamps();
+    }
+
+    /**
+     * Polymorphic page-view records for this creator. The same View model
+     * is shared with Post; ViewTracker handles the recording.
+     */
+    public function views(): MorphMany
+    {
+        return $this->morphMany(View::class, 'viewable');
+    }
+
+    /**
+     * Bump the denormalized views_count counter. Called by View::recordView()
+     * after a new (deduplicated) view is recorded.
+     */
+    public function incrementViewsCount(): void
+    {
+        $this->increment('views_count');
     }
 
     /**

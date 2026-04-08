@@ -4,107 +4,30 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-class PostView extends Model
+/**
+ * Backward-compatibility alias for the polymorphic View model.
+ *
+ * Existing code that imports App\Models\PostView and queries it (e.g. via
+ * PostView::query(), PostView::where(...), $user->postViews(), etc.) keeps
+ * working unchanged — the underlying table, model logic, and behavior all
+ * live in App\Models\View now. This subclass just preserves the old class
+ * name so we don't have to update every call site at once.
+ *
+ * The static recordView() helper here forwards to View::recordView() for
+ * the (Post, ...) signature that BlogController previously used.
+ *
+ * New code should use App\Models\View directly. This alias can be removed
+ * once all references are migrated, but there's no rush.
+ */
+class PostView extends View
 {
-    public $timestamps = false;
-
-    protected $fillable = [
-        'post_id',
-        'user_id',
-        'ip_hash',
-        'user_agent',
-        'referer',
-        'device_type',
-        'viewed_at',
-    ];
-
-    protected $casts = [
-        'viewed_at' => 'datetime',
-    ];
-
-    public function post(): BelongsTo
+    /**
+     * BC shim — old call site in StatsOverview etc. used PostView::recordView($post, ...)
+     * with a Post first argument. View::recordView() takes a generic Model so
+     * this delegation is safe.
+     */
+    public static function recordView(\Illuminate\Database\Eloquent\Model $subject, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
     {
-        return $this->belongsTo(Post::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
-    {
-        // Skip excluded IPs and user agents
-        $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
-        foreach ($rules as $rule) {
-            if (!($rule['active'] ?? true)) {
-                continue;
-            }
-            if ($rule['type'] === 'ip' && $rule['value'] === $ip) {
-                return;
-            }
-            if ($rule['type'] === 'user_agent' && $userAgent && stripos($userAgent, $rule['value']) !== false) {
-                return;
-            }
-        }
-
-        $ipHash = hash('sha256', $ip . config('app.key'));
-
-        $recentView = static::where('post_id', $post->id)
-            ->where('ip_hash', $ipHash)
-            ->where('viewed_at', '>', now()->subDay())
-            ->exists();
-
-        if (!$recentView) {
-            static::create([
-                'post_id' => $post->id,
-                'user_id' => $userId,
-                'ip_hash' => $ipHash,
-                'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
-                'referer' => $referer ? substr($referer, 0, 255) : null,
-                'device_type' => static::detectDeviceType($userAgent),
-                'viewed_at' => now(),
-            ]);
-
-            $post->incrementViewsCount();
-        }
-    }
-
-    public static function detectDeviceType(?string $userAgent): string
-    {
-        if (!$userAgent) {
-            return 'desktop';
-        }
-
-        $ua = strtolower($userAgent);
-
-        if (preg_match('/mobile|android|iphone|ipod|blackberry|opera mini|iemobile|wpdesktop/i', $ua)) {
-            return 'mobile';
-        }
-
-        if (preg_match('/tablet|ipad|playbook|silk/i', $ua)) {
-            return 'tablet';
-        }
-
-        return 'desktop';
-    }
-
-    public function scopeForPost($query, Post $post)
-    {
-        return $query->where('post_id', $post->id);
-    }
-
-    public function scopeInPeriod($query, \DateTimeInterface $from, ?\DateTimeInterface $to = null)
-    {
-        $query->where('viewed_at', '>=', $from);
-
-        if ($to) {
-            $query->where('viewed_at', '<=', $to);
-        }
-
-        return $query;
+        parent::recordView($subject, $ip, $userId, $userAgent, $referer);
     }
 }

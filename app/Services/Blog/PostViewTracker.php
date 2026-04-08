@@ -5,49 +5,47 @@ declare(strict_types=1);
 namespace App\Services\Blog;
 
 use App\Models\Post;
-use App\Models\PostView;
+use App\Services\ViewTracker;
 use Illuminate\Http\Request;
 
+/**
+ * Backward-compatibility shim for the old App\Services\Blog\PostViewTracker.
+ *
+ * BlogController already imports this class and calls track($post, $request)
+ * once per post page load. Rather than touching every call site, we keep the
+ * old class name and forward all method calls to the new generic ViewTracker.
+ *
+ * New code should inject App\Services\ViewTracker directly. This shim can be
+ * deleted once BlogController is updated, but there's no urgency.
+ */
 final class PostViewTracker
 {
+    public function __construct(
+        private readonly ViewTracker $tracker = new ViewTracker(),
+    ) {}
+
     public function track(Post $post, Request $request): void
     {
-        PostView::recordView(
-            $post,
-            $request->ip(),
-            auth()->id(),
-            $request->userAgent(),
-            $request->headers->get('referer')
-        );
+        $this->tracker->track($post, $request);
     }
 
     public function getViewsForPost(Post $post): int
     {
-        return $post->views_count;
+        return $this->tracker->getViewsFor($post);
     }
 
     public function getUniqueViewsForPost(Post $post): int
     {
-        return PostView::forPost($post)->distinct('ip_hash')->count('ip_hash');
+        return $this->tracker->getUniqueViewsFor($post);
     }
 
     public function getViewsInPeriod(Post $post, \DateTimeInterface $from, ?\DateTimeInterface $to = null): int
     {
-        return PostView::forPost($post)
-            ->inPeriod($from, $to)
-            ->count();
+        return $this->tracker->getViewsInPeriod($post, $from, $to);
     }
 
     public function getViewsByDay(Post $post, int $days = 30): array
     {
-        $from = now()->subDays($days);
-
-        return PostView::forPost($post)
-            ->inPeriod($from)
-            ->selectRaw('DATE(viewed_at) as date, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->pluck('count', 'date')
-            ->toArray();
+        return $this->tracker->getViewsByDay($post, $days);
     }
 }
