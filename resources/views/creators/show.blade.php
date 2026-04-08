@@ -260,16 +260,44 @@
                                     {{ session('success') }}
                                 </div>
                             @else
-                                <form action="{{ route('creators.request-claim', $creator->slug) }}" method="POST" class="space-y-3">
+                                @php($recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey())
+                                <form action="{{ route('creators.request-claim', $creator->slug) }}" method="POST" class="space-y-3"
+                                      x-data="{ siteKey: @js($recaptchaSiteKey), submitting: false }"
+                                      x-on:submit.prevent="
+                                          if (submitting) return;
+                                          submitting = true;
+                                          const doSubmit = () => { $el.submit(); };
+                                          if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                                              grecaptcha.enterprise.ready(async () => {
+                                                  try {
+                                                      const token = await grecaptcha.enterprise.execute(siteKey, { action: 'request_creator_claim' });
+                                                      $refs.recaptchaToken.value = token;
+                                                  } catch (e) {
+                                                      $refs.recaptchaToken.value = 'RECAPTCHA_FAILED';
+                                                  }
+                                                  doSubmit();
+                                              });
+                                          } else if (siteKey) {
+                                              $refs.recaptchaToken.value = 'RECAPTCHA_NOT_LOADED';
+                                              doSubmit();
+                                          } else {
+                                              doSubmit();
+                                          }
+                                      ">
                                     @csrf
+                                    <input type="hidden" name="recaptcha_token" x-ref="recaptchaToken" value="">
                                     <input type="email" name="email" placeholder="Enter your email address" required
                                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-sm">
                                     @error('email')
                                         <p class="text-xs text-red-600">{{ $message }}</p>
                                     @enderror
-                                    <button type="submit"
-                                            class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors">
-                                        Send claim link
+                                    @error('recaptcha')
+                                        <p class="text-xs text-red-600">{{ $message }}</p>
+                                    @enderror
+                                    <button type="submit" :disabled="submitting"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
+                                        <span x-show="!submitting">Send claim link</span>
+                                        <span x-show="submitting" x-cloak>Sending…</span>
                                     </button>
                                 </form>
                             @endif

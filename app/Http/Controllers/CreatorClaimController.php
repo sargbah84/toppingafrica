@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\VerifiesRecaptcha;
 use App\Models\Creator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 
 class CreatorClaimController extends Controller
 {
+    use VerifiesRecaptcha;
+
     public function show(string $token): View
     {
         $creator = Creator::with('socialLinks')
@@ -35,6 +38,8 @@ class CreatorClaimController extends Controller
             'social_links.*.platform' => 'required|string',
             'social_links.*.url' => 'nullable|url',
         ]);
+
+        $this->verifyRecaptcha($request, 'submit_creator_claim');
 
         // Upload photo via Spatie MediaLibrary to S3
         if ($request->hasFile('photo')) {

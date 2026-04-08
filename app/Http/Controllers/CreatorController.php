@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\VerifiesRecaptcha;
 use App\Mail\CreatorClaimInvite;
 use App\Models\Creator;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,8 @@ use Illuminate\View\View;
 
 class CreatorController extends Controller
 {
+    use VerifiesRecaptcha;
+
     // index() was removed: the public /creators URL is now a CMS page backed
     // by the 'creators' template and rendered by BlogController::renderCreatorsPage.
 
@@ -59,6 +62,8 @@ class CreatorController extends Controller
         $request->validate([
             'email' => 'required|email',
         ]);
+
+        $this->verifyRecaptcha($request, 'request_creator_claim');
 
         $creator = Creator::where('slug', $slug)
             ->where('status', '!=', 'claimed')

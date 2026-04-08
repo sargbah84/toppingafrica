@@ -12,8 +12,38 @@
                 Hi {{ $creator->name }}! Update your profile below. Changes will be reviewed by our team before going live.
             </p>
 
-            <form action="{{ url('/creators/claim/' . $creator->claim_token) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+            @php($recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey())
+            <form action="{{ url('/creators/claim/' . $creator->claim_token) }}" method="POST" enctype="multipart/form-data" class="space-y-5"
+                  x-data="{ siteKey: @js($recaptchaSiteKey), submitting: false }"
+                  x-on:submit.prevent="
+                      if (submitting) return;
+                      submitting = true;
+                      const doSubmit = () => { $el.submit(); };
+                      if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                          grecaptcha.enterprise.ready(async () => {
+                              try {
+                                  const token = await grecaptcha.enterprise.execute(siteKey, { action: 'submit_creator_claim' });
+                                  $refs.recaptchaToken.value = token;
+                              } catch (e) {
+                                  $refs.recaptchaToken.value = 'RECAPTCHA_FAILED';
+                              }
+                              doSubmit();
+                          });
+                      } else if (siteKey) {
+                          $refs.recaptchaToken.value = 'RECAPTCHA_NOT_LOADED';
+                          doSubmit();
+                      } else {
+                          doSubmit();
+                      }
+                  ">
                 @csrf
+                <input type="hidden" name="recaptcha_token" x-ref="recaptchaToken" value="">
+
+                @error('recaptcha')
+                    <div class="rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                        <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+                    </div>
+                @enderror
 
                 {{-- Current Photo --}}
                 <div>
@@ -87,9 +117,10 @@
 
                 {{-- Submit --}}
                 <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <button type="submit"
-                            class="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors">
-                        Submit for Review
+                    <button type="submit" :disabled="submitting"
+                            class="w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
+                        <span x-show="!submitting">Submit for Review</span>
+                        <span x-show="submitting" x-cloak>Submitting…</span>
                     </button>
                     <p class="mt-2 text-xs text-gray-400">Your changes will be reviewed by our team before going live.</p>
                 </div>
