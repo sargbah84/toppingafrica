@@ -256,7 +256,7 @@ class ManageCreators extends Component
                     'bio' => $bio,
                     'country' => $creatorData['country'] ?? $combo['country'],
                     'category' => $creatorData['category'] ?? $combo['niche'],
-                    'contact_email' => $creatorData['contact_email'] ?? null,
+                    'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null),
                     'status' => 'pending',
                     'profile_image_url' => $image['image_url'] ?? null,
                     'profile_image_attribution' => $image['attribution'] ?? null,
@@ -592,8 +592,12 @@ class ManageCreators extends Component
         // Update form fields (not saved until admin clicks Save Changes)
         $this->editBio = $bio;
 
-        if (! empty($match['contact_email'])) {
-            $this->editContactEmail = $match['contact_email'];
+        // Only overwrite the existing email if the AI returned a syntactically
+        // valid one — garbage in the field (e.g. "example.com") would
+        // otherwise clobber a previously-valid value.
+        $newEmail = \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($match['contact_email'] ?? null);
+        if ($newEmail !== null) {
+            $this->editContactEmail = $newEmail;
         }
 
         // Refresh social links in the form (preserve any unsaved manual edits by replacing entirely)
@@ -703,15 +707,16 @@ class ManageCreators extends Component
 
         $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
         $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
+        $newContactEmail = \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($match['contact_email'] ?? null);
 
         $creator->update([
             'bio' => $bio,
-            'contact_email' => $match['contact_email'] ?? $creator->contact_email,
+            // Only overwrite on a confident new value — an invalid AI result
+            // must not wipe previously-good data (same pattern as follower fields).
+            'contact_email' => $newContactEmail ?? $creator->contact_email,
             'profile_image_url' => $image['image_url'] ?? $creator->getRawOriginal('profile_image_url'),
             'profile_image_attribution' => $image['attribution'] ?? $creator->profile_image_attribution,
             'profile_image_license' => $image['license'] ?? $creator->profile_image_license,
-            // Only overwrite follower data when AI returned something — a failed
-            // estimate shouldn't wipe a previously-good value.
             'follower_count' => $newFollowerCount ?? $creator->follower_count,
             'follower_platform' => $newFollowerPlatform ?? $creator->follower_platform,
         ]);
@@ -785,6 +790,17 @@ class ManageCreators extends Component
     private function sendClaimInviteIfNeeded(Creator $creator): void
     {
         if (! $creator->contact_email) {
+            return;
+        }
+
+        // Belt-and-braces: even if something slipped past the ingestion
+        // normalizers, never hand Symfony Mime an invalid address — it
+        // throws an RfcComplianceException that crashes the queue worker.
+        if (! filter_var($creator->contact_email, FILTER_VALIDATE_EMAIL)) {
+            \Log::warning('sendClaimInviteIfNeeded: skipping invalid email', [
+                'creator_id' => $creator->id,
+                'email' => $creator->contact_email,
+            ]);
             return;
         }
 

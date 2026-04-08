@@ -73,7 +73,7 @@ class GenerateCreators extends Component
                 'bio' => $bio,
                 'country' => $creatorData['country'] ?? $this->country,
                 'category' => $creatorData['category'] ?? $this->niche,
-                'contact_email' => $creatorData['contact_email'] ?? null,
+                'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null),
                 'status' => 'pending',
                 'profile_image_url' => $image['image_url'] ?? null,
                 'profile_image_attribution' => $image['attribution'] ?? null,

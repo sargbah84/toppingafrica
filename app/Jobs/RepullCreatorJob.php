@@ -71,14 +71,16 @@ class RepullCreatorJob implements ShouldQueue
 
             $newFollowerCount = DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
             $newFollowerPlatform = DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
+            $newContactEmail = DiscoverCreatorsJob::normalizeContactEmail($match['contact_email'] ?? null);
 
             $creator->update([
                 'bio' => $bio,
-                'contact_email' => $match['contact_email'] ?? $creator->contact_email,
+                // Only overwrite on a confident new value — invalid/garbage AI
+                // output must not wipe previously-good fields.
+                'contact_email' => $newContactEmail ?? $creator->contact_email,
                 'profile_image_url' => $image['image_url'] ?? $creator->getRawOriginal('profile_image_url'),
                 'profile_image_attribution' => $image['attribution'] ?? $creator->profile_image_attribution,
                 'profile_image_license' => $image['license'] ?? $creator->profile_image_license,
-                // Only overwrite on a confident new value.
                 'follower_count' => $newFollowerCount ?? $creator->follower_count,
                 'follower_platform' => $newFollowerPlatform ?? $creator->follower_platform,
             ]);

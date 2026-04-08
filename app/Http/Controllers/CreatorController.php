@@ -69,13 +69,22 @@ class CreatorController extends Controller
             ->where('status', '!=', 'claimed')
             ->firstOrFail();
 
+        $email = $request->input('email');
+
+        // Belt-and-braces guard — Laravel's `email` rule already ran above,
+        // but we re-check with the same filter Symfony Mime uses to guarantee
+        // no invalid address ever reaches the queued mail job.
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return back()->withErrors(['email' => 'Please enter a valid email address.']);
+        }
+
         $creator->update([
             'claim_token' => Str::uuid()->toString(),
             'claim_token_expires_at' => now()->addHours(48),
-            'claimed_by_email' => $request->input('email'),
+            'claimed_by_email' => $email,
         ]);
 
-        Mail::to($request->input('email'))->queue(new CreatorClaimInvite($creator->fresh()));
+        Mail::to($email)->queue(new CreatorClaimInvite($creator->fresh()));
 
         return back()->with('success', 'A claim link has been sent to your email. Check your inbox!');
     }

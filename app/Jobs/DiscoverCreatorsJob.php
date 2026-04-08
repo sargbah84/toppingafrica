@@ -65,6 +65,28 @@ class DiscoverCreatorsJob implements ShouldQueue
         return $value;
     }
 
+    /**
+     * Validate and normalize a contact email from the AI. Returns the
+     * trimmed lowercased email if it parses as RFC-compliant, or null
+     * otherwise. We use FILTER_VALIDATE_EMAIL (shape check only, no DNS)
+     * because Symfony Mime rejects anything that fails this same check —
+     * so passing here guarantees the mail job won't crash later.
+     */
+    public static function normalizeContactEmail(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $v = strtolower(trim($value));
+
+        if ($v === '') {
+            return null;
+        }
+
+        return filter_var($v, FILTER_VALIDATE_EMAIL) ? $v : null;
+    }
+
     public static function normalizeFollowerPlatform(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -115,7 +137,7 @@ class DiscoverCreatorsJob implements ShouldQueue
                     'bio' => $bio,
                     'country' => $creatorData['country'] ?? $this->country,
                     'category' => $creatorData['category'] ?? $this->niche,
-                    'contact_email' => $creatorData['contact_email'] ?? null,
+                    'contact_email' => self::normalizeContactEmail($creatorData['contact_email'] ?? null),
                     'status' => 'pending',
                     'profile_image_url' => $image['image_url'] ?? null,
                     'profile_image_attribution' => $image['attribution'] ?? null,
