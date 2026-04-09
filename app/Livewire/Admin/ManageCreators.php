@@ -38,6 +38,9 @@ class ManageCreators extends Component
     public string $countryFilter = '';
 
     #[Url]
+    public string $followerFilter = '';
+
+    #[Url]
     public int $perPage = 20;
 
     // Edit modal state
@@ -855,6 +858,18 @@ class ManageCreators extends Component
 
         if ($this->countryFilter !== '') {
             $query->where('country', $this->countryFilter);
+        }
+
+        if ($this->followerFilter !== '') {
+            $query = match ($this->followerFilter) {
+                'none' => $query->where(fn ($q) => $q->whereNull('follower_count')->orWhere('follower_count', 0)),
+                '1k' => $query->where('follower_count', '>=', 1000)->where('follower_count', '<', 10000),
+                '10k' => $query->where('follower_count', '>=', 10000)->where('follower_count', '<', 50000),
+                '50k' => $query->where('follower_count', '>=', 50000)->where('follower_count', '<', 100000),
+                '100k' => $query->where('follower_count', '>=', 100000)->where('follower_count', '<', 500000),
+                '500k' => $query->where('follower_count', '>=', 500000),
+                default => $query,
+            };
         }
 
         $query = match ($this->filter) {

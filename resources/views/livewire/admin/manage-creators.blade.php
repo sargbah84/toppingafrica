@@ -36,6 +36,17 @@
                 @endforeach
             </select>
 
+            <select wire:model.live="followerFilter"
+                    class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="">All followers</option>
+                <option value="none">No followers</option>
+                <option value="1k">1K – 10K</option>
+                <option value="10k">10K – 50K</option>
+                <option value="50k">50K – 100K</option>
+                <option value="100k">100K – 500K</option>
+                <option value="500k">500K+</option>
+            </select>
+
             <select wire:model.live="perPage"
                     class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 <option value="10">10 / page</option>
