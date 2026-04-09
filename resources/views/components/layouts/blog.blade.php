@@ -136,11 +136,24 @@
                     <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
 
+                {{-- Login (mobile only, guests only) --}}
+                @guest
+                    <a href="{{ route('login') }}"
+                       class="inline-flex items-center gap-2 px-5 py-2.5 border border-white text-white text-xs font-semibold uppercase tracking-wide rounded-sm hover:bg-white hover:text-gray-900 transition-colors mb-8">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+                        Login
+                    </a>
+                @endguest
+
                 {{-- Categories --}}
                 <nav class="space-y-5">
                     <a href="{{ template_url('trending') }}"
                        class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
                         Trending
+                    </a>
+                    <a href="{{ template_url('creators') }}"
+                       class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
+                        Creators
                     </a>
                     @php $menuCategories = \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get(); @endphp
                     @foreach($menuCategories as $cat)

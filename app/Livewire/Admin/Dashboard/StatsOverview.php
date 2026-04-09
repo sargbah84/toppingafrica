@@ -258,7 +258,7 @@ class StatsOverview extends Component
                 return $parsed['host'] ?? $item->referer;
             })
             ->map(function ($group, $domain) {
-                return (object) [
+                return [
                     'domain' => $domain,
                     'count' => $group->count(),
                 ];

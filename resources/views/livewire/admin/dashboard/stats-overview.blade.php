@@ -278,7 +278,8 @@
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Top Creators</h3>
                 <div class="space-y-3">
                     @forelse ($this->topCreators as $creator)
-                        <div class="flex items-center justify-between gap-3">
+                        <button wire:click="showPageDetail('{{ $creator->slug }}', 'creator')"
+                                class="w-full flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left">
                             <div class="flex items-center gap-3 min-w-0 flex-1">
                                 @if ($creator->profile_image_url)
                                     <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
@@ -296,7 +297,7 @@
                                 <span class="text-sm font-semibold text-gray-900 dark:text-white block">{{ number_format($creator->views_count) }}</span>
                                 <span class="text-xs text-gray-400">views</span>
                             </div>
-                        </div>
+                        </button>
                     @empty
                         <p class="text-sm text-gray-500 dark:text-gray-400">No creator data yet.</p>
                     @endforelse
