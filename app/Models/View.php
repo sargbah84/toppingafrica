@@ -60,8 +60,40 @@ class View extends Model
      * the count. Skips views from IPs/user-agents in the exclusion_rules
      * setting (typically used to filter staff and bots).
      */
+    /**
+     * Known bot user-agent patterns. Checked before the configurable
+     * exclusion_rules so crawlers are filtered without admin setup.
+     */
+    protected static array $botPatterns = [
+        // Search engines
+        'Googlebot', 'Bingbot', 'bingbot', 'Slurp', 'DuckDuckBot', 'Baiduspider', 'YandexBot',
+        'Sogou', 'Exabot', 'ia_archiver',
+        // SEO / analytics crawlers
+        'AhrefsBot', 'SemrushBot', 'DotBot', 'MJ12bot', 'PetalBot', 'Bytespider',
+        'serpstatbot', 'MegaIndex', 'BLEXBot', 'DataForSeoBot',
+        // Social media previews
+        'facebookexternalhit', 'Twitterbot', 'LinkedInBot', 'WhatsApp', 'TelegramBot',
+        'Slackbot', 'Discordbot',
+        // Generic patterns
+        'bot', 'crawl', 'spider', 'scraper', 'headless', 'phantom', 'puppet',
+        // Monitoring / uptime
+        'UptimeRobot', 'pingdom', 'StatusCake', 'NewRelicPinger',
+        // AI / LLM
+        'GPTBot', 'ChatGPT', 'Claude-Web', 'anthropic-ai', 'CCBot', 'PerplexityBot',
+    ];
+
     public static function recordView(Model $subject, string $ip, ?int $userId = null, ?string $userAgent = null, ?string $referer = null): void
     {
+        // Skip known bots by user-agent
+        if ($userAgent) {
+            $ua = strtolower($userAgent);
+            foreach (static::$botPatterns as $pattern) {
+                if (str_contains($ua, strtolower($pattern))) {
+                    return;
+                }
+            }
+        }
+
         // Skip excluded IPs and user agents
         $rules = json_decode(Setting::get('exclusion_rules', '[]'), true) ?: [];
         foreach ($rules as $rule) {
