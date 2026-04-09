@@ -119,7 +119,7 @@
     @if($creators->count())
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             @foreach($creators as $creator)
-                <div class="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <div class="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 pt-2">
                     {{-- Follow heart (top-left) --}}
                     <livewire:creator-follow-button :creator="$creator" variant="heart" :key="'follow-list-'.$creator->id" />
 

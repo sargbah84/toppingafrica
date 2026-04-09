@@ -132,13 +132,13 @@
         </div>
 
         {{-- Pages viewport --}}
-        <div class="overflow-hidden">
+        <div class="overflow-hidden py-2">
             <div class="flex transition-transform duration-500 ease-out"
                  :style="`transform: translateX(-${page * 100}%)`">
                 @foreach($creatorPages as $pageIndex => $pageCreators)
                     <div class="w-full flex-shrink-0 grid grid-cols-4 sm:grid-cols-8 gap-4">
                         @foreach($pageCreators as $creator)
-                            <a href="{{ $creator->public_url }}" class="group text-center">
+                            <a href="{{ $creator->public_url }}" class="group text-center rounded-xl p-2 hover:shadow-xl transition-all duration-300">
                                 <div class="relative w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition">
                                     @if($creator->profile_image_url)
                                         <img src="{{ $creator->profile_image_url }}"
