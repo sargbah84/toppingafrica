@@ -11,7 +11,8 @@ final class ContentShortcodeParser
 {
     public function parse(string $content): string
     {
-        return preg_replace_callback(
+        // [poll:slug]
+        $content = preg_replace_callback(
             '/\[poll:([a-z0-9\-]+)\]/',
             function (array $matches): string {
                 $slug = $matches[1];
@@ -31,5 +32,14 @@ final class ContentShortcodeParser
             },
             $content
         );
+
+        // [newsletter]
+        $content = preg_replace(
+            '/\[newsletter\]/',
+            Blade::render('<livewire:blog.newsletter-subscribe />'),
+            $content
+        );
+
+        return $content;
     }
 }

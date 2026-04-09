@@ -12,6 +12,8 @@ class NewsletterSubscriber extends Model
         'email',
         'name',
         'status',
+        'ip_address',
+        'user_agent',
         'subscribed_at',
         'unsubscribed_at',
     ];

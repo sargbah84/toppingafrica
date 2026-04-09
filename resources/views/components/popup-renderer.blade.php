@@ -47,35 +47,44 @@
 </style>
 
 <div x-data="popupEngine({{ Js::from($popupData) }})" x-init="init()" x-cloak>
-    <template x-for="popup in visiblePopups" :key="popup.id">
-        <div class="fixed inset-0" :style="'z-index: ' + (9000 + popup.priority)">
+    @foreach($popups as $popup)
+        <div x-show="isVisible({{ $popup->id }})" class="fixed inset-0" style="z-index: {{ 9000 + ($popup->priority ?? 0) }}">
             {{-- Overlay --}}
-            <template x-if="popup.show_overlay">
-                <div @click="popup.close_on_overlay_click && dismissPopup(popup)"
+            @if($popup->show_overlay)
+                <div @click="{{ $popup->close_on_overlay_click ? 'dismissPopup(getPopup('.$popup->id.'))' : '' }}"
                     class="fixed inset-0"
-                    :style="'background-color: ' + popup.overlay_color + '; animation: ' + (popup._dismissing ? 'popupOverlayOut' : 'popupOverlayIn') + ' 0.3s ease forwards'">
+                    :style="'background-color: {{ $popup->overlay_color }}; animation: ' + (isDismissing({{ $popup->id }}) ? 'popupOverlayOut' : 'popupOverlayIn') + ' 0.3s ease forwards'">
                 </div>
-            </template>
+            @endif
 
             {{-- Popup Container --}}
-            <div @click.self="popup.close_on_overlay_click && dismissPopup(popup)"
-                :class="getPositionClasses(popup)"
-                class="fixed">
+            <div @click.self="{{ $popup->close_on_overlay_click ? 'dismissPopup(getPopup('.$popup->id.'))' : '' }}"
+                class="fixed {{ match($popup->position ?? 'center') {
+                    'center' => 'inset-0 flex items-center justify-center p-4',
+                    'top' => 'top-0 left-0 right-0 flex justify-center p-4',
+                    'bottom' => 'bottom-0 left-0 right-0 flex justify-center p-4',
+                    'left' => 'inset-y-0 left-0 flex items-center p-4',
+                    'right' => 'inset-y-0 right-0 flex items-center justify-end p-4',
+                    'full' => 'inset-0 flex items-center justify-center',
+                    default => 'inset-0 flex items-center justify-center p-4',
+                } }}">
 
-                <div :style="getPopupStyles(popup) + '; animation: ' + getAnimation(popup) + ';'" class="relative">
+                <div :style="getPopupStyles(getPopup({{ $popup->id }})) + '; animation: ' + getAnimation(getPopup({{ $popup->id }})) + ';'" class="relative">
                     {{-- Close Button --}}
-                    <button x-show="popup.show_close_button" @click="dismissPopup(popup)"
-                        class="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-gray-600 hover:text-gray-900 transition-colors"
-                        style="line-height: 1;">
-                        <i class="fas fa-times text-sm"></i>
-                    </button>
+                    @if($popup->show_close_button)
+                        <button @click="dismissPopup(getPopup({{ $popup->id }}))"
+                            class="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-gray-600 hover:text-gray-900 transition-colors"
+                            style="line-height: 1;">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    @endif
 
-                    {{-- Content --}}
-                    <div x-html="popup.content"></div>
+                    {{-- Content (server-rendered so Livewire components work) --}}
+                    <div>{!! $popup->content !!}</div>
                 </div>
             </div>
         </div>
-    </template>
+    @endforeach
 </div>
 
 <script>
@@ -152,6 +161,19 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        getPopup(id) {
+            return this.allPopups.find(p => p.id === id) || {};
+        },
+
+        isVisible(id) {
+            return !!this.visiblePopups.find(p => p.id === id);
+        },
+
+        isDismissing(id) {
+            const popup = this.visiblePopups.find(p => p.id === id);
+            return popup ? popup._dismissing : false;
+        },
+
         showPopup(popup) {
             if (this.visiblePopups.find(p => p.id === popup.id)) return;
             popup._dismissing = false;
@@ -159,6 +181,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         dismissPopup(popup) {
+            if (!popup || !popup.id) return;
             popup._dismissing = true;
             this.setDismissCookie(popup);
             setTimeout(() => {

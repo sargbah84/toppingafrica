@@ -64,6 +64,7 @@ Route::prefix('admin')
         // Newsletter
         Route::get('newsletters', [NewsletterController::class, 'index'])->name('newsletters.index');
         Route::get('newsletters/export', [NewsletterController::class, 'export'])->name('newsletters.export');
+        Route::get('newsletters/{newsletter}', [NewsletterController::class, 'show'])->name('newsletters.show');
         Route::delete('newsletters/{newsletter}', [NewsletterController::class, 'destroy'])->name('newsletters.destroy');
 
         // Ads
