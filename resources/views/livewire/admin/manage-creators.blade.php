@@ -144,6 +144,9 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $statusClasses }}">
                                 {{ ucfirst($creator->status) }}
                             </span>
+                            @if($creator->status === 'pending' && $creator->user_id)
+                                <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">User submitted</span>
+                            @endif
                             @if($creator->pending_claim_edit)
                                 <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
                                     Edits pending

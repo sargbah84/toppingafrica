@@ -57,6 +57,9 @@ Route::middleware('auth')->group(function () {
     // /creator/profile/* because they're semantically creator-specific
     // actions, not dashboard-area navigation. Moving them would break
     // any existing inbound links without meaningful benefit.
+    Route::get('/creator/submit', \App\Livewire\SubmitCreatorProfile::class)
+        ->name('creators.submit');
+
     Route::get('/creator/profile/{creatorId}/edit', [CreatorClaimController::class, 'editAsOwner'])
         ->name('creators.claim.edit-as-owner');
     Route::post('/creator/profile/{creatorId}/update', [CreatorClaimController::class, 'updateAsOwner'])

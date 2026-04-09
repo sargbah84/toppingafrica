@@ -37,6 +37,15 @@
         </div>
     @endif
 
+    {{-- Submit CTA --}}
+    <div class="text-center mb-6">
+        <a href="{{ route('creators.submit') }}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            Submit Your Creator Profile
+        </a>
+    </div>
+
     {{-- Search with auto-suggestions --}}
     <div class="mb-6">
         <div class="max-w-xl mx-auto"

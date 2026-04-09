@@ -354,7 +354,11 @@ class ManageCreators extends Component
         $creator = Creator::findOrFail($id);
         $creator->update(['status' => 'published']);
 
-        $this->sendClaimInviteIfNeeded($creator);
+        if ($creator->user_id) {
+            $creator->user->syncRoles(['creator']);
+        } else {
+            $this->sendClaimInviteIfNeeded($creator);
+        }
 
         session()->flash('success', "{$creator->name} has been published.");
     }
@@ -385,7 +389,12 @@ class ManageCreators extends Component
 
         foreach ($creators as $creator) {
             $creator->update(['status' => 'published']);
-            $this->sendClaimInviteIfNeeded($creator);
+
+            if ($creator->user_id) {
+                $creator->user->syncRoles(['creator']);
+            } else {
+                $this->sendClaimInviteIfNeeded($creator);
+            }
         }
 
         $this->selected = [];
