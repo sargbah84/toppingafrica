@@ -209,63 +209,96 @@
                 </div>
             </div>
 
-            {{-- Top Referrers --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Top Referrers</h3>
-                <div class="space-y-3">
-                    @forelse ($this->topReferrers as $referrer)
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 min-w-0 flex-1">
-                                <div class="w-1.5 h-5 rounded-full bg-indigo-500 flex-shrink-0"></div>
-                                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $referrer->domain }}</span>
+            {{-- Top Referrers + Devices (stacked) --}}
+            <div class="space-y-6">
+                {{-- Top Referrers --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Top Referrers</h3>
+                    <div class="space-y-3">
+                        @forelse ($this->topReferrers as $referrer)
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                    <div class="w-1.5 h-5 rounded-full bg-indigo-500 flex-shrink-0"></div>
+                                    <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $referrer->domain }}</span>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ number_format($referrer->count) }}</span>
                             </div>
-                            <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ number_format($referrer->count) }}</span>
-                        </div>
-                    @empty
-                        <p class="text-sm text-gray-500 dark:text-gray-400">No referrer data yet.</p>
-                    @endforelse
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No referrer data yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Devices --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Devices</h3>
+                    <div class="space-y-5">
+                        @php
+                            $deviceIcons = [
+                                'Desktop' => 'M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25h-13.5A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25h-13.5A2.25 2.25 0 0 1 3 12V5.25',
+                                'Mobile' => 'M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3',
+                                'Tablet' => 'M10.5 19.5h3m-6.75 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-15a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 4.5v15a2.25 2.25 0 0 0 2.25 2.25Z',
+                            ];
+                            $deviceColors = [
+                                'Desktop' => 'text-indigo-600 dark:text-indigo-400',
+                                'Mobile' => 'text-green-600 dark:text-green-400',
+                                'Tablet' => 'text-orange-600 dark:text-orange-400',
+                            ];
+                            $barColors = [
+                                'Desktop' => 'bg-indigo-500',
+                                'Mobile' => 'bg-green-500',
+                                'Tablet' => 'bg-orange-500',
+                            ];
+                        @endphp
+                        @forelse ($this->deviceBreakdown as $device)
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 {{ $deviceColors[$device['type']] ?? 'text-gray-500' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $deviceIcons[$device['type']] ?? '' }}" />
+                                        </svg>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $device['type'] }}</span>
+                                    </div>
+                                    <span class="text-sm font-bold {{ $deviceColors[$device['type']] ?? 'text-gray-900 dark:text-white' }}">{{ $device['percentage'] }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                    <div class="{{ $barColors[$device['type']] ?? 'bg-gray-500' }} h-2 rounded-full transition-all duration-500" style="width: {{ $device['percentage'] }}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($device['count']) }} views</p>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No device data yet.</p>
+                        @endforelse
+                    </div>
                 </div>
             </div>
 
-            {{-- Devices --}}
+            {{-- Top Creators --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Devices</h3>
-                <div class="space-y-5">
-                    @php
-                        $deviceIcons = [
-                            'Desktop' => 'M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25h-13.5A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25h-13.5A2.25 2.25 0 0 1 3 12V5.25',
-                            'Mobile' => 'M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3',
-                            'Tablet' => 'M10.5 19.5h3m-6.75 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-15a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 4.5v15a2.25 2.25 0 0 0 2.25 2.25Z',
-                        ];
-                        $deviceColors = [
-                            'Desktop' => 'text-indigo-600 dark:text-indigo-400',
-                            'Mobile' => 'text-green-600 dark:text-green-400',
-                            'Tablet' => 'text-orange-600 dark:text-orange-400',
-                        ];
-                        $barColors = [
-                            'Desktop' => 'bg-indigo-500',
-                            'Mobile' => 'bg-green-500',
-                            'Tablet' => 'bg-orange-500',
-                        ];
-                    @endphp
-                    @forelse ($this->deviceBreakdown as $device)
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-5 h-5 {{ $deviceColors[$device['type']] ?? 'text-gray-500' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $deviceIcons[$device['type']] ?? '' }}" />
-                                    </svg>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $device['type'] }}</span>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Top Creators</h3>
+                <div class="space-y-3">
+                    @forelse ($this->topCreators as $creator)
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                @if ($creator->profile_image_url)
+                                    <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
+                                @else
+                                    <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xs font-bold text-purple-600 dark:text-purple-400">{{ strtoupper(substr($creator->name, 0, 1)) }}</span>
+                                    </div>
+                                @endif
+                                <div class="min-w-0">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300 truncate block">{{ $creator->name }}</span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">{{ collect([$creator->category, $creator->country])->filter()->implode(' · ') }}</span>
                                 </div>
-                                <span class="text-sm font-bold {{ $deviceColors[$device['type']] ?? 'text-gray-900 dark:text-white' }}">{{ $device['percentage'] }}%</span>
                             </div>
-                            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                <div class="{{ $barColors[$device['type']] ?? 'bg-gray-500' }} h-2 rounded-full transition-all duration-500" style="width: {{ $device['percentage'] }}%"></div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white block">{{ number_format($creator->views_count) }}</span>
+                                <span class="text-xs text-gray-400">views</span>
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ number_format($device['count']) }} views</p>
                         </div>
                     @empty
-                        <p class="text-sm text-gray-500 dark:text-gray-400">No device data yet.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No creator data yet.</p>
                     @endforelse
                 </div>
             </div>

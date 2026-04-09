@@ -251,16 +251,21 @@ class StatsOverview extends Component
         $referrers = (clone $viewsQuery)
             ->whereNotNull('referer')
             ->where('referer', '!=', '')
-            ->select('referer', DB::raw('COUNT(*) as count'))
-            ->groupBy('referer')
-            ->orderByDesc('count')
-            ->limit(10)
             ->get()
-            ->map(function ($item) {
+            ->groupBy(function ($item) {
                 $parsed = parse_url($item->referer);
-                $item->domain = $parsed['host'] ?? $item->referer;
-                return $item;
-            });
+
+                return $parsed['host'] ?? $item->referer;
+            })
+            ->map(function ($group, $domain) {
+                return (object) [
+                    'domain' => $domain,
+                    'count' => $group->count(),
+                ];
+            })
+            ->sortByDesc('count')
+            ->take(10)
+            ->values();
 
         $devices = (clone $viewsQuery)
             ->select('device_type', DB::raw('COUNT(*) as count'))
@@ -316,17 +321,31 @@ class StatsOverview extends Component
             $query->where('viewed_at', '<=', $end);
         }
 
-        return $query->select(DB::raw('referer, COUNT(*) as count'))
-            ->groupBy('referer')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get()
-            ->map(function ($item) {
+        return $query->get()
+            ->groupBy(function ($item) {
                 $parsed = parse_url($item->referer);
-                $item->domain = $parsed['host'] ?? $item->referer;
 
-                return $item;
-            });
+                return $parsed['host'] ?? $item->referer;
+            })
+            ->map(function ($group, $domain) {
+                return (object) [
+                    'domain' => $domain,
+                    'count' => $group->count(),
+                ];
+            })
+            ->sortByDesc('count')
+            ->take(10)
+            ->values();
+    }
+
+    #[Computed]
+    public function topCreators(): Collection
+    {
+        return Creator::query()
+            ->where('status', 'published')
+            ->orderByDesc('views_count')
+            ->limit(5)
+            ->get(['name', 'slug', 'category', 'country', 'views_count', 'follower_count']);
     }
 
     #[Computed]

@@ -1,7 +1,7 @@
 @php
     $page = $page ?? null;
     $pageTitle = $page?->meta_title ?: ($page?->title ?? 'African Content Creators');
-    $pageDescription = $page?->meta_description ?: 'Discover rising and trending African content creators across comedy, fashion, food, music and more.';
+    $pageDescription = $page?->meta_description ?: 'Discover rising and trending African content creators across comedy, fashion, food, music, beauty and more.';
     $heroTitle = $page?->title ?? 'African Content Creators';
 @endphp
 
@@ -26,7 +26,7 @@
     {{-- Page Header --}}
     <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2">{{ $heroTitle }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p class="text-gray-600 dark:text-gray-400 max-w-none mx-auto">
             {{ $pageDescription }}
         </p>
     </div>
@@ -36,6 +36,25 @@
             {!! $page->content !!}
         </div>
     @endif
+
+    {{-- Search --}}
+    <div class="mb-6">
+        <form action="{{ route('creators.index') }}" method="GET" class="max-w-xl mx-auto">
+            @if(request('category'))
+                <input type="hidden" name="category" value="{{ request('category') }}">
+            @endif
+            @if(request('country'))
+                <input type="hidden" name="country" value="{{ request('country') }}">
+            @endif
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search creators by name, category or country..."
+                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-base text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary shadow-sm">
+            </div>
+        </form>
+    </div>
 
     {{-- Filters --}}
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">

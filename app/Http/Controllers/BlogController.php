@@ -252,6 +252,14 @@ class BlogController extends Controller
             $query->where('country', $country);
         }
 
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhere('country', 'like', "%{$search}%");
+            });
+        }
+
         // Always randomize so niches and countries are mixed within the result set.
         // Seed is stable per-day so pagination stays consistent while a user is browsing.
         $seed = (int) ($request->query('seed') ?: now()->format('Ymd'));

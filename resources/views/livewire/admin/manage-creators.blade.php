@@ -80,6 +80,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creator</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Country</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Followers</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -120,6 +121,16 @@
                             @endif
                             @if($creator->is_trending)
                                 <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">Trending</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3">
+                            @if($creator->follower_count)
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ \App\Support\FollowerFormat::short($creator->follower_count) }}</span>
+                                @if($creator->follower_platform)
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 ml-0.5">{{ ucfirst($creator->follower_platform) }}</span>
+                                @endif
+                            @else
+                                <span class="text-xs text-gray-400 dark:text-gray-500">&mdash;</span>
                             @endif
                         </td>
                         <td class="px-4 py-3">
