@@ -20,6 +20,35 @@ class CreatorController extends Controller
     // index() was removed: the public /creators URL is now a CMS page backed
     // by the 'creators' template and rendered by BlogController::renderCreatorsPage.
 
+    public function suggest(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $q = trim($request->query('q', ''));
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $creators = Creator::query()
+            ->where(fn ($query) => $query->where('status', 'published')->orWhere('status', 'claimed'))
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                      ->orWhere('category', 'like', "%{$q}%")
+                      ->orWhere('country', 'like', "%{$q}%");
+            })
+            ->limit(6)
+            ->get();
+
+        return response()->json($creators->map(fn ($c) => [
+            'name' => $c->name,
+            'slug' => $c->slug,
+            'category' => $c->category,
+            'country' => $c->country,
+            'image' => $c->profile_image_url,
+            'initials' => strtoupper(substr($c->name, 0, 1)),
+            'url' => route('creators.show', $c->slug),
+        ]));
+    }
+
     public function show(string $slug, Request $request): View
     {
         $creator = Creator::with('socialLinks')

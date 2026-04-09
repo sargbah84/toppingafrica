@@ -37,23 +37,78 @@
         </div>
     @endif
 
-    {{-- Search --}}
+    {{-- Search with auto-suggestions --}}
     <div class="mb-6">
-        <form action="{{ route('creators.index') }}" method="GET" class="max-w-xl mx-auto">
-            @if(request('category'))
-                <input type="hidden" name="category" value="{{ request('category') }}">
-            @endif
-            @if(request('country'))
-                <input type="hidden" name="country" value="{{ request('country') }}">
-            @endif
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                </svg>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search creators by name, category or country..."
-                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-base text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary shadow-sm">
-            </div>
-        </form>
+        <div class="max-w-xl mx-auto"
+             x-data="{
+                 query: '{{ request('search') }}',
+                 results: [],
+                 open: false,
+                 active: -1,
+                 timer: null,
+                 async search() {
+                     if (this.query.length < 2) { this.results = []; this.open = false; return; }
+                     const res = await fetch('{{ route('creators.suggest') }}?q=' + encodeURIComponent(this.query));
+                     this.results = await res.json();
+                     this.open = this.results.length > 0;
+                     this.active = -1;
+                 },
+                 debounce() {
+                     clearTimeout(this.timer);
+                     this.timer = setTimeout(() => this.search(), 250);
+                 },
+                 go(url) { window.location.href = url; },
+                 onKeydown(e) {
+                     if (!this.open) return;
+                     if (e.key === 'ArrowDown') { e.preventDefault(); this.active = Math.min(this.active + 1, this.results.length - 1); }
+                     else if (e.key === 'ArrowUp') { e.preventDefault(); this.active = Math.max(this.active - 1, 0); }
+                     else if (e.key === 'Enter' && this.active >= 0) { e.preventDefault(); this.go(this.results[this.active].url); }
+                 }
+             }"
+             @click.outside="open = false">
+            <form action="{{ route('creators.index') }}" method="GET">
+                @if(request('category'))
+                    <input type="hidden" name="category" value="{{ request('category') }}">
+                @endif
+                @if(request('country'))
+                    <input type="hidden" name="country" value="{{ request('country') }}">
+                @endif
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input type="text" name="search" x-model="query" @input="debounce()" @keydown="onKeydown" @focus="if (results.length) open = true"
+                           autocomplete="off" placeholder="Search creators by name, category or country..."
+                           class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-base text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary shadow-sm">
+
+                    {{-- Suggestions dropdown --}}
+                    <div x-show="open" x-cloak x-transition.opacity
+                         class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-30">
+                        <template x-for="(item, i) in results" :key="item.slug">
+                            <a :href="item.url" @mouseenter="active = i"
+                               :class="active === i ? 'bg-gray-50 dark:bg-gray-700/50' : ''"
+                               class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer">
+                                <template x-if="item.image">
+                                    <img :src="item.image" :alt="item.name" class="w-9 h-9 rounded-full object-cover flex-shrink-0">
+                                </template>
+                                <template x-if="!item.image">
+                                    <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xs font-bold text-purple-600 dark:text-purple-400" x-text="item.initials"></span>
+                                    </div>
+                                </template>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white truncate" x-text="item.name"></div>
+                                    <div class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                                        <span x-text="item.category"></span> <span class="mx-0.5">&middot;</span> <span x-text="item.country"></span>
+                                    </div>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     {{-- Filters --}}

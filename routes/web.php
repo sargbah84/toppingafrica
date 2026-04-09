@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
 // 301 so browsers update their bookmarks.
 Route::permanentRedirect('/creator/dashboard', '/dashboard');
 
+Route::get('/creators/suggest', [CreatorController::class, 'suggest'])->name('creators.suggest');
 Route::get('/creators/{slug}', [CreatorController::class, 'show'])->name('creators.show');
 Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])
     ->middleware('throttle:5,1')
