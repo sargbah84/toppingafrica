@@ -1325,7 +1325,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
 
                     {{-- Footer --}}
                     <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                        <a href="/{{ $pageDetail['slug'] }}" target="_blank" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">View page &rarr;</a>
+                        <a href="{{ $pageDetail['type'] === 'creator' ? '/creators/' . $pageDetail['slug'] : '/' . $pageDetail['slug'] }}" target="_blank" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">View page &rarr;</a>
                         <button wire:click="closePageDetail" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
                             Close
                         </button>
