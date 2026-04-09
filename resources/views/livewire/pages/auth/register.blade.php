@@ -5,6 +5,7 @@ use App\Services\RecaptchaService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -17,13 +18,73 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password_confirmation = '';
     public string $recaptchaToken = '';
 
+    // Honeypot — hidden field that bots fill but humans leave empty
+    public string $website = '';
+
+    // Time gate — form must be open for at least 3 seconds
+    public int $formLoadedAt = 0;
+
+    public function mount(): void
+    {
+        $this->formLoadedAt = time();
+    }
+
     /**
      * Handle an incoming registration request.
      */
     public function register(): void
     {
+        // 1. Honeypot check — reject if the hidden field was filled
+        if ($this->website !== '') {
+            // Silently reject — don't reveal it's a honeypot
+            $this->addError('email', 'Registration failed. Please try again.');
+            return;
+        }
+
+        // 2. Time gate — reject if submitted too fast (< 3 seconds)
+        if ($this->formLoadedAt > 0 && (time() - $this->formLoadedAt) < 3) {
+            $this->addError('email', 'Registration failed. Please try again.');
+            return;
+        }
+
+        // 3. Rate limit — max 3 registrations per IP per hour
+        $throttleKey = 'register:' . request()->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $minutes = (int) ceil($seconds / 60);
+            $this->addError('email', "Too many registration attempts. Please try again in {$minutes} minute(s).");
+            return;
+        }
+
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', function ($attribute, $value, $fail) {
+                // 4. Name validation — reject bot-like random strings
+                $name = trim($value);
+
+                // Must contain at least one vowel
+                if (!preg_match('/[aeiouAEIOU]/', $name)) {
+                    $fail('Please enter a valid name.');
+                    return;
+                }
+
+                // Reject if uppercase ratio is too high (> 60% of letters)
+                $letters = preg_replace('/[^a-zA-Z]/', '', $name);
+                if (strlen($letters) > 3) {
+                    $upperCount = strlen(preg_replace('/[^A-Z]/', '', $letters));
+                    if ($upperCount / strlen($letters) > 0.6) {
+                        $fail('Please enter a valid name.');
+                        return;
+                    }
+                }
+
+                // Reject if name has a single "word" longer than 20 chars (random string)
+                foreach (explode(' ', $name) as $word) {
+                    if (strlen($word) > 20) {
+                        $fail('Please enter a valid name.');
+                        return;
+                    }
+                }
+            }],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -36,6 +97,9 @@ new #[Layout('layouts.guest')] class extends Component
                 return;
             }
         }
+
+        // All checks passed — count the attempt
+        RateLimiter::hit($throttleKey, 3600);
 
         $validated['email'] = strtolower($validated['email']);
         $validated['password'] = Hash::make($validated['password']);
@@ -89,6 +153,15 @@ new #[Layout('layouts.guest')] class extends Component
                 <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
             </div>
         @enderror
+
+        <!-- Honeypot — invisible to humans, bots auto-fill it -->
+        <div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px;">
+            <label for="website">Website</label>
+            <input wire:model="website" id="website" type="text" name="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <!-- Time gate -->
+        <input wire:model="formLoadedAt" type="hidden">
 
         <!-- Name -->
         <div>
