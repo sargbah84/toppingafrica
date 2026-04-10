@@ -2,7 +2,7 @@
     @if ($variant === 'heart')
         <button type="button" wire:click="toggle"
                 wire:loading.attr="disabled"
-                aria-label="{{ $following ? 'Unfollow' : 'Follow' }} {{ $creator->name }}"
+                aria-label="{{ $following ? 'Unsubscribe from' : 'Subscribe to' }} {{ $creator->name }}"
                 class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-sm hover:scale-110 transition-transform">
             @if ($following)
                 <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z"/></svg>
@@ -20,10 +20,10 @@
                         : 'bg-gradient-to-r from-primary to-pink-600 text-white hover:shadow-xl hover:scale-105' }}">
             @if ($following)
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z"/></svg>
-                Following
+                Subscribed
             @else
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                Follow
+                Subscribe
             @endif
             <span class="ml-1 text-xs opacity-80">{{ number_format($count) }}</span>
         </button>

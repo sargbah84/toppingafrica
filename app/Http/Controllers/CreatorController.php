@@ -108,11 +108,14 @@ class CreatorController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
+            'claim_type' => 'required|in:self,referral',
         ]);
 
         $this->verifyRecaptcha($request, 'request_creator_claim');
 
         $creator = Creator::where('slug', $slug)->firstOrFail();
+
+        $isReferral = $request->input('claim_type') === 'referral';
 
         // Already-claimed creators can still be re-claimed by their existing
         // owner via the "logged in shortcut" branch below; otherwise we
@@ -136,9 +139,11 @@ class CreatorController extends Controller
         // BOTH the form's submitted email AND the creator's contact email,
         // we have unambiguous proof of identity — link the creator to this
         // user immediately and skip the email round-trip. Any mismatch falls
-        // through to the standard email-verification flow.
+        // through to the standard email-verification flow. Only applies to
+        // self-claims, not referrals.
         $user = auth()->user();
-        if ($user
+        if (! $isReferral
+            && $user
             && strcasecmp($user->email, $email) === 0
             && $creator->contact_email
             && strcasecmp($creator->contact_email, $email) === 0
@@ -168,8 +173,12 @@ class CreatorController extends Controller
             'claimed_by_email' => $email,
         ]);
 
-        Mail::to($email)->queue(new CreatorClaimInvite($creator->fresh()));
+        Mail::to($email)->queue(new CreatorClaimInvite($creator->fresh(), $isReferral));
 
-        return back()->with('success', 'A claim link has been sent to your email. Check your inbox!');
+        $successMessage = $isReferral
+            ? "An invite has been sent to {$email}. Thanks for helping {$creator->name} claim their profile!"
+            : 'A claim link has been sent to your email. Check your inbox!';
+
+        return back()->with('success', $successMessage);
     }
 }

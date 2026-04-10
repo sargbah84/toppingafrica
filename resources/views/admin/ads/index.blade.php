@@ -108,6 +108,11 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('admin.ads.edit', $ad) }}"
                                        class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</a>
+                                    <form method="POST" action="{{ route('admin.ads.duplicate', $ad) }}" class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                                class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300">Duplicate</button>
+                                    </form>
                                     <form method="POST" action="{{ route('admin.ads.destroy', $ad) }}" x-data>
                                         @csrf
                                         @method('DELETE')

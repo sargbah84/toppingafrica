@@ -18,13 +18,16 @@ class CreatorClaimInvite extends Mailable
 
     public function __construct(
         public Creator $creator,
+        public bool $isReferral = false,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Claim your Topping Africa Creator Profile',
-        );
+        $subject = $this->isReferral
+            ? "You've been featured on Topping Africa — claim your profile"
+            : 'Claim your Topping Africa Creator Profile';
+
+        return new Envelope(subject: $subject);
     }
 
     public function content(): Content
@@ -45,6 +48,7 @@ class CreatorClaimInvite extends Mailable
                 'creator' => $this->creator,
                 'claimUrl' => url('/creators/claim/' . $this->creator->claim_token),
                 'recipientName' => $recipientName,
+                'isReferral' => $this->isReferral,
             ],
         );
     }

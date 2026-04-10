@@ -79,79 +79,89 @@
 
         {{-- Featured Image (hidden for interactive post types) --}}
         @if($post->featured_image_url && !in_array($post->post_type, ['video', 'poll', 'quiz', 'trivia']))
-            <figure class="max-w-4xl mx-auto mb-10">
+            <figure class="max-w-6xl mx-auto mb-10">
                 <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
                      class="w-full rounded-sm" loading="eager">
             </figure>
         @endif
 
-        {{-- Content --}}
-        <div class="max-w-3xl mx-auto mb-12">
-            @if($post->excerpt)
-                <p class="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6 font-light italic">{{ $post->excerpt }}</p>
-                <hr class="border-gray-200 dark:border-gray-700 mb-8">
-            @endif
+        {{-- Two-Column Layout: Content + Sidebar --}}
+        <div class="max-w-6xl mx-auto mb-12 lg:flex lg:gap-10">
 
-            <div class="prose prose-lg dark:prose-invert max-w-none
-                        prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
-                        prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed
-                        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                        prose-img:rounded-sm">
-                {!! $post->content !!}
+            {{-- Main Content --}}
+            <div class="flex-1 min-w-0 max-w-3xl">
+                @if($post->excerpt)
+                    <p class="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6 font-light italic">{{ $post->excerpt }}</p>
+                    <hr class="border-gray-200 dark:border-gray-700 mb-8">
+                @endif
+
+                <div class="prose prose-lg dark:prose-invert max-w-none
+                            prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
+                            prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed
+                            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                            prose-img:rounded-sm">
+                    {!! $post->content !!}
+                </div>
+
+                {{-- Type-specific interactive content --}}
+                @if($post->post_type === 'quiz' && !empty($post->type_data['questions']))
+                    <div class="mt-8 mb-8">
+                        <livewire:blog.quiz-player :post="$post" />
+                    </div>
+                @elseif($post->post_type === 'trivia' && !empty($post->type_data['facts']))
+                    <div class="mt-8 mb-8">
+                        <livewire:blog.trivia-cards :post="$post" />
+                    </div>
+                @elseif($post->post_type === 'poll' && !empty($post->type_data['options']))
+                    <div class="mt-8 mb-8">
+                        <livewire:blog.poll-widget :post="$post" />
+                    </div>
+                @endif
+
+                {{-- Ad: In Article --}}
+                <x-ad-slot position="in_article" />
+
+                {{-- Tags --}}
+                @if($post->tags->isNotEmpty())
+                    <div class="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <span class="text-sm font-semibold text-gray-500 dark:text-gray-400 mr-2">Tags:</span>
+                        <div class="inline-flex flex-wrap gap-2 mt-1">
+                            @foreach($post->tags as $tag)
+                                <a href="{{ route('blog.tag', $tag->slug) }}"
+                                   class="inline-block px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-primary hover:text-white transition-colors">
+                                    {{ $tag->name }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Author Box --}}
+                @if($post->author)
+                    <div class="mt-10 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-start gap-5">
+                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
+                             class="w-16 h-16 rounded-full object-cover flex-shrink-0">
+                        <div>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->name }}</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at ' . \App\Models\Setting::get('site_name', config('app.name')) . '.' }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Ad: After Content --}}
+                <x-ad-slot position="after_content" />
+
+                {{-- Comments --}}
+                <div class="mt-12 mb-12">
+                    <livewire:blog.comments :postId="$post->id" />
+                </div>
             </div>
 
-            {{-- Type-specific interactive content --}}
-            @if($post->post_type === 'quiz' && !empty($post->type_data['questions']))
-                <div class="mt-8 mb-8">
-                    <livewire:blog.quiz-player :post="$post" />
-                </div>
-            @elseif($post->post_type === 'trivia' && !empty($post->type_data['facts']))
-                <div class="mt-8 mb-8">
-                    <livewire:blog.trivia-cards :post="$post" />
-                </div>
-            @elseif($post->post_type === 'poll' && !empty($post->type_data['options']))
-                <div class="mt-8 mb-8">
-                    <livewire:blog.poll-widget :post="$post" />
-                </div>
-            @endif
-
-            {{-- Ad: In Article --}}
-            <x-ad-slot position="in_article" />
-
-            {{-- Tags --}}
-            @if($post->tags->isNotEmpty())
-                <div class="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <span class="text-sm font-semibold text-gray-500 dark:text-gray-400 mr-2">Tags:</span>
-                    <div class="inline-flex flex-wrap gap-2 mt-1">
-                        @foreach($post->tags as $tag)
-                            <a href="{{ route('blog.tag', $tag->slug) }}"
-                               class="inline-block px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-primary hover:text-white transition-colors">
-                                {{ $tag->name }}
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
-            {{-- Author Box --}}
-            @if($post->author)
-                <div class="mt-10 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-start gap-5">
-                    <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
-                         class="w-16 h-16 rounded-full object-cover flex-shrink-0">
-                    <div>
-                        <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->name }}</h4>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at ' . \App\Models\Setting::get('site_name', config('app.name')) . '.' }}</p>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Ad: After Content --}}
-            <x-ad-slot position="after_content" />
-
-            {{-- Comments --}}
-            <div class="mt-12 mb-12">
-                <livewire:blog.comments :postId="$post->id" />
+            {{-- Sidebar --}}
+            <div class="w-full lg:w-80 flex-shrink-0 mt-10 lg:mt-0 lg:sticky lg:top-24 lg:self-start">
+                @include('blog.partials.sidebar')
             </div>
+
         </div>
 
         {{-- Related Posts --}}

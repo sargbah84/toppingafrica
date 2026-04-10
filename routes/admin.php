@@ -69,6 +69,7 @@ Route::prefix('admin')
 
         // Ads
         Route::resource('ads', AdController::class)->only(['index', 'create', 'edit', 'destroy']);
+        Route::post('ads/{ad}/duplicate', [AdController::class, 'duplicate'])->name('ads.duplicate');
 
         // Popups
         Route::get('popups', fn () => view('admin.popups.index'))->name('popups.index');

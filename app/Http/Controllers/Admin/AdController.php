@@ -35,6 +35,17 @@ class AdController extends Controller
         return view('admin.ads.edit', compact('ad'));
     }
 
+    public function duplicate(Ad $ad): RedirectResponse
+    {
+        $clone = $ad->replicate();
+        $clone->name = $ad->name.' (Copy)';
+        $clone->is_active = false;
+        $clone->save();
+
+        return redirect()->route('admin.ads.edit', $clone)
+            ->with('success', 'Ad duplicated successfully.');
+    }
+
     public function destroy(Ad $ad): RedirectResponse
     {
         $ad->delete();

@@ -44,7 +44,7 @@
     <div class="max-w-3xl mx-auto">
         {{-- Profile Card --}}
         <div class="relative"
-             x-data="{ shareOpen: false, claimOpen: false }">
+             x-data="{ shareOpen: false, claimOpen: {{ session('success') || $errors->has('email') || $errors->has('recaptcha') ? 'true' : 'false' }} }">
 
             {{-- Top-right action — three states:
                  1. Unclaimed → "Claim Profile" button (opens modal)
@@ -196,9 +196,9 @@
                 </div>
             </div>
 
-            {{-- Member since --}}
+            {{-- Subscribe prompt --}}
             <p class="mt-4 text-center text-[11px] uppercase tracking-wider font-semibold text-gray-400 dark:text-gray-500">
-                Member since: {{ $creator->created_at->format('F j, Y') }}
+                Subscribe to keep updated on this creator
             </p>
 
             {{-- Wikimedia attribution (if applicable) --}}
@@ -258,7 +258,7 @@
                                 <div>
                                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Claim this profile</h3>
                                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                        Is this you? Enter your email and we'll send a secure link so you can edit your bio, photo and social links.
+                                        Help {{ $creator->name }} take ownership of their Topping Africa profile.
                                     </p>
                                 </div>
                                 <button type="button" @click="claimOpen = false" class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -267,13 +267,18 @@
                             </div>
 
                             @if(session('success'))
-                                <div class="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-400">
-                                    {{ session('success') }}
+                                <div class="flex items-start gap-3 p-4 rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-400">
+                                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                    <span>{{ session('success') }}</span>
                                 </div>
+                                <button type="button" @click="claimOpen = false"
+                                        class="mt-2 w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                    Close
+                                </button>
                             @else
                                 @php($recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey())
                                 <form action="{{ route('creators.request-claim', $creator->slug) }}" method="POST" class="space-y-3"
-                                      x-data="{ siteKey: @js($recaptchaSiteKey), submitting: false }"
+                                      x-data="{ siteKey: @js($recaptchaSiteKey), submitting: false, claimType: 'self' }"
                                       x-on:submit.prevent="
                                           if (submitting) return;
                                           submitting = true;
@@ -297,8 +302,31 @@
                                       ">
                                     @csrf
                                     <input type="hidden" name="recaptcha_token" x-ref="recaptchaToken" value="">
-                                    <input type="email" name="email" placeholder="Enter your email address" required
-                                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-sm">
+                                    <input type="hidden" name="claim_type" :value="claimType">
+
+                                    {{-- Radio: Self vs Someone I know --}}
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-2 cursor-pointer group">
+                                            <input type="radio" value="self" x-model="claimType"
+                                                   class="h-4 w-4 text-primary border-gray-300 dark:border-gray-600 focus:ring-primary">
+                                            <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">This is me</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer group">
+                                            <input type="radio" value="referral" x-model="claimType"
+                                                   class="h-4 w-4 text-primary border-gray-300 dark:border-gray-600 focus:ring-primary">
+                                            <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">I know this person</span>
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                            <span x-show="claimType === 'self'">Your email address</span>
+                                            <span x-show="claimType === 'referral'" x-cloak>Their email address</span>
+                                        </label>
+                                        <input type="email" name="email" required
+                                               :placeholder="claimType === 'self' ? 'Enter your email address' : 'Enter their email address'"
+                                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-sm">
+                                    </div>
                                     @error('email')
                                         <p class="text-xs text-red-600">{{ $message }}</p>
                                     @enderror
@@ -307,7 +335,8 @@
                                     @enderror
                                     <button type="submit" :disabled="submitting"
                                             class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
-                                        <span x-show="!submitting">Send claim link</span>
+                                        <span x-show="!submitting && claimType === 'self'">Send claim link</span>
+                                        <span x-show="!submitting && claimType === 'referral'" x-cloak>Send invite</span>
                                         <span x-show="submitting" x-cloak>Sending…</span>
                                     </button>
                                 </form>

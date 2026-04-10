@@ -22,20 +22,34 @@
                         <td style="padding: 40px;">
                             <h2 style="color: #111827; margin: 0 0 16px; font-size: 20px;">Hi {{ $recipientName ?? 'there' }},</h2>
 
-                            <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-                                You've requested to claim <strong>{{ $creator->name }}</strong> on Topping Africa.
-                            </p>
+                            @if($isReferral)
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+                                    Congratulations! You've been featured on <strong>Topping Africa</strong> — among thousands of other Top African Creators.
+                                </p>
 
-                            <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
-                                Claiming this profile lets you update the bio, upload a photo, manage social media links, and see your page metrics. Click the button below to continue.
-                            </p>
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+                                    Someone who knows you has invited you to claim your <strong>{{ $creator->name }}</strong> profile. By claiming it, you can update your bio, upload a photo, manage your social links, and track your page views.
+                                </p>
+
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+                                    Click the button below to claim your profile and make it yours.
+                                </p>
+                            @else
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+                                    You've requested to claim <strong>{{ $creator->name }}</strong> on Topping Africa.
+                                </p>
+
+                                <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+                                    Claiming this profile lets you update the bio, upload a photo, manage social media links, and see your page metrics. Click the button below to continue.
+                                </p>
+                            @endif
 
                             {{-- CTA Button --}}
                             <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
                                 <tr>
                                     <td style="background-color: #000000; border-radius: 6px;">
                                         <a href="{{ $claimUrl }}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">
-                                            Claim Your Profile
+                                            {{ $isReferral ? 'Claim My Profile' : 'Claim Your Profile' }}
                                         </a>
                                     </td>
                                 </tr>

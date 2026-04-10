@@ -142,7 +142,21 @@ class BlogController extends Controller
             $post->content = app(ContentShortcodeParser::class)->parse($post->content);
         }
 
-        return view('blog.show', compact('post', 'relatedPosts', 'categories'));
+        // Sidebar data
+        $popularPosts = Post::published()
+            ->where('id', '!=', $post->id)
+            ->with('categories')
+            ->popular()
+            ->take(5)
+            ->get();
+
+        $topCreators = Creator::published()
+            ->withCount(['views' => fn ($q) => $q->where('created_at', '>=', now()->startOfWeek())])
+            ->orderByDesc('views_count')
+            ->take(5)
+            ->get();
+
+        return view('blog.show', compact('post', 'relatedPosts', 'categories', 'popularPosts', 'topCreators'));
     }
 
     public function category(string $slug): View
