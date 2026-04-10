@@ -22,6 +22,7 @@ final class PostGeneratorService
         private readonly InternalLinkSuggester $linkSuggester,
         private readonly SocialSharingGenerator $sharingGenerator,
         private readonly CategoryRepository $categoryRepository,
+        private readonly CreatorContextService $creatorContextService,
     ) {}
 
     public function generate(PostGenerationRequest $request): PostData
@@ -31,6 +32,28 @@ final class PostGeneratorService
             'perplexity' => $this->perplexityService,
             default => throw new InvalidArgumentException('Invalid AI provider: ' . $request->aiProvider),
         };
+
+        // Inject creator context into the request if creator IDs were provided
+        if (!empty($request->creatorIds)) {
+            $creators = $this->creatorContextService->getCreatorContext($request->creatorIds);
+            if (!empty($creators)) {
+                $creatorPrompt = $this->creatorContextService->buildCreatorPromptSection($creators);
+                $additionalContext = array_merge($request->additionalContext, [
+                    'creator_prompt' => $creatorPrompt,
+                    'creators' => $creators,
+                ]);
+                $request = new PostGenerationRequest(
+                    topic: $request->topic,
+                    aiProvider: $request->aiProvider,
+                    length: $request->length,
+                    tone: $request->tone,
+                    targetKeyword: $request->targetKeyword,
+                    postType: $request->postType,
+                    additionalContext: $additionalContext,
+                    creatorIds: $request->creatorIds,
+                );
+            }
+        }
 
         // Generate content using AI
         $content = $service->generateBlogPost($request);

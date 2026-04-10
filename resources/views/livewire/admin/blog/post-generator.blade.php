@@ -324,6 +324,79 @@
                             </div>
                         </div>
 
+                        <!-- Feature Creators Toggle & Selector -->
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center cursor-pointer">
+                                    <button type="button" wire:click="toggleFeatureCreators"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 {{ $featureCreators ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600' }}"
+                                        role="switch" aria-checked="{{ $featureCreators ? 'true' : 'false' }}">
+                                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $featureCreators ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                                    </button>
+                                    <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Feature Creators</span>
+                                </label>
+                                @if($featureCreators)
+                                <span class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{{ count($selectedCreators) }} selected</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Include creator profiles from the database in the generated content</p>
+
+                            @if($featureCreators)
+                            <div class="mt-3 space-y-3">
+                                <!-- Creator Search -->
+                                <div class="relative">
+                                    <input type="text" wire:model.live.debounce.300ms="creatorSearch"
+                                        class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Search creators by name...">
+                                    <svg class="w-4 h-4 text-gray-400 absolute right-3 top-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    </svg>
+
+                                    <!-- Search Results Dropdown -->
+                                    @if(!empty($creatorSearchResults))
+                                    <div class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        @foreach($creatorSearchResults as $result)
+                                        <button type="button" wire:click="selectCreator({{ $result['id'] }})"
+                                            class="w-full px-4 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition flex items-center justify-between">
+                                            <div>
+                                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $result['name'] }}</span>
+                                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">{{ $result['country'] }} &middot; {{ $result['category'] }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                @if($result['is_featured'])
+                                                <span class="text-xs px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">Featured</span>
+                                                @endif
+                                                @if($result['is_trending'])
+                                                <span class="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">Trending</span>
+                                                @endif
+                                            </div>
+                                        </button>
+                                        @endforeach
+                                    </div>
+                                    @endif
+                                </div>
+
+                                <!-- Selected Creators -->
+                                @if(!empty($selectedCreators))
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($selectedCreators as $creator)
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 rounded-lg text-sm">
+                                        <span class="font-medium">{{ $creator['name'] }}</span>
+                                        <span class="text-indigo-400 dark:text-indigo-500 text-xs">{{ $creator['country'] }}</span>
+                                        <button type="button" wire:click="removeCreator({{ $creator['id'] }})"
+                                            class="ml-1 text-indigo-400 hover:text-indigo-600 dark:text-indigo-500 dark:hover:text-indigo-300">
+                                            <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+
                         <!-- Error Message -->
                         @if($error)
                         <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">

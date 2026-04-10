@@ -14,6 +14,7 @@ final readonly class PostGenerationRequest
         public ?string $targetKeyword = null,
         public string $postType = 'article',
         public array $additionalContext = [],
+        public array $creatorIds = [],
     ) {}
 
     public function getWordCount(): int
@@ -46,6 +47,7 @@ final readonly class PostGenerationRequest
             tone: $data['tone'] ?? 'professional',
             targetKeyword: $data['target_keyword'] ?? null,
             additionalContext: $data['additional_context'] ?? [],
+            creatorIds: $data['creator_ids'] ?? [],
         );
     }
 }

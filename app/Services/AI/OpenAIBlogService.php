@@ -149,6 +149,7 @@ Your content should:
 7. Naturally reference 1-3 relevant Topping Africa categories/sections within the body content, linking to category pages where appropriate. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
 8. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
 9. IMPORTANT — Listicle / comparison posts: If the post is a list (e.g., "Top 10 African Tech Startups", "Best African Music Festivals"), ensure entries are well-researched and relevant to the African context.
+10. CREATOR PROFILES: When creator profile data is provided, use ONLY the supplied data — do NOT fabricate details. Link to their Topping Africa profile pages using: <a href="PROFILE_URL">Creator Name</a>. Creator profile links count as valuable internal links.
 
 AVAILABLE TOPPING AFRICA SECTIONS (use these for internal references):
 - Africa News: https://toppingafrica.com/category/africa-news
@@ -175,6 +176,7 @@ PROMPT;
 
         $trendingSection = $this->buildTrendingKeywordsSection($request);
         $typeSection = $this->buildPostTypeSection($request);
+        $creatorSection = $request->additionalContext['creator_prompt'] ?? '';
 
         return <<<PROMPT
 Generate a comprehensive blog post with the following requirements:
@@ -183,7 +185,7 @@ Topic: {$request->topic}
 Target Length: approximately {$wordCount} words
 Tone: {$tone}
 Target Keyword (if any): {$request->targetKeyword}
-{$trendingSection}{$typeSection}
+{$trendingSection}{$creatorSection}{$typeSection}
 Return a JSON object with these exact keys:
 {
     "title": "SEO-optimized blog post title",

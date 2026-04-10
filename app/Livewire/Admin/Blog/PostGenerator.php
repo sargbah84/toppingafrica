@@ -6,6 +6,7 @@ namespace App\Livewire\Admin\Blog;
 
 use App\DataTransferObjects\Blog\PostGenerationRequest;
 use App\Models\Category;
+use App\Services\Blog\CreatorContextService;
 use App\Services\Blog\PostGeneratorService;
 use App\Services\Blog\TitleSuggestionService;
 use Livewire\Attributes\On;
@@ -30,6 +31,12 @@ class PostGenerator extends Component
     public string $tone = 'professional';
     public ?string $targetKeyword = null;
     public ?int $categoryId = null;
+
+    // Creator feature fields
+    public bool $featureCreators = false;
+    public string $creatorSearch = '';
+    public array $creatorSearchResults = [];
+    public array $selectedCreators = [];
 
     public bool $isGenerating = false;
     public ?array $generatedContent = null;
@@ -98,6 +105,10 @@ class PostGenerator extends Component
         $this->tone = 'professional';
         $this->targetKeyword = null;
         $this->categoryId = null;
+        $this->featureCreators = false;
+        $this->creatorSearch = '';
+        $this->creatorSearchResults = [];
+        $this->selectedCreators = [];
         $this->generatedContent = null;
         $this->error = null;
         $this->isGenerating = false;
@@ -177,6 +188,65 @@ class PostGenerator extends Component
         $this->inputMode = 'manual';
     }
 
+    public function toggleFeatureCreators(): void
+    {
+        $this->featureCreators = !$this->featureCreators;
+
+        if (!$this->featureCreators) {
+            $this->selectedCreators = [];
+            $this->creatorSearch = '';
+            $this->creatorSearchResults = [];
+        }
+    }
+
+    public function updatedCreatorSearch(): void
+    {
+        if (strlen($this->creatorSearch) < 2) {
+            $this->creatorSearchResults = [];
+
+            return;
+        }
+
+        $service = app(CreatorContextService::class);
+        $selectedIds = array_column($this->selectedCreators, 'id');
+
+        $this->creatorSearchResults = $service->searchCreators($this->creatorSearch)
+            ->reject(fn ($c) => in_array($c->id, $selectedIds))
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'country' => $c->country,
+                'category' => $c->category,
+                'is_featured' => $c->is_featured,
+                'is_trending' => $c->is_trending,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    public function selectCreator(int $creatorId): void
+    {
+        // Prevent duplicates
+        if (collect($this->selectedCreators)->contains('id', $creatorId)) {
+            return;
+        }
+
+        $result = collect($this->creatorSearchResults)->firstWhere('id', $creatorId);
+        if ($result) {
+            $this->selectedCreators[] = $result;
+        }
+
+        $this->creatorSearch = '';
+        $this->creatorSearchResults = [];
+    }
+
+    public function removeCreator(int $creatorId): void
+    {
+        $this->selectedCreators = array_values(
+            array_filter($this->selectedCreators, fn ($c) => $c['id'] !== $creatorId)
+        );
+    }
+
     public function generate(): void
     {
         $this->validate();
@@ -194,6 +264,10 @@ class PostGenerator extends Component
                 $additionalContext['trending_keywords'] = $this->trendingKeywords;
             }
 
+            $creatorIds = $this->featureCreators
+                ? array_column($this->selectedCreators, 'id')
+                : [];
+
             $request = new PostGenerationRequest(
                 topic: $this->topic,
                 aiProvider: $this->aiProvider,
@@ -202,6 +276,7 @@ class PostGenerator extends Component
                 targetKeyword: $this->targetKeyword,
                 postType: $this->postType,
                 additionalContext: $additionalContext,
+                creatorIds: $creatorIds,
             );
 
             $generatorService = app(PostGeneratorService::class);
