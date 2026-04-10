@@ -146,16 +146,27 @@
                 @endguest
 
                 {{-- Categories --}}
+                @php
+                    $mobileHeaderPages = \App\Http\Controllers\Admin\SettingController::normaliseSavedHeaderPages(
+                        json_decode(\App\Models\Setting::get('header_pages', '[]'), true) ?: []
+                    );
+                    $mobileHeaderBadges = collect($mobileHeaderPages)->pluck('badge', 'id')->filter();
+                    $creatorPage = \App\Models\Page::where('slug', 'creators')->first();
+                    $creatorBadge = $creatorPage ? ($mobileHeaderBadges[$creatorPage->id] ?? null) : null;
+                    $menuCategories = \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get();
+                @endphp
                 <nav class="space-y-5">
                     <a href="{{ template_url('trending') }}"
                        class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
                         Trending
                     </a>
                     <a href="{{ template_url('creators') }}"
-                       class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
+                       class="relative inline-block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">
                         Creators
+                        @if($creatorBadge)
+                            <span class="ml-2 inline-block align-middle px-2 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide rounded-full bg-primary text-white">{{ $creatorBadge }}</span>
+                        @endif
                     </a>
-                    @php $menuCategories = \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get(); @endphp
                     @foreach($menuCategories as $cat)
                         <a href="{{ route('blog.category', $cat->slug) }}"
                            class="block text-3xl font-black text-white hover:text-primary transition-colors leading-tight">

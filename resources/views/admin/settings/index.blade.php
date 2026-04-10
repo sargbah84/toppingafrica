@@ -129,7 +129,13 @@
                                 value="{{ $row['label'] ?? '' }}"
                                 placeholder="{{ $page->title }}"
                                 maxlength="60"
-                                class="w-44 sm:w-52 text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                class="w-36 sm:w-44 text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="text"
+                                name="header_page_badges[{{ $page->id }}]"
+                                value="{{ $row['badge'] ?? '' }}"
+                                placeholder="Badge"
+                                maxlength="10"
+                                class="w-20 text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </li>
                     @endforeach
                 </ul>

@@ -84,6 +84,7 @@ class SettingController extends Controller
                 'page' => $page,
                 'enabled' => true,
                 'label' => $row['label'],
+                'badge' => $row['badge'],
             ]);
             $seenPageIds[] = $page->id;
         }
@@ -95,6 +96,7 @@ class SettingController extends Controller
                 'page' => $page,
                 'enabled' => false,
                 'label' => null,
+                'badge' => null,
             ]);
         }
 
@@ -155,14 +157,17 @@ class SettingController extends Controller
             Setting::set('footer_pages', '[]');
         }
 
-        // Store header_pages as a JSON array of {id, label} objects in form order.
+        // Store header_pages as a JSON array of {id, label, badge} objects in form order.
         $headerPageLabels = $validated['header_page_labels'] ?? [];
+        $headerPageBadges = $request->input('header_page_badges', []);
         $headerPagesStructured = [];
         foreach ($validated['header_pages'] ?? [] as $id) {
             $label = trim((string) ($headerPageLabels[$id] ?? ''));
+            $badge = trim((string) ($headerPageBadges[$id] ?? ''));
             $headerPagesStructured[] = [
                 'id' => (int) $id,
                 'label' => $label !== '' ? $label : null,
+                'badge' => $badge !== '' ? $badge : null,
             ];
         }
         Setting::set('header_pages', json_encode($headerPagesStructured));
@@ -211,12 +216,12 @@ class SettingController extends Controller
 
     /**
      * Coerce a saved header_pages value into the canonical
-     * [['id' => int, 'label' => string|null], ...] shape.
-     * Accepts both the new {id,label} object form and the legacy plain
+     * [['id' => int, 'label' => string|null, 'badge' => string|null], ...] shape.
+     * Accepts both the new {id,label,badge} object form and the legacy plain
      * int-array form so existing data keeps working.
      *
      * @param  mixed  $raw
-     * @return array<int, array{id: int, label: string|null}>
+     * @return array<int, array{id: int, label: string|null, badge: string|null}>
      */
     public static function normaliseSavedHeaderPages($raw): array
     {
@@ -227,12 +232,15 @@ class SettingController extends Controller
         $out = [];
         foreach ($raw as $entry) {
             if (is_int($entry) || (is_string($entry) && ctype_digit($entry))) {
-                $out[] = ['id' => (int) $entry, 'label' => null];
+                $out[] = ['id' => (int) $entry, 'label' => null, 'badge' => null];
             } elseif (is_array($entry) && isset($entry['id'])) {
                 $label = isset($entry['label']) && trim((string) $entry['label']) !== ''
                     ? (string) $entry['label']
                     : null;
-                $out[] = ['id' => (int) $entry['id'], 'label' => $label];
+                $badge = isset($entry['badge']) && trim((string) $entry['badge']) !== ''
+                    ? (string) $entry['badge']
+                    : null;
+                $out[] = ['id' => (int) $entry['id'], 'label' => $label, 'badge' => $badge];
             }
         }
 

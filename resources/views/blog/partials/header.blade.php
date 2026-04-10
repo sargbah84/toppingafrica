@@ -20,6 +20,7 @@
             return [
                 'page' => $page,
                 'label' => $row['label'] ?? $page->title,
+                'badge' => $row['badge'] ?? null,
             ];
         })
         ->values();
@@ -46,8 +47,11 @@
                     @foreach($headerPagesOrdered as $row)
                         @php $page = $row['page']; @endphp
                         <a href="{{ url('/' . $page->slug) }}"
-                           class="text-sm font-semibold {{ request()->is($page->slug) ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
+                           class="relative text-sm font-semibold {{ request()->is($page->slug) ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
                             {{ $row['label'] }}
+                            @if($row['badge'])
+                                <span class="absolute -top-1.5 -right-7 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide rounded-full bg-primary text-white shadow-sm">{{ $row['badge'] }}</span>
+                            @endif
                         </a>
                     @endforeach
                 </nav>
