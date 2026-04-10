@@ -47,10 +47,10 @@
                     @foreach($headerPagesOrdered as $row)
                         @php $page = $row['page']; @endphp
                         <a href="{{ url('/' . $page->slug) }}"
-                           class="relative text-sm font-semibold {{ request()->is($page->slug) ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
+                           class="text-sm font-semibold {{ request()->is($page->slug) ? 'text-primary' : 'text-gray-800 dark:text-gray-200 hover:text-primary dark:hover:text-primary' }} transition-colors">
                             {{ $row['label'] }}
                             @if($row['badge'])
-                                <span class="absolute -top-1.5 -right-7 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide rounded-full bg-primary text-white shadow-sm">{{ $row['badge'] }}</span>
+                                <sup class="ml-0.5 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide rounded-full bg-primary text-white">{{ $row['badge'] }}</sup>
                             @endif
                         </a>
                     @endforeach
