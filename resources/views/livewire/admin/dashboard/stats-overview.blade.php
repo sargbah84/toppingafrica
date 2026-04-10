@@ -131,7 +131,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Page Views (Last 30 Days)</h3>
                 @php $chartData = $this->viewsGrowthChart; @endphp
                 <div
-                    wire:key="growth-chart"
+                    wire:key="growth-chart-{{ $timePeriod }}"
                     x-data="viewsChart({{ Js::from($chartData) }})"
                     x-init="draw(); window.addEventListener('resize', () => draw())"
                     class="relative"
@@ -672,7 +672,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                 <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6 mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Search Performance</h3>
                     <div
-                        wire:key="gsc-chart"
+                        wire:key="gsc-chart-{{ $timePeriod }}"
                         x-data="gscChart({{ Js::from($searchTrend) }})"
                         x-init="draw(); window.addEventListener('resize', () => draw())"
                         class="relative"
@@ -811,7 +811,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
         <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">AI Usage (Last 30 Days)</h3>
             <div
-                wire:key="ai-trend-chart"
+                wire:key="ai-trend-chart-{{ $timePeriod }}"
                 x-data="aiUsageChart({{ Js::from($aiTrend) }})"
                 x-init="draw(); window.addEventListener('resize', () => draw())"
                 class="relative"
@@ -1011,7 +1011,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">User Growth (Last 30 Days)</h3>
                 @php $userData = $this->userGrowth; @endphp
                 <div
-                    wire:key="user-growth-chart"
+                    wire:key="user-growth-chart-{{ $timePeriod }}"
                     x-data="viewsChart({{ Js::from($userData) }})"
                     x-init="draw(); window.addEventListener('resize', () => draw())"
                     class="relative"
@@ -1030,7 +1030,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Subscriber Growth (Last 30 Days)</h3>
                 @php $subData = $this->subscriberGrowth; @endphp
                 <div
-                    wire:key="sub-growth-chart"
+                    wire:key="sub-growth-chart-{{ $timePeriod }}"
                     x-data="growthLineChart({{ Js::from($subData) }})"
                     x-init="draw(); window.addEventListener('resize', () => draw())"
                     class="relative"
