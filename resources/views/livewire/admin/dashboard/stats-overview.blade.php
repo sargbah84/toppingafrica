@@ -111,13 +111,15 @@
     </div>
 
     {{-- Loading Overlay --}}
-    <div wire:loading.delay class="fixed inset-0 bg-black/10 z-50 flex items-center justify-center">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg px-6 py-4 flex items-center gap-3">
-            <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            <span class="text-sm text-gray-600 dark:text-gray-400">Loading analytics...</span>
+    <div wire:loading.delay class="fixed inset-0 z-50 bg-black/10" style="display: none;">
+        <div class="flex items-center justify-center w-full h-full">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg px-6 py-4 flex items-center gap-3">
+                <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Loading analytics...</span>
+            </div>
         </div>
     </div>
 
