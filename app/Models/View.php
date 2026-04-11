@@ -66,7 +66,7 @@ class View extends Model
      */
     protected static array $botPatterns = [
         // Search engines
-        'Googlebot', 'Bingbot', 'bingbot', 'Slurp', 'DuckDuckBot', 'Baiduspider', 'YandexBot',
+        'Googlebot', 'GoogleOther', 'Bingbot', 'bingbot', 'Slurp', 'DuckDuckBot', 'Baiduspider', 'YandexBot',
         'Sogou', 'Exabot', 'ia_archiver',
         // SEO / analytics crawlers
         'AhrefsBot', 'SemrushBot', 'DotBot', 'MJ12bot', 'PetalBot', 'Bytespider',
