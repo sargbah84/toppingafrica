@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Blog\PostController;
 use App\Http\Controllers\Admin\Blog\TagController;
 use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\ImageUploadController;
 use App\Http\Controllers\Admin\NewsletterController;
 use App\Http\Controllers\Admin\PageController;
@@ -20,6 +21,12 @@ use App\Livewire\Admin\Monitoring\ActivityLogs;
 use App\Livewire\Admin\Monitoring\JobMonitor;
 use App\Livewire\Admin\Monitoring\RequestLogs;
 use Illuminate\Support\Facades\Route;
+
+// Impersonation leave — outside the admin middleware group so it works
+// even when the impersonated user is not staff or not verified.
+Route::post('admin/impersonate/leave', [ImpersonationController::class, 'leave'])
+    ->middleware('auth')
+    ->name('admin.impersonate.leave');
 
 Route::prefix('admin')
     ->middleware(['auth', 'verified', IsStaff::class])
@@ -48,8 +55,15 @@ Route::prefix('admin')
         // Pages
         Route::resource('pages', PageController::class)->except(['show']);
 
-        // Users
-        Route::resource('users', UserController::class)->except(['show']);
+        // Users (requires 'manage users' permission)
+        Route::resource('users', UserController::class)->except(['show'])
+            ->middleware('can:manage users');
+        Route::post('users/{user}/toggle-verification', [UserController::class, 'toggleVerification'])->name('users.toggle-verification')
+            ->middleware('can:manage users');
+
+        // Impersonation (start — requires staff access)
+        Route::post('users/{user}/impersonate', [ImpersonationController::class, 'impersonate'])->name('users.impersonate')
+            ->middleware('can:manage users');
 
         // Roles (super admin only)
         Route::resource('roles', RoleController::class)->except(['show'])
@@ -85,8 +99,11 @@ Route::prefix('admin')
         Route::get('monitoring/request-logs', RequestLogs::class)->name('monitoring.request-logs');
         Route::get('monitoring/jobs', JobMonitor::class)->name('monitoring.jobs');
 
-        // Settings
-        Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
-        Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
-        Route::get('settings/gsc-callback', [SettingController::class, 'gscCallback'])->name('settings.gsc-callback');
+        // Settings (requires 'manage settings' permission)
+        Route::get('settings', [SettingController::class, 'index'])->name('settings.index')
+            ->middleware('can:manage settings');
+        Route::put('settings', [SettingController::class, 'update'])->name('settings.update')
+            ->middleware('can:manage settings');
+        Route::get('settings/gsc-callback', [SettingController::class, 'gscCallback'])->name('settings.gsc-callback')
+            ->middleware('can:manage settings');
     });

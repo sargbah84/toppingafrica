@@ -33,6 +33,7 @@ class DashboardController extends Controller
         if ($user->hasRole('creator')) {
             $creators = $user->claimedCreators()
                 ->with('socialLinks')
+                ->withCount('views')
                 ->orderBy('name')
                 ->get();
         }

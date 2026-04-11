@@ -93,6 +93,21 @@
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ $gtmId }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     @endif
 
+    @if(session()->has('impersonating_from'))
+        <div class="sticky top-0 z-[9999] bg-amber-500 text-amber-950 text-center text-sm font-semibold py-2 px-4 flex items-center justify-center gap-3">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+            </svg>
+            <span>Impersonating <strong>{{ auth()->user()->name }}</strong></span>
+            <form method="POST" action="{{ route('admin.impersonate.leave') }}" class="inline">
+                @csrf
+                <button type="submit" class="ml-2 inline-flex items-center rounded-md bg-amber-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-900 transition">
+                    Leave Impersonation
+                </button>
+            </form>
+        </div>
+    @endif
+
     {{-- Scroll Progress Bar --}}
     <div id="scroll-progress" class="fixed top-0 left-0 h-[3px] bg-primary z-[9999] transition-all duration-150" style="width: 0%"></div>
 

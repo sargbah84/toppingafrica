@@ -138,6 +138,22 @@ class UserController extends Controller
     }
 
     /**
+     * Toggle email verification status for a user.
+     */
+    public function toggleVerification(User $user): RedirectResponse
+    {
+        if ($user->hasVerifiedEmail()) {
+            $user->forceFill(['email_verified_at' => null])->save();
+
+            return back()->with('success', "{$user->name} has been marked as unverified.");
+        }
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return back()->with('success', "{$user->name} has been marked as verified.");
+    }
+
+    /**
      * Soft delete the specified user.
      */
     public function destroy(Request $request, User $user): RedirectResponse

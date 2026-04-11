@@ -167,6 +167,21 @@
 
     <x-ui-modal />
 
+    @if(session()->has('impersonating_from'))
+        <div class="fixed bottom-4 right-4 z-[9999] bg-amber-500 text-amber-950 text-sm font-semibold py-2.5 px-4 rounded-lg shadow-lg flex items-center gap-3">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
+            </svg>
+            <span>Impersonating <strong>{{ auth()->user()->name }}</strong></span>
+            <form method="POST" action="{{ route('admin.impersonate.leave') }}">
+                @csrf
+                <button type="submit" class="inline-flex items-center rounded-md bg-amber-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-900 transition">
+                    Leave
+                </button>
+            </form>
+        </div>
+    @endif
+
     @livewireScripts
 </body>
 </html>

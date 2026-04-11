@@ -148,6 +148,7 @@
             </li>
 
             {{-- Users Section --}}
+            @can('manage users')
             <li>
                 <div class="text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider">Users</div>
                 <ul role="list" class="-mx-2 mt-2 space-y-1">
@@ -173,8 +174,10 @@
                     @endif
                 </ul>
             </li>
+            @endcan
 
             {{-- Settings --}}
+            @can('manage settings')
             <li class="mt-auto">
                 <a href="{{ route('admin.settings.index') }}"
                    class="{{ request()->routeIs('admin.settings.*') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6">
@@ -185,6 +188,7 @@
                     Settings
                 </a>
             </li>
+            @endcan
         </ul>
     </nav>
 </div>

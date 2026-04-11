@@ -93,17 +93,14 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                @if($user->hasVerifiedEmail())
-                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                                        Yes
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                                        No
-                                    </span>
-                                @endif
+                                <form method="POST" action="{{ route('admin.users.toggle-verification', $user) }}">
+                                    @csrf
+                                    @if($user->hasVerifiedEmail())
+                                        <button type="submit" class="text-xs font-medium text-green-700 dark:text-green-400 hover:underline cursor-pointer">Yes</button>
+                                    @else
+                                        <button type="submit" class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline cursor-pointer">No</button>
+                                    @endif
+                                </form>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $user->created_at->format('M d, Y') }}
@@ -112,6 +109,14 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('admin.users.edit', $user) }}"
                                        class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">Edit</a>
+                                    @if(auth()->user()->is_super_admin && $user->id !== auth()->id())
+                                        <form method="POST" action="{{ route('admin.users.impersonate', $user) }}" x-data>
+                                            @csrf
+                                            <button type="button"
+                                                    @click="window.tcModal.confirm('Impersonate {{ $user->name }}? You will be logged in as this user.', {confirmText:'Impersonate'}).then(ok => ok && $el.closest('form').submit())"
+                                                    class="text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300">Impersonate</button>
+                                        </form>
+                                    @endif
                                     @if($user->id !== auth()->id())
                                         <form method="POST" action="{{ route('admin.users.destroy', $user) }}" x-data>
                                             @csrf
