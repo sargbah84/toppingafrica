@@ -2,19 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\Blog\CategoryController;
 use App\Http\Controllers\Admin\Blog\PostController;
 use App\Http\Controllers\Admin\Blog\TagController;
-use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\ImageUploadController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\NewsletterController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\IsStaff;
+use App\Livewire\Admin\Blog\ContentLab;
 use App\Livewire\Admin\ManageCreators;
 use App\Livewire\Admin\ManageTrends;
 use App\Livewire\Admin\Monitoring\ActivityLogs;
@@ -50,6 +51,9 @@ Route::prefix('admin')
 
             // Tags
             Route::resource('tags', TagController::class)->except(['show']);
+
+            // Content Lab
+            Route::get('lib', ContentLab::class)->name('content-lab');
         });
 
         // Pages
