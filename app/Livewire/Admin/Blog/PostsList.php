@@ -42,6 +42,7 @@ class PostsList extends Component
         'created_at',
         'title',
         'views_count',
+        'reactions_count',
         'published_at',
     ];
 
@@ -163,7 +164,9 @@ class PostsList extends Component
 
     protected function buildQuery(): Builder
     {
-        $query = Post::query()->with(['author', 'categories']);
+        $query = Post::query()
+            ->with(['author', 'categories'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')]);
 
         if ($this->statusFilter === 'trashed') {
             $query->onlyTrashed();
@@ -172,7 +175,7 @@ class PostsList extends Component
         }
 
         if ($this->search !== '') {
-            $query->where('title', 'like', '%' . $this->search . '%');
+            $query->where('title', 'like', '%'.$this->search.'%');
         }
 
         $query->orderBy($this->sortField, $this->sortDirection);
@@ -184,7 +187,7 @@ class PostsList extends Component
     {
         Post::whereIn('id', $this->selectedPosts)->delete();
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts moved to trash.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts moved to trash.');
     }
 
     protected function bulkPublish(): void
@@ -194,7 +197,7 @@ class PostsList extends Component
             'published_at' => now(),
         ]);
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts published.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts published.');
     }
 
     protected function bulkUnpublish(): void
@@ -204,6 +207,6 @@ class PostsList extends Component
             'published_at' => null,
         ]);
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts unpublished.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts unpublished.');
     }
 }

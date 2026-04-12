@@ -136,6 +136,9 @@
                     </div>
                 @endif
 
+                {{-- Reactions --}}
+                <livewire:blog.post-reactions :post="$post" />
+
                 {{-- Author Box --}}
                 @if($post->author)
                     <div class="mt-10 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-start gap-5">

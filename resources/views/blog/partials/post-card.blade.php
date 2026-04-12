@@ -45,4 +45,16 @@
             {{ $post->title }}
         </a>
     </h3>
+
+    {{-- Engagement Counts --}}
+    @if(($post->reactions_count ?? 0) > 0 || ($post->comments_count ?? 0) > 0)
+        <div class="mt-2 flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+            @if(($post->reactions_count ?? 0) > 0)
+                <span title="{{ $post->reactions_count }} reactions">{{ config('blog.reactions.fire.emoji', "\u{1F525}") }} {{ $post->reactions_count }}</span>
+            @endif
+            @if(($post->comments_count ?? 0) > 0)
+                <span title="{{ $post->comments_count }} comments">{{ "\u{1F4AC}" }} {{ $post->comments_count }}</span>
+            @endif
+        </div>
+    @endif
 </article>

@@ -70,7 +70,7 @@ class Post extends Model implements HasMedia
         });
 
         static::updating(function (Post $post) {
-            if ($post->isDirty('title') && !$post->isDirty('slug')) {
+            if ($post->isDirty('title') && ! $post->isDirty('slug')) {
                 $post->slug = static::generateUniqueSlug($post->title, $post->id);
             }
         });
@@ -119,7 +119,7 @@ class Post extends Model implements HasMedia
 
     private function buildS3Url(?string $path): ?string
     {
-        if (!$path) {
+        if (! $path) {
             return null;
         }
 
@@ -129,6 +129,7 @@ class Post extends Model implements HasMedia
         }
 
         $bucket = config('filesystems.disks.s3.bucket', env('AWS_BUCKET'));
+
         return "https://{$bucket}.s3.amazonaws.com/{$path}";
     }
 
@@ -142,7 +143,7 @@ class Post extends Model implements HasMedia
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->exists()
         ) {
-            $slug = $original . '-' . $count++;
+            $slug = $original.'-'.$count++;
         }
 
         return $slug;
@@ -178,6 +179,11 @@ class Post extends Model implements HasMedia
     public function pollVotes(): HasMany
     {
         return $this->hasMany(PollVote::class);
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(Reaction::class);
     }
 
     public function seoAnalyses(): HasMany
@@ -242,7 +248,7 @@ class Post extends Model implements HasMedia
 
     public function getFormattedReadingTimeAttribute(): string
     {
-        return ($this->reading_time ?? 1) . ' min read';
+        return ($this->reading_time ?? 1).' min read';
     }
 
     // Scopes

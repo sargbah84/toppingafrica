@@ -136,6 +136,16 @@
                             </button>
                         </th>
                         <th class="px-4 py-3 text-left">
+                            <button wire:click="sortBy('reactions_count')" class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300">
+                                Reactions
+                                @if ($sortField === 'reactions_count')
+                                    <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? '' : 'rotate-180' }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                    </svg>
+                                @endif
+                            </button>
+                        </th>
+                        <th class="px-4 py-3 text-left">
                             <button wire:click="sortBy('created_at')" class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300">
                                 Date
                                 @if ($sortField === 'created_at')
@@ -196,6 +206,9 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                 {{ number_format($post->views_count ?? 0) }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                {{ number_format($post->reactions_count ?? 0) }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                 {{ $post->created_at->format('M d, Y') }}

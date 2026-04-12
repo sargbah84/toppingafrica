@@ -451,6 +451,40 @@
                 </div>
             </div>
 
+            {{-- Engagement Stats --}}
+            @if($postId)
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Engagement</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Views</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ number_format($this->engagementStats['views'] ?? 0) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Reactions</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ number_format($this->engagementStats['reactions'] ?? 0) }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">Comments</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ number_format($this->engagementStats['comments'] ?? 0) }}</span>
+                    </div>
+                    @if(!empty($this->engagementStats['reaction_breakdown']))
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($this->engagementStats['reaction_breakdown'] as $type => $count)
+                                    @if($count > 0)
+                                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                            {{ config("blog.reactions.{$type}.emoji", '') }} {{ $count }}
+                                        </span>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             {{-- Categories --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
                 <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Categories</h3>

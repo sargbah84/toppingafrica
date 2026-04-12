@@ -41,6 +41,7 @@ final class PostRepository
     public function update(Post $post, array $data): Post
     {
         $post->update($data);
+
         return $post->fresh();
     }
 
@@ -65,6 +66,7 @@ final class PostRepository
             ->published()
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->paginate($perPage);
     }
 
@@ -75,6 +77,7 @@ final class PostRepository
             ->featured()
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->limit($limit)
             ->get();
     }
@@ -86,6 +89,7 @@ final class PostRepository
             ->whereHas('categories', fn ($q) => $q->where('categories.id', $category->id))
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->paginate($perPage);
     }
 
@@ -96,6 +100,7 @@ final class PostRepository
             ->whereHas('tags', fn ($q) => $q->where('tags.id', $tag->id))
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->paginate($perPage);
     }
 
@@ -106,6 +111,7 @@ final class PostRepository
             ->where('author_id', $author->id)
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->paginate($perPage);
     }
 
@@ -116,6 +122,7 @@ final class PostRepository
             ->search($term)
             ->latest()
             ->with(['author', 'categories', 'tags'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->paginate($perPage);
     }
 
@@ -136,6 +143,7 @@ final class PostRepository
             })
             ->latest()
             ->with(['author', 'categories'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->limit($limit)
             ->get();
     }
@@ -146,6 +154,7 @@ final class PostRepository
             ->published()
             ->popular()
             ->with(['author', 'categories'])
+            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')])
             ->limit($limit)
             ->get();
     }

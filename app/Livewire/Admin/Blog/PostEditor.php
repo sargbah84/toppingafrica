@@ -6,6 +6,7 @@ namespace App\Livewire\Admin\Blog;
 
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\Reaction;
 use App\Models\Tag;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -26,28 +27,37 @@ class PostEditor extends Component
 
     // Core fields
     public string $title = '';
+
     public string $slug = '';
+
     public string $excerpt = '';
+
     public string $content = '';
 
     // Post type
     public string $post_type = 'article';
+
     public array $type_data = [];
 
     // Taxonomy
     /** @var array<int> */
     public array $selectedCategories = [];
+
     public string $tagInput = '';
+
     /** @var array<string> */
     public array $selectedTags = [];
 
     // Media
     public $featuredImage = null;
+
     public ?string $existingFeaturedImageUrl = null;
 
     // SEO
     public string $meta_title = '';
+
     public string $meta_description = '';
+
     public string $focus_keyword = '';
 
     // Social / OG
@@ -60,12 +70,16 @@ class PostEditor extends Component
 
     // Status
     public string $status = 'draft';
+
     public ?string $scheduled_at = null;
+
     public bool $is_featured = false;
 
     // UI state
     public bool $showSeoPanel = false;
+
     public bool $showSocialPanel = false;
+
     public bool $autoGenerateSlug = true;
 
     /** @var array<string> */
@@ -140,12 +154,12 @@ class PostEditor extends Component
     #[On('recommendations-applied')]
     public function onRecommendationsApplied(): void
     {
-        if (!$this->postId) {
+        if (! $this->postId) {
             return;
         }
 
         $post = Post::with('tags')->find($this->postId);
-        if (!$post) {
+        if (! $post) {
             return;
         }
 
@@ -330,7 +344,7 @@ class PostEditor extends Component
         if ($this->featuredImage) {
             $post->clearMediaCollection('featured_image');
             $post->addMedia($this->featuredImage->getRealPath())
-                ->usingFileName(Str::slug($this->title) . '.' . $this->featuredImage->getClientOriginalExtension())
+                ->usingFileName(Str::slug($this->title).'.'.$this->featuredImage->getClientOriginalExtension())
                 ->toMediaCollection('featured_image');
             $this->existingFeaturedImageUrl = $post->fresh()->featured_image_url;
             $this->featuredImage = null;
@@ -342,6 +356,36 @@ class PostEditor extends Component
 
         $this->dispatch('notify', type: 'success', message: $message);
         $this->dispatch('post-saved', postId: $post->id);
+    }
+
+    #[Computed]
+    public function engagementStats(): array
+    {
+        if (! $this->postId) {
+            return [];
+        }
+
+        $post = Post::withCount([
+            'reactions',
+            'comments' => fn ($q) => $q->where('status', 'approved'),
+        ])->find($this->postId);
+
+        if (! $post) {
+            return [];
+        }
+
+        $breakdown = Reaction::where('post_id', $this->postId)
+            ->selectRaw('type, count(*) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type')
+            ->toArray();
+
+        return [
+            'views' => $post->views_count ?? 0,
+            'reactions' => $post->reactions_count,
+            'comments' => $post->comments_count,
+            'reaction_breakdown' => $breakdown,
+        ];
     }
 
     #[Computed]

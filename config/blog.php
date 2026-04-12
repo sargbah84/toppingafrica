@@ -246,4 +246,23 @@ return [
         'ttl' => 3600, // 1 hour
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reactions
+    |--------------------------------------------------------------------------
+    |
+    | Emoji reactions available on blog posts. Add or remove types here —
+    | no code or migration changes needed.
+    |
+    */
+
+    'reactions' => [
+        'fire' => ['emoji' => "\u{1F525}", 'label' => 'Fire'],
+        'love' => ['emoji' => "\u{2764}\u{FE0F}", 'label' => 'Love'],
+        'clap' => ['emoji' => "\u{1F44F}", 'label' => 'Clap'],
+        'wow' => ['emoji' => "\u{1F62E}", 'label' => 'Wow'],
+        'sad' => ['emoji' => "\u{1F622}", 'label' => 'Sad'],
+        'angry' => ['emoji' => "\u{1F621}", 'label' => 'Angry'],
+    ],
+
 ];
