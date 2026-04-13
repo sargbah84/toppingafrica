@@ -335,7 +335,7 @@
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true"
              x-data="{}"
              x-init="document.body.classList.add('overflow-hidden')"
-             x-on:remove="document.body.classList.remove('overflow-hidden')">
+             x-destroy="document.body.classList.remove('overflow-hidden')">
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeDetailModal"></div>
 
@@ -586,7 +586,7 @@
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true"
          x-data="{}"
          x-init="document.body.classList.add('overflow-hidden')"
-         x-on:remove="document.body.classList.remove('overflow-hidden')">
+         x-destroy="document.body.classList.remove('overflow-hidden')">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeDismissModal"></div>
 
@@ -639,7 +639,7 @@
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true"
          x-data="{}"
          x-init="document.body.classList.add('overflow-hidden')"
-         x-on:remove="document.body.classList.remove('overflow-hidden')">
+         x-destroy="document.body.classList.remove('overflow-hidden')">
         <div class="flex items-center justify-center min-h-screen px-4">
             <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity"
                  @if(! $isSavingSettings) wire:click="closeSettings" @endif></div>
