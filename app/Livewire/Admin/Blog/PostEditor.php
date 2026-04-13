@@ -53,6 +53,8 @@ class PostEditor extends Component
 
     public ?string $existingFeaturedImageUrl = null;
 
+    public ?string $pendingMediaUrl = null;
+
     // SEO
     public string $meta_title = '';
 
@@ -252,8 +254,15 @@ class PostEditor extends Component
 
     public function removeFeaturedImage(): void
     {
+        // For existing posts, remove from media collection immediately
+        if ($this->postId) {
+            $post = Post::findOrFail($this->postId);
+            $post->clearMediaCollection('featured_image');
+        }
+
         $this->featuredImage = null;
         $this->existingFeaturedImageUrl = null;
+        $this->pendingMediaUrl = null;
     }
 
     #[On('media-selected')]
@@ -262,6 +271,19 @@ class PostEditor extends Component
         if ($context === 'featured_image') {
             $this->existingFeaturedImageUrl = $url;
             $this->featuredImage = null;
+
+            // For existing posts, attach immediately
+            if ($this->postId) {
+                $post = Post::findOrFail($this->postId);
+                $post->clearMediaCollection('featured_image');
+                $post->addMediaFromUrl($url)
+                    ->toMediaCollection('featured_image');
+                $this->existingFeaturedImageUrl = $post->fresh()->featured_image_url;
+                $this->pendingMediaUrl = null;
+            } else {
+                // For new posts, defer until save
+                $this->pendingMediaUrl = $url;
+            }
         } elseif ($context === 'content_image') {
             $this->dispatch('insert-content-image', url: $url);
         }
@@ -338,7 +360,7 @@ class PostEditor extends Component
         })->toArray();
         $post->tags()->sync($tagIds);
 
-        // Handle featured image upload
+        // Handle featured image upload (direct file upload)
         if ($this->featuredImage) {
             $post->clearMediaCollection('featured_image');
             $post->addMedia($this->featuredImage->getRealPath())
@@ -346,6 +368,16 @@ class PostEditor extends Component
                 ->toMediaCollection('featured_image');
             $this->existingFeaturedImageUrl = $post->fresh()->featured_image_url;
             $this->featuredImage = null;
+            $this->pendingMediaUrl = null;
+        }
+
+        // Handle featured image from media library selection
+        if ($this->pendingMediaUrl) {
+            $post->clearMediaCollection('featured_image');
+            $post->addMediaFromUrl($this->pendingMediaUrl)
+                ->toMediaCollection('featured_image');
+            $this->existingFeaturedImageUrl = $post->fresh()->featured_image_url;
+            $this->pendingMediaUrl = null;
         }
 
         $message = $this->status === 'published'
