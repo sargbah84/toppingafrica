@@ -420,6 +420,46 @@
                     </article>
                     @endforeach
                 </div>
+
+                {{-- Top Content Creators This Week --}}
+                @if($topCreators->isNotEmpty())
+                <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                    <div class="mb-5">
+                        <span class="inline-block w-8 h-[3px] bg-primary mr-2 align-middle"></span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-primary">Spotlight</span>
+                        <h3 class="text-xl font-black text-gray-900 dark:text-white mt-1">Top Creators This Week</h3>
+                    </div>
+                    <div class="space-y-4">
+                        @foreach($topCreators as $creator)
+                        <a href="{{ $creator->public_url }}" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div class="relative flex-shrink-0">
+                                <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}"
+                                     class="w-11 h-11 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm"
+                                     loading="lazy">
+                                <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full text-[8px] font-bold text-white flex items-center justify-center">{{ $loop->iteration }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors">{{ $creator->name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $creator->category }}</p>
+                            </div>
+                            @if($creator->is_featured)
+                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">Featured</span>
+                            @elseif($creator->is_trending)
+                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">Hot</span>
+                            @elseif($creator->is_rising)
+                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">Rising</span>
+                            @endif
+                        </a>
+                        @endforeach
+                    </div>
+                    <a href="/creators" class="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
+                        View all creators
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                        </svg>
+                    </a>
+                </div>
+                @endif
             </div>
         </div>
     </section>

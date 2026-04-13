@@ -79,24 +79,41 @@ class BlogController extends Controller
             ->withCount(['posts' => fn ($q) => $q->published()])
             ->get();
 
-        // Creators carousel — random for now; will switch to featured-only later
+        // Creators carousel — only show creators with a profile image
         $creators = Creator::published()
+            ->where(function ($query) {
+                $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
+                    ->orWhere('profile_image_url', '!=', '');
+            })
             ->inRandomOrder()
             ->take(24)
             ->get();
 
+        // Top creators widget — creators with profile images, prioritize featured/trending
+        $topCreators = Creator::published()
+            ->where(function ($query) {
+                $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
+                    ->orWhere('profile_image_url', '!=', '');
+            })
+            ->orderByDesc('is_featured')
+            ->orderByDesc('is_trending')
+            ->orderByDesc('is_rising')
+            ->orderByDesc('views_count')
+            ->take(5)
+            ->get();
+
         return view('blog.index', compact(
             'heroPost', 'mostPopular', 'trending', 'featuredVideos',
-            'tvPosts', 'latestStories', 'editorsPicked', 'categories', 'creators'
+            'tvPosts', 'latestStories', 'editorsPicked', 'categories', 'creators', 'topCreators'
         ));
     }
 
     public function show(Request $request, string $slug): View
     {
         // Check for a published page first (or draft with preview token)
-        $page = \App\Models\Page::where('slug', $slug)->first();
+        $page = Page::where('slug', $slug)->first();
         if ($page) {
-            if (!$page->isPublished() && !$request->hasValidSignature()) {
+            if (! $page->isPublished() && ! $request->hasValidSignature()) {
                 abort(404);
             }
 
@@ -119,7 +136,7 @@ class BlogController extends Controller
             ->with('author', 'categories', 'tags')
             ->firstOrFail();
 
-        if (!$post->isPublished() && !$request->hasValidSignature()) {
+        if (! $post->isPublished() && ! $request->hasValidSignature()) {
             abort(404);
         }
 
@@ -224,7 +241,7 @@ class BlogController extends Controller
             ->header('Content-Type', 'application/rss+xml; charset=UTF-8');
     }
 
-    private function renderBlogPage(\App\Models\Page $page, Request $request): View
+    private function renderBlogPage(Page $page, Request $request): View
     {
         $query = Post::published()
             ->with('author', 'categories')
@@ -269,8 +286,8 @@ class BlogController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhere('country', 'like', "%{$search}%");
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('country', 'like', "%{$search}%");
             });
         }
 
@@ -282,16 +299,16 @@ class BlogController extends Controller
         $creators = $query->paginate(24)->withQueryString();
 
         $categories = Creator::where(function ($q) {
-                $q->where('status', 'published')->orWhere('status', 'claimed');
-            })
+            $q->where('status', 'published')->orWhere('status', 'claimed');
+        })
             ->distinct()
             ->pluck('category')
             ->sort()
             ->values();
 
         $countries = Creator::where(function ($q) {
-                $q->where('status', 'published')->orWhere('status', 'claimed');
-            })
+            $q->where('status', 'published')->orWhere('status', 'claimed');
+        })
             ->distinct()
             ->pluck('country')
             ->sort()
