@@ -36,7 +36,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->withoutVerifying()->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
+            ])->withoutVerifying()->timeout(180)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
                 'messages' => [
                     [

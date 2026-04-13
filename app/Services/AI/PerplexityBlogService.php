@@ -45,7 +45,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
-            ])->withoutVerifying()->timeout(120)->post('https://api.perplexity.ai/chat/completions', [
+            ])->withoutVerifying()->timeout(180)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $this->model,
                 'messages' => [
                     [

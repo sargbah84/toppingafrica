@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Livewire\Admin\Blog;
 
-use App\DataTransferObjects\Blog\PostGenerationRequest;
+use App\Jobs\GenerateContentIdeaPostJob;
 use App\Jobs\ResearchContentIdeasJob;
 use App\Models\ContentIdea;
-use App\Models\Post;
 use App\Models\Setting;
-use App\Models\Tag;
-use App\Services\Blog\PostGeneratorService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -37,27 +34,8 @@ class ContentLab extends Component
 
     public bool $fetching = false;
 
-    // Generation progress modal
-    public bool $showProgressModal = false;
-
-    public bool $isGenerating = false;
-
+    // Generation tracking — job-based, no progress modal needed
     public ?int $generatingIdeaId = null;
-
-    public string $generationStep = '';  // researching, generating, saving, complete, failed
-
-    public ?string $generationError = null;
-
-    public ?int $generatedPostId = null;
-
-    public ?string $generatedPostTitle = null;
-
-    public ?string $generatedPostSlug = null;
-
-    // Tracks the idea's state before generation so we can restore on failure
-    public ?string $previousStatus = null;
-
-    public ?int $previousPostId = null;
 
     // Detail modal
     public bool $showDetailModal = false;
@@ -344,8 +322,9 @@ class ContentLab extends Component
     // ── Generate ─────────────────────────────────────────────
 
     /**
-     * Step 1: Show the progress modal immediately, then dispatch
-     * a browser event so Livewire can re-render before the long AI call.
+     * Dispatch a background job to generate the post.
+     * The idea status changes to 'generating' immediately,
+     * and the UI polls to detect completion.
      */
     public function generate(int $ideaId): void
     {
@@ -355,120 +334,31 @@ class ContentLab extends Component
         $this->showDetailModal = false;
         $this->detailIdeaId = null;
 
-        // Open progress modal
-        $this->showProgressModal = true;
-        $this->isGenerating = true;
-        $this->generatingIdeaId = $ideaId;
-        $this->generationStep = 'researching';
-        $this->generationError = null;
-        $this->generatedPostId = null;
-        $this->generatedPostTitle = null;
-        $this->generatedPostSlug = null;
+        $previousStatus = $idea->status;
+        $previousPostId = $idea->generated_post_id;
 
-        // Remember original status so we can restore on failure
-        $this->previousStatus = $idea->status;
-        $this->previousPostId = $idea->generated_post_id;
+        $idea->markAsGenerating(auth()->id());
 
-        $idea->markAsGenerating();
+        GenerateContentIdeaPostJob::dispatch(
+            $ideaId,
+            auth()->id(),
+            $previousStatus,
+            $previousPostId,
+        );
 
-        // Tell the browser to call executeGeneration after re-render
-        $this->dispatch('generation-started', ideaId: $ideaId);
+        session()->flash('success', "Generating article for \"{$idea->title}\" in the background...");
     }
 
     /**
-     * Step 2: The actual long-running AI generation.
-     * Called from the browser after the progress modal is visible.
+     * Dismiss the generation error so the idea returns to its previous state.
      */
-    public function executeGeneration(int $ideaId): void
+    public function dismissGenerationError(int $ideaId): void
     {
         $idea = ContentIdea::findOrFail($ideaId);
 
-        try {
-            $request = new PostGenerationRequest(
-                topic: $idea->title."\n\nContext: ".$idea->description,
-                aiProvider: 'perplexity',
-                length: $idea->suggested_length,
-                tone: $idea->suggested_tone,
-                targetKeyword: $idea->suggested_keyword,
-                postType: $idea->suggested_post_type,
-            );
-
-            $this->generationStep = 'generating';
-
-            $generatorService = app(PostGeneratorService::class);
-            $postData = $generatorService->generate($request);
-
-            $this->generationStep = 'saving';
-
-            $slug = $postData->slug ?? Str::slug($postData->title);
-            $originalSlug = $slug;
-            $counter = 2;
-            while (Post::where('slug', $slug)->exists()) {
-                $slug = $originalSlug.'-'.$counter;
-                $counter++;
-            }
-
-            $post = Post::create([
-                'title' => $postData->title,
-                'slug' => $slug,
-                'content' => $postData->content,
-                'excerpt' => $postData->excerpt,
-                'post_type' => $postData->postType,
-                'type_data' => $postData->typeData ?: null,
-                'meta_title' => $postData->metaTitle,
-                'meta_description' => $postData->metaDescription,
-                'focus_keyword' => $postData->focusKeyword,
-                'og_meta' => null,
-                'status' => 'draft',
-                'is_featured' => false,
-                'reading_time' => $postData->readingTime,
-                'author_id' => auth()->id(),
-            ]);
-
-            if (! empty($postData->categoryIds)) {
-                $post->categories()->sync($postData->categoryIds);
-            }
-
-            if (! empty($postData->suggestedTags)) {
-                $tagIds = collect($postData->suggestedTags)->map(function (string $tagName): int {
-                    return Tag::firstOrCreate(
-                        ['slug' => Str::slug($tagName)],
-                        ['name' => $tagName]
-                    )->id;
-                })->toArray();
-                $post->tags()->sync($tagIds);
-            }
-
-            $idea->markAsGenerated($post->id);
-
-            $this->generationStep = 'complete';
-            $this->generatedPostId = $post->id;
-            $this->generatedPostTitle = $post->title;
-            $this->generatedPostSlug = $post->slug;
-        } catch (\Throwable $e) {
-            // Restore previous status — don't wipe 'generated' on a failed regeneration
-            $idea->update([
-                'status' => $this->previousStatus ?? 'pending',
-                'generated_post_id' => $this->previousPostId,
-            ]);
-            $this->generationStep = 'failed';
-            $this->generationError = Str::limit($e->getMessage(), 300);
-        } finally {
-            $this->isGenerating = false;
-            $this->generatingIdeaId = null;
-            $this->previousStatus = null;
-            $this->previousPostId = null;
+        if ($idea->generation_error) {
+            $idea->update(['generation_error' => null]);
         }
-    }
-
-    public function closeProgressModal(): void
-    {
-        $this->showProgressModal = false;
-        $this->generationStep = '';
-        $this->generationError = null;
-        $this->generatedPostId = null;
-        $this->generatedPostTitle = null;
-        $this->generatedPostSlug = null;
     }
 
     // ── Idea Actions ─────────────────────────────────────────

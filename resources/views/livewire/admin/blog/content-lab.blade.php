@@ -204,7 +204,18 @@
                             @elseif($idea->status === 'generated')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Generated</span>
                             @elseif($idea->status === 'generating')
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Generating</span>
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                    <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    Generating...
+                                </span>
+                            @elseif($idea->generation_error)
+                                <div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Failed</span>
+                                    <p class="text-xs text-red-500 mt-0.5 max-w-[200px] truncate" title="{{ $idea->generation_error }}">{{ Str::limit($idea->generation_error, 60) }}</p>
+                                </div>
                             @elseif($idea->status === 'dismissed')
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                                     Dismissed
@@ -239,31 +250,18 @@
                                     </button>
                                     <div class="w-px h-5 bg-gray-200 dark:bg-gray-600"></div>
                                     <button wire:click="generate({{ $idea->id }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="generate({{ $idea->id }})"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 disabled:opacity-60 transition">
-                                        <svg class="w-3.5 h-3.5" wire:loading.class="hidden" wire:target="generate({{ $idea->id }})" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/>
                                         </svg>
-                                        <svg class="w-3.5 h-3.5 animate-spin hidden" wire:loading.class.remove="hidden" wire:target="generate({{ $idea->id }})" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                        </svg>
-                                        <span wire:loading.remove wire:target="generate({{ $idea->id }})">Generate</span>
-                                        <span class="hidden" wire:loading.class.remove="hidden" wire:target="generate({{ $idea->id }})">Generating...</span>
+                                        Generate
                                     </button>
                                 @elseif($idea->status === 'generated')
                                     <button wire:click="generate({{ $idea->id }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="generate({{ $idea->id }})"
                                             title="Regenerate article"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-md hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-60 transition">
-                                        <svg class="w-3.5 h-3.5" wire:loading.class="hidden" wire:target="generate({{ $idea->id }})" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-md hover:bg-amber-50 dark:hover:bg-amber-900/20 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/>
-                                        </svg>
-                                        <svg class="w-3.5 h-3.5 animate-spin hidden" wire:loading.class.remove="hidden" wire:target="generate({{ $idea->id }})" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                         </svg>
                                     </button>
                                     @if($idea->generated_post_id)
@@ -275,6 +273,23 @@
                                             Edit Post
                                         </a>
                                     @endif
+                                @elseif($idea->status === 'generating')
+                                    <span class="text-xs text-gray-400 italic">Working...</span>
+                                @elseif($idea->generation_error)
+                                    <button wire:click="generate({{ $idea->id }})"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs font-semibold rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/>
+                                        </svg>
+                                        Retry
+                                    </button>
+                                    <button wire:click="dismissGenerationError({{ $idea->id }})"
+                                            title="Dismiss error"
+                                            class="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
                                 @elseif($idea->status === 'dismissed')
                                     <button wire:click="restoreIdea({{ $idea->id }})"
                                             class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-semibold">
@@ -307,155 +322,10 @@
         {{ $ideas->links() }}
     </div>
 
-    {{-- Generation Progress Modal --}}
-    @if($showProgressModal)
-    <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true"
-         x-data="{}"
-         x-init="document.body.classList.add('overflow-hidden')"
-         x-on:remove="document.body.classList.remove('overflow-hidden')"
-         @generation-started.window="$wire.executeGeneration($event.detail.ideaId)">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity"></div>
-
-            <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-8 z-10">
-
-                {{-- Header --}}
-                <div class="text-center mb-8">
-                    @if($generationStep === 'complete')
-                        <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                            <svg class="h-7 w-7 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Post Created Successfully</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Your draft post is ready to review</p>
-                    @elseif($generationStep === 'failed')
-                        <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-                            <svg class="h-7 w-7 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Generation Failed</h3>
-                        <p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ $generationError }}</p>
-                    @else
-                        <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-4">
-                            <svg class="animate-spin h-7 w-7 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Generating Article</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">This may take 30-60 seconds...</p>
-                    @endif
-                </div>
-
-                {{-- Checklist Steps --}}
-                <div class="space-y-4 mb-8">
-                    @php
-                        $steps = [
-                            'researching' => ['label' => 'Preparing topic & keywords', 'icon' => 'magnifying-glass'],
-                            'generating' => ['label' => 'Generating content with AI', 'icon' => 'sparkles'],
-                            'saving' => ['label' => 'Creating draft post', 'icon' => 'document-plus'],
-                            'complete' => ['label' => 'Post ready for review', 'icon' => 'check-badge'],
-                        ];
-                        $stepOrder = ['researching', 'generating', 'saving', 'complete'];
-                        $currentIndex = array_search($generationStep, $stepOrder);
-                        if ($currentIndex === false) $currentIndex = -1;
-                    @endphp
-
-                    @foreach($stepOrder as $index => $stepKey)
-                        @php
-                            $step = $steps[$stepKey];
-                            $isComplete = $generationStep !== 'failed' && $index < $currentIndex;
-                            $isCurrent = $stepKey === $generationStep && $generationStep !== 'complete' && $generationStep !== 'failed';
-                            $isPending = $index > $currentIndex && $generationStep !== 'failed';
-                            $isSuccess = $stepKey === 'complete' && $generationStep === 'complete';
-                            $isFailed = $generationStep === 'failed' && $index >= $currentIndex;
-                        @endphp
-
-                        <div class="flex items-center gap-3" x-data="{ show: false }" x-init="setTimeout(() => show = true, {{ $index * 150 }})">
-                            {{-- Status icon --}}
-                            <div class="flex-shrink-0 transition-all duration-300"
-                                 x-show="show" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-75" x-transition:enter-end="opacity-100 scale-100">
-                                @if($isComplete || $isSuccess)
-                                    <div class="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                        <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                                        </svg>
-                                    </div>
-                                @elseif($isCurrent)
-                                    <div class="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                        <svg class="animate-spin h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                        </svg>
-                                    </div>
-                                @elseif($isFailed)
-                                    <div class="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                        <svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </div>
-                                @else
-                                    <div class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                                        <div class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-500"></div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Label --}}
-                            <span class="text-sm font-medium transition-colors duration-300
-                                {{ $isComplete || $isSuccess ? 'text-green-700 dark:text-green-400' : '' }}
-                                {{ $isCurrent ? 'text-indigo-700 dark:text-indigo-400' : '' }}
-                                {{ $isPending ? 'text-gray-400 dark:text-gray-500' : '' }}
-                                {{ $isFailed ? 'text-red-600 dark:text-red-400' : '' }}"
-                                 x-show="show" x-transition:enter="transition ease-out duration-300 delay-75" x-transition:enter-start="opacity-0 translate-x-2" x-transition:enter-end="opacity-100 translate-x-0">
-                                {{ $step['label'] }}
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
-
-                {{-- Generated post title --}}
-                @if($generationStep === 'complete' && $generatedPostTitle)
-                    <div class="mb-6 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Generated Title</p>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $generatedPostTitle }}</p>
-                    </div>
-                @endif
-
-                {{-- Action buttons --}}
-                <div class="flex items-center justify-end gap-3">
-                    @if($generationStep === 'complete' && $generatedPostId)
-                        <button wire:click="closeProgressModal"
-                                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-                            Close
-                        </button>
-                        <a href="{{ \Illuminate\Support\Facades\URL::signedRoute('blog.show', ['slug' => $generatedPostSlug]) }}" target="_blank"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                            </svg>
-                            Preview
-                        </a>
-                        <a href="{{ route('admin.blog.posts.edit', $generatedPostId) }}"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
-                            </svg>
-                            Edit Post
-                        </a>
-                    @elseif($generationStep === 'failed')
-                        <button wire:click="closeProgressModal"
-                                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-                            Close
-                        </button>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
+    {{-- Poll for generation status when any ideas are generating --}}
+    @php $hasGenerating = \App\Models\ContentIdea::where('status', 'generating')->exists(); @endphp
+    @if($hasGenerating)
+        <div wire:poll.5s></div>
     @endif
 
     {{-- Idea Detail Modal --}}
@@ -672,33 +542,19 @@
                                 </button>
                                 <div class="w-px h-6 bg-gray-200 dark:bg-gray-600"></div>
                                 <button wire:click="generate({{ $detailIdea->id }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="generate"
-                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 disabled:opacity-60 transition">
-                                    <svg class="w-4 h-4" wire:loading.class="hidden" wire:target="generate" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"/>
                                     </svg>
-                                    <svg class="w-4 h-4 animate-spin hidden" wire:loading.class.remove="hidden" wire:target="generate" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                    </svg>
-                                    <span wire:loading.remove wire:target="generate">Generate Article</span>
-                                    <span class="hidden" wire:loading.class.remove="hidden" wire:target="generate">Generating...</span>
+                                    Generate Article
                                 </button>
                             @elseif($detailIdea->status === 'generated' && $detailIdea->generated_post_id)
                                 <button wire:click="generate({{ $detailIdea->id }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="generate"
-                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-semibold rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 disabled:opacity-60 transition">
-                                    <svg class="w-4 h-4" wire:loading.class="hidden" wire:target="generate" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm font-semibold rounded-md hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 transition">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/>
                                     </svg>
-                                    <svg class="w-4 h-4 animate-spin hidden" wire:loading.class.remove="hidden" wire:target="generate" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                    </svg>
-                                    <span wire:loading.remove wire:target="generate">Regenerate</span>
-                                    <span class="hidden" wire:loading.class.remove="hidden" wire:target="generate">Regenerating...</span>
+                                    Regenerate
                                 </button>
                                 <a href="{{ route('admin.blog.posts.edit', $detailIdea->generated_post_id) }}"
                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 transition">

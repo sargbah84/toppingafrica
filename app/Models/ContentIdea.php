@@ -28,6 +28,8 @@ class ContentIdea extends Model
         'status',
         'dismissal_reason',
         'generated_post_id',
+        'generation_error',
+        'generation_started_by',
         'expires_at',
         'researched_at',
         'responded_at',
@@ -73,9 +75,13 @@ class ContentIdea extends Model
 
     // ── Status Methods ───────────────────────────────────────
 
-    public function markAsGenerating(): void
+    public function markAsGenerating(?int $userId = null): void
     {
-        $this->update(['status' => 'generating']);
+        $this->update([
+            'status' => 'generating',
+            'generation_error' => null,
+            'generation_started_by' => $userId,
+        ]);
     }
 
     public function markAsGenerated(int $postId): void
