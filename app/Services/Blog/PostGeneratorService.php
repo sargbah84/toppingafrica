@@ -62,6 +62,13 @@ final class PostGeneratorService
         // Convert markdown to HTML if the AI returned markdown instead of HTML
         $content['body'] = $this->ensureHtml($content['body']);
 
+        // Sanitize field lengths to prevent DB truncation errors
+        $content['title'] = Str::limit($content['title'] ?? '', 250, '');
+        $content['excerpt'] = Str::limit($content['excerpt'] ?? '', 500, '');
+        $content['meta_title'] = Str::limit($content['meta_title'] ?? '', 255, '');
+        $content['meta_description'] = Str::limit($content['meta_description'] ?? '', 255, '');
+        $content['focus_keyword'] = Str::limit($content['focus_keyword'] ?? '', 255, '');
+
         // Calculate reading time
         $readingTime = $this->readingTimeCalculator->calculate($content['body']);
 
@@ -82,7 +89,7 @@ final class PostGeneratorService
             title: $content['title'],
             content: $content['body'],
             excerpt: $content['excerpt'],
-            slug: Str::slug($content['title']),
+            slug: Str::limit(Str::slug($content['title']), 250, ''),
             metaTitle: $content['meta_title'],
             metaDescription: $content['meta_description'],
             focusKeyword: $content['focus_keyword'],
