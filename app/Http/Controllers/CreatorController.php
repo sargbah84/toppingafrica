@@ -79,7 +79,10 @@ class CreatorController extends Controller
             app(\App\Services\ViewTracker::class)->track($creator, $request);
         }
 
-        return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed'));
+        // True when the current user can edit this profile inline (owner, staff, or super-admin).
+        $canEdit = $creator->canBeEditedBy(auth()->user());
+
+        return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed', 'canEdit'));
     }
 
     public function toggleFollow(Request $request, string $slug): \Illuminate\Http\JsonResponse

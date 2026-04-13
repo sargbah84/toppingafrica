@@ -134,20 +134,41 @@ class ContentLabTest extends TestCase
 
         Livewire::actingAs($this->createStaffUser())
             ->test(ContentLab::class)
-            ->call('dismiss', $idea->id);
+            ->call('openDismissModal', $idea->id)
+            ->set('dismissalReason', 'too_generic')
+            ->call('confirmDismiss');
 
-        $this->assertSame('dismissed', $idea->fresh()->status);
+        $fresh = $idea->fresh();
+        $this->assertSame('dismissed', $fresh->status);
+        $this->assertSame('too_generic', $fresh->dismissal_reason);
+        $this->assertNotNull($fresh->responded_at);
+    }
+
+    public function test_approve_idea(): void
+    {
+        $idea = $this->createIdea();
+
+        Livewire::actingAs($this->createStaffUser())
+            ->test(ContentLab::class)
+            ->call('approve', $idea->id);
+
+        $fresh = $idea->fresh();
+        $this->assertSame('approved', $fresh->status);
+        $this->assertNotNull($fresh->responded_at);
     }
 
     public function test_restore_idea(): void
     {
-        $idea = $this->createIdea(['status' => 'dismissed']);
+        $idea = $this->createIdea(['status' => 'dismissed', 'dismissal_reason' => 'too_generic', 'responded_at' => now()]);
 
         Livewire::actingAs($this->createStaffUser())
             ->test(ContentLab::class)
             ->call('restoreIdea', $idea->id);
 
-        $this->assertSame('pending', $idea->fresh()->status);
+        $fresh = $idea->fresh();
+        $this->assertSame('pending', $fresh->status);
+        $this->assertNull($fresh->dismissal_reason);
+        $this->assertNull($fresh->responded_at);
     }
 
     public function test_delete_idea(): void

@@ -26,9 +26,11 @@ class ContentIdea extends Model
         'suggested_length',
         'suggested_post_type',
         'status',
+        'dismissal_reason',
         'generated_post_id',
         'expires_at',
         'researched_at',
+        'responded_at',
     ];
 
     protected $casts = [
@@ -36,6 +38,7 @@ class ContentIdea extends Model
         'relevance_score' => 'integer',
         'expires_at' => 'datetime',
         'researched_at' => 'datetime',
+        'responded_at' => 'datetime',
     ];
 
     // ── Scopes ───────────────────────────────────────────────
@@ -49,6 +52,11 @@ class ContentIdea extends Model
     public function scopeByNiche(Builder $query, string $niche): Builder
     {
         return $query->where('niche', $niche);
+    }
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('status', 'approved');
     }
 
     public function scopeTopRated(Builder $query): Builder
@@ -78,13 +86,29 @@ class ContentIdea extends Model
         ]);
     }
 
-    public function dismiss(): void
+    public function approve(): void
     {
-        $this->update(['status' => 'dismissed']);
+        $this->update([
+            'status' => 'approved',
+            'responded_at' => now(),
+        ]);
+    }
+
+    public function dismiss(?string $reason = null): void
+    {
+        $this->update([
+            'status' => 'dismissed',
+            'dismissal_reason' => $reason,
+            'responded_at' => now(),
+        ]);
     }
 
     public function restore(): void
     {
-        $this->update(['status' => 'pending']);
+        $this->update([
+            'status' => 'pending',
+            'dismissal_reason' => null,
+            'responded_at' => null,
+        ]);
     }
 }

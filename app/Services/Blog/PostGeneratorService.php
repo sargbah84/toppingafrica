@@ -12,6 +12,7 @@ use App\Services\AI\OpenAIBlogService;
 use App\Services\AI\PerplexityBlogService;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use League\CommonMark\CommonMarkConverter;
 
 final class PostGeneratorService
 {
@@ -30,13 +31,13 @@ final class PostGeneratorService
         $service = match ($request->aiProvider) {
             'openai' => $this->openAiService,
             'perplexity' => $this->perplexityService,
-            default => throw new InvalidArgumentException('Invalid AI provider: ' . $request->aiProvider),
+            default => throw new InvalidArgumentException('Invalid AI provider: '.$request->aiProvider),
         };
 
         // Inject creator context into the request if creator IDs were provided
-        if (!empty($request->creatorIds)) {
+        if (! empty($request->creatorIds)) {
             $creators = $this->creatorContextService->getCreatorContext($request->creatorIds);
-            if (!empty($creators)) {
+            if (! empty($creators)) {
                 $creatorPrompt = $this->creatorContextService->buildCreatorPromptSection($creators);
                 $additionalContext = array_merge($request->additionalContext, [
                     'creator_prompt' => $creatorPrompt,
@@ -57,6 +58,9 @@ final class PostGeneratorService
 
         // Generate content using AI
         $content = $service->generateBlogPost($request);
+
+        // Convert markdown to HTML if the AI returned markdown instead of HTML
+        $content['body'] = $this->ensureHtml($content['body']);
 
         // Calculate reading time
         $readingTime = $this->readingTimeCalculator->calculate($content['body']);
@@ -147,6 +151,35 @@ final class PostGeneratorService
     public function getToneOptions(): array
     {
         return config('blog.ai.tones', []);
+    }
+
+    /**
+     * Convert markdown to HTML if the AI returned markdown instead of HTML.
+     * Detects markdown by checking for common patterns like ## headings or **bold**.
+     */
+    private function ensureHtml(string $body): string
+    {
+        // If body already contains block-level HTML tags, it's likely HTML
+        if (preg_match('/<(h[1-6]|p|ul|ol|div|table|blockquote)\b/i', $body)) {
+            return $body;
+        }
+
+        // Markdown indicators: headings, bold, unordered lists, links
+        $hasMarkdown = preg_match('/^#{1,6}\s/m', $body)
+            || preg_match('/\*\*.+?\*\*/', $body)
+            || preg_match('/^\s*[-*]\s/m', $body)
+            || preg_match('/\[.+?\]\(.+?\)/', $body);
+
+        if (! $hasMarkdown) {
+            return $body;
+        }
+
+        $converter = new CommonMarkConverter([
+            'html_input' => 'allow',
+            'allow_unsafe_links' => false,
+        ]);
+
+        return $converter->convert($body)->getContent();
     }
 
     private function matchCategoriesToIds(array $categoryNames): array

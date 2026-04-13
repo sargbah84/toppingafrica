@@ -14,7 +14,9 @@ final class PerplexityBlogService implements BlogGeneratorInterface
     use TracksAiUsage;
 
     private string $apiKey;
+
     private string $model;
+
     private int $maxTokens;
 
     public function __construct()
@@ -41,7 +43,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(120)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $this->model,
@@ -61,7 +63,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'perplexity', $this->model, 'blog-generation', false, $durationMs, $response->body());
                 $errorBody = $response->json() ?? [];
                 $errorMessage = $errorBody['error']['message'] ?? $response->body();
@@ -83,7 +85,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
                     throw new \RuntimeException('Perplexity API rate limit exceeded. Please try again later.');
                 }
 
-                throw new \RuntimeException('Perplexity API error: ' . $errorMessage);
+                throw new \RuntimeException('Perplexity API error: '.$errorMessage);
             }
 
             $this->trackUsage($response, 'perplexity', $this->model, 'blog-generation', true, $durationMs);
@@ -119,7 +121,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(60)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $this->model,
@@ -139,7 +141,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'perplexity', $this->model, 'blog-social-sharing', false, $durationMs, $response->body());
                 throw new \RuntimeException('Failed to generate social sharing posts');
             }
@@ -147,6 +149,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $this->trackUsage($response, 'perplexity', $this->model, 'blog-social-sharing', true, $durationMs);
 
             $content = $this->extractJson($response->json('choices.0.message.content'));
+
             return json_decode($content, true) ?? [];
         } catch (\Exception $e) {
             Log::error('Perplexity social sharing generation failed', [
@@ -175,10 +178,11 @@ Your content should:
 4. Use clear H2 and H3 headings for structure
 5. Include actionable insights and analysis relevant to African audiences
 6. Be engaging and valuable for readers interested in African affairs
-7. Naturally reference 1-3 relevant Topping Africa categories/sections within the body content, linking to category pages where appropriate. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
-8. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
-9. IMPORTANT — Listicle / comparison posts: If the post is a list (e.g., "Top 10 African Tech Startups", "Best African Music Festivals"), ensure entries are well-researched and relevant to the African context.
-10. CREATOR PROFILES: When creator profile data is provided, use ONLY the supplied data — do NOT fabricate details. Link to their Topping Africa profile pages using: <a href="PROFILE_URL">Creator Name</a>. Creator profile links count as valuable internal links.
+7. CRITICAL: The "body" field MUST be formatted as clean HTML (using <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a> tags). Do NOT use markdown syntax (no ##, **, *, -, [] etc). The content is displayed in a WYSIWYG HTML editor.
+8. Naturally reference 1-3 relevant Topping Africa categories/sections within the body content, linking to category pages where appropriate. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
+9. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
+10. IMPORTANT — Listicle / comparison posts: If the post is a list (e.g., "Top 10 African Tech Startups", "Best African Music Festivals"), ensure entries are well-researched and relevant to the African context.
+11. CREATOR PROFILES: When creator profile data is provided, use ONLY the supplied data — do NOT fabricate details. Link to their Topping Africa profile pages using: <a href="PROFILE_URL">Creator Name</a>. Creator profile links count as valuable internal links.
 
 AVAILABLE TOPPING AFRICA SECTIONS (use these for internal references):
 - Africa News: https://toppingafrica.com/category/africa-news
@@ -220,7 +224,7 @@ Use your online search capabilities to include the latest information and trends
 Return a JSON object with these exact keys (no markdown, just JSON):
 {
     "title": "SEO-optimized blog post title",
-    "body": "Brief introduction text (1-2 paragraphs) for context",
+    "body": "The full blog post content as clean HTML (use <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a> tags — NO markdown)",
     "excerpt": "Compelling 2-3 sentence excerpt for preview",
     "meta_title": "SEO meta title (max 60 characters)",
     "meta_description": "SEO meta description (155-160 characters)",
@@ -308,7 +312,7 @@ POLL,
             $keyword = $trend['keyword'] ?? '';
             $type = $trend['type'] ?? 'top';
             $value = $trend['formatted_value'] ?? $trend['value'] ?? '';
-            if (!empty($keyword)) {
+            if (! empty($keyword)) {
                 $lines[] = "- {$keyword} ({$type}, score: {$value})";
             }
         }
@@ -371,7 +375,7 @@ PROMPT;
         return [
             'title' => $request->topic,
             'body' => $content,
-            'excerpt' => substr(strip_tags($content), 0, 160) . '...',
+            'excerpt' => substr(strip_tags($content), 0, 160).'...',
             'meta_title' => substr($request->topic, 0, 60),
             'meta_description' => substr(strip_tags($content), 0, 160),
             'focus_keyword' => strtolower(explode(' ', $request->topic)[0] ?? ''),

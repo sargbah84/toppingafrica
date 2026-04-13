@@ -78,8 +78,6 @@ class PostEditor extends Component
     // UI state
     public bool $showSeoPanel = false;
 
-    public bool $showSocialPanel = false;
-
     public bool $autoGenerateSlug = true;
 
     /** @var array<string> */
@@ -431,14 +429,9 @@ class PostEditor extends Component
             'selectedTags' => ['array'],
             'selectedTags.*' => ['string', 'max:50'],
             'featuredImage' => ['nullable', 'image', 'max:5120'],
-            'meta_title' => ['nullable', 'string', 'max:70'],
-            'meta_description' => ['nullable', 'string', 'max:160'],
+            'meta_title' => ['nullable', 'string'],
+            'meta_description' => ['nullable', 'string'],
             'focus_keyword' => ['nullable', 'string', 'max:100'],
-            'og_meta' => ['nullable', 'array'],
-            'og_meta.og_title' => ['nullable', 'string', 'max:100'],
-            'og_meta.og_description' => ['nullable', 'string', 'max:200'],
-            'og_meta.og_image' => ['nullable', 'string', 'max:500'],
-            'og_meta.twitter_card' => ['nullable', 'string', Rule::in(['summary', 'summary_large_image'])],
             'status' => ['required', Rule::in(['draft', 'published', 'scheduled'])],
             'scheduled_at' => ['nullable', 'required_if:status,scheduled', 'date', 'after:now'],
             'is_featured' => ['boolean'],

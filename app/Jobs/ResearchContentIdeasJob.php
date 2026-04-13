@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Livewire\Admin\Blog\ContentLab;
 use App\Models\AiUsageLog;
 use App\Models\ContentIdea;
+use App\Models\Setting;
 use App\Models\Trend;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -42,7 +44,7 @@ class ResearchContentIdeasJob implements ShouldQueue
     public function handle(): array
     {
         $cleanedUp = $this->cleanup();
-        $niches = config('blog.ai.niches', []);
+        $niches = ContentLab::getEnabledNiches();
         $apiKey = config('blog.ai.providers.perplexity.api_key', '');
 
         if (empty($apiKey)) {
@@ -99,6 +101,13 @@ class ResearchContentIdeasJob implements ShouldQueue
             $today = now()->format('F j, Y');
             $count = $this->perNiche;
 
+            $adminContext = trim((string) Setting::get('content_lab_context', ''));
+            $contextBlock = $adminContext !== ''
+                ? "\n\nADDITIONAL EDITORIAL GUIDANCE FROM THE EDITORIAL TEAM:\n{$adminContext}\n"
+                : '';
+
+            $feedbackBlock = $this->buildFeedbackBlock($nicheKey);
+
             $prompt = <<<PROMPT
 Today is {$today}. Research {$count} high-potential blog article topics in the niche of: {$nicheLabel}.
 
@@ -107,7 +116,7 @@ These articles will be published on Topping Africa, a leading African news and c
 - Underserved by existing content (content gaps where a well-written article could rank)
 - Highly relevant to African audiences
 - Positive, constructive, or informative (avoid violence, disasters, political conflicts)
-
+{$contextBlock}{$feedbackBlock}
 For each topic, assess:
 - Current search interest level (high/medium/low)
 - Content competition level (high/medium/low) — how many quality articles already exist
@@ -365,18 +374,56 @@ PROMPT;
         return is_array($decoded) ? $decoded : null;
     }
 
+    private function buildFeedbackBlock(string $nicheKey): string
+    {
+        $lines = [];
+
+        // Approved ideas (last 30 days) — the team wants MORE like these
+        $approved = ContentIdea::where('status', 'approved')
+            ->where('niche', $nicheKey)
+            ->where('responded_at', '>=', now()->subDays(30))
+            ->latest('responded_at')
+            ->limit(10)
+            ->pluck('title')
+            ->toArray();
+
+        if ($approved) {
+            $list = implode("\n- ", $approved);
+            $lines[] = "APPROVED TOPICS (the editorial team liked these — find similar angles):\n- {$list}";
+        }
+
+        // Dismissed ideas (last 30 days) — the team wants LESS like these
+        $dismissed = ContentIdea::where('status', 'dismissed')
+            ->where('niche', $nicheKey)
+            ->where('responded_at', '>=', now()->subDays(30))
+            ->latest('responded_at')
+            ->limit(10)
+            ->get(['title', 'dismissal_reason']);
+
+        if ($dismissed->isNotEmpty()) {
+            $reasonLabels = ContentLab::DISMISSAL_REASONS;
+            $items = $dismissed->map(function ($idea) use ($reasonLabels) {
+                $reason = $idea->dismissal_reason
+                    ? ' (reason: '.($reasonLabels[$idea->dismissal_reason] ?? $idea->dismissal_reason).')'
+                    : '';
+                return "- {$idea->title}{$reason}";
+            })->implode("\n");
+
+            $lines[] = "DISMISSED TOPICS (the editorial team rejected these — AVOID similar topics and themes):\n{$items}";
+        }
+
+        if (empty($lines)) {
+            return '';
+        }
+
+        return "\nEDITORIAL FEEDBACK FROM RECENT REVIEWS:\n".implode("\n\n", $lines)."\n";
+    }
+
     private function nicheToCategoryName(string $niche): ?string
     {
-        return match ($niche) {
-            'africa-news' => 'Africa News',
-            'entertainment' => 'Entertainment',
-            'business' => 'Business & Economy',
-            'technology' => 'Technology',
-            'sports' => 'Sports',
-            'health' => 'Health & Wellness',
-            'politics' => 'Politics & Governance',
-            default => null,
-        };
+        $allNiches = ContentLab::getAllNiches();
+
+        return $allNiches[$niche] ?? null;
     }
 
     private function trendCategoryToNiche(string $category): string

@@ -1,4 +1,4 @@
-<div x-data="{ seoOpen: @entangle('showSeoPanel'), socialOpen: @entangle('showSocialPanel') }">
+<div x-data="{ seoOpen: @entangle('showSeoPanel') }">
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div class="flex items-center gap-3">
@@ -300,12 +300,10 @@
                             wire:model="meta_title"
                             type="text"
                             id="meta_title"
-                            placeholder="SEO title (max 70 characters)"
-                            maxlength="70"
+                            placeholder="SEO title (recommended: 70 characters)"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                         />
-                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ Str::length($meta_title) }}/70 characters</p>
-                        @error('meta_title') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs {{ Str::length($meta_title) > 70 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500' }}">{{ Str::length($meta_title) }}/70 characters</p>
                     </div>
                     <div>
                         <label for="meta_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta Description</label>
@@ -313,12 +311,10 @@
                             wire:model="meta_description"
                             id="meta_description"
                             rows="2"
-                            placeholder="SEO description (max 160 characters)"
-                            maxlength="160"
+                            placeholder="SEO description (recommended: 160 characters)"
                             class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                         ></textarea>
-                        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ Str::length($meta_description) }}/160 characters</p>
-                        @error('meta_description') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs {{ Str::length($meta_description) > 160 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500' }}">{{ Str::length($meta_description) }}/160 characters</p>
                     </div>
                     <div>
                         <label for="focus_keyword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Focus Keyword</label>
@@ -335,65 +331,6 @@
             </div>
 
             {{-- Social Sharing Accordion --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-                <button
-                    @click="socialOpen = !socialOpen"
-                    class="w-full flex items-center justify-between px-6 py-4 text-left"
-                >
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                        </svg>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">Social Sharing / Open Graph</span>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400 transition-transform" :class="socialOpen ? 'rotate-180' : ''" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
-                </button>
-                <div x-show="socialOpen" x-collapse class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 space-y-4">
-                    <div>
-                        <label for="og_title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OG Title</label>
-                        <input
-                            wire:model="og_meta.og_title"
-                            type="text"
-                            id="og_title"
-                            placeholder="Open Graph title"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label for="og_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OG Description</label>
-                        <textarea
-                            wire:model="og_meta.og_description"
-                            id="og_description"
-                            rows="2"
-                            placeholder="Open Graph description"
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                        ></textarea>
-                    </div>
-                    <div>
-                        <label for="og_image" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OG Image URL</label>
-                        <input
-                            wire:model="og_meta.og_image"
-                            type="url"
-                            id="og_image"
-                            placeholder="https://example.com/image.jpg"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label for="twitter_card" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Twitter Card Type</label>
-                        <select
-                            wire:model="og_meta.twitter_card"
-                            id="twitter_card"
-                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                        >
-                            <option value="summary">Summary</option>
-                            <option value="summary_large_image">Summary with Large Image</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
         </div>
 
         {{-- Right Sidebar --}}

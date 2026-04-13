@@ -14,7 +14,9 @@ final class OpenAIBlogService implements BlogGeneratorInterface
     use TracksAiUsage;
 
     private string $apiKey;
+
     private string $model;
+
     private int $maxTokens;
 
     public function __construct()
@@ -32,7 +34,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
@@ -53,7 +55,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'openai', $this->model, 'blog-generation', false, $durationMs, $response->body());
                 Log::error('OpenAI API error', [
                     'status' => $response->status(),
@@ -89,7 +91,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
@@ -110,7 +112,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'openai', $this->model, 'blog-social-sharing', false, $durationMs, $response->body());
                 throw new \RuntimeException('Failed to generate social sharing posts');
             }
@@ -118,6 +120,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $this->trackUsage($response, 'openai', $this->model, 'blog-social-sharing', true, $durationMs);
 
             $content = $response->json('choices.0.message.content');
+
             return json_decode($content, true) ?? [];
         } catch (\Exception $e) {
             Log::error('OpenAI social sharing generation failed', [
@@ -146,10 +149,11 @@ Your content should:
 4. Include actionable insights and analysis relevant to African audiences
 5. Reference current events, trends, and developments across the African continent
 6. Be engaging and valuable for readers interested in African affairs
-7. Naturally reference 1-3 relevant Topping Africa categories/sections within the body content, linking to category pages where appropriate. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
-8. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
-9. IMPORTANT — Listicle / comparison posts: If the post is a list (e.g., "Top 10 African Tech Startups", "Best African Music Festivals"), ensure entries are well-researched and relevant to the African context.
-10. CREATOR PROFILES: When creator profile data is provided, use ONLY the supplied data — do NOT fabricate details. Link to their Topping Africa profile pages using: <a href="PROFILE_URL">Creator Name</a>. Creator profile links count as valuable internal links.
+7. CRITICAL: The "body" field MUST be formatted as clean HTML (using <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a> tags). Do NOT use markdown syntax (no ##, **, *, -, [] etc). The content is displayed in a WYSIWYG HTML editor.
+8. Naturally reference 1-3 relevant Topping Africa categories/sections within the body content, linking to category pages where appropriate. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
+9. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
+10. IMPORTANT — Listicle / comparison posts: If the post is a list (e.g., "Top 10 African Tech Startups", "Best African Music Festivals"), ensure entries are well-researched and relevant to the African context.
+11. CREATOR PROFILES: When creator profile data is provided, use ONLY the supplied data — do NOT fabricate details. Link to their Topping Africa profile pages using: <a href="PROFILE_URL">Creator Name</a>. Creator profile links count as valuable internal links.
 
 AVAILABLE TOPPING AFRICA SECTIONS (use these for internal references):
 - Africa News: https://toppingafrica.com/category/africa-news
@@ -189,7 +193,7 @@ Target Keyword (if any): {$request->targetKeyword}
 Return a JSON object with these exact keys:
 {
     "title": "SEO-optimized blog post title",
-    "body": "Brief introduction text (1-2 paragraphs) for context",
+    "body": "The full blog post content as clean HTML (use <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a> tags — NO markdown)",
     "excerpt": "Compelling 2-3 sentence excerpt for preview",
     "meta_title": "SEO meta title (max 60 characters)",
     "meta_description": "SEO meta description (155-160 characters)",
@@ -277,7 +281,7 @@ POLL,
             $keyword = $trend['keyword'] ?? '';
             $type = $trend['type'] ?? 'top';
             $value = $trend['formatted_value'] ?? $trend['value'] ?? '';
-            if (!empty($keyword)) {
+            if (! empty($keyword)) {
                 $lines[] = "- {$keyword} ({$type}, score: {$value})";
             }
         }

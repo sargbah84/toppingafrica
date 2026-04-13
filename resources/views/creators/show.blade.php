@@ -44,19 +44,16 @@
     <div class="max-w-3xl mx-auto">
         {{-- Profile Card --}}
         <div class="relative"
-             x-data="{ shareOpen: false, claimOpen: {{ session('success') || $errors->has('email') || $errors->has('recaptcha') ? 'true' : 'false' }} }">
+             x-data="{ shareOpen: false, claimOpen: {{ session('success') || $errors->has('email') || $errors->has('recaptcha') ? 'true' : 'false' }} }"
+             x-on:creator-updated.window="setTimeout(() => window.location.reload(), 300)">
 
-            {{-- Top-right action — three states:
-                 1. Unclaimed → "Claim Profile" button (opens modal)
-                 2. Claimed and viewer owns it → "Edit your profile" link
-                 3. Claimed but viewer is a stranger → disabled "Claimed" pill --}}
+            {{-- Top-right action — four states:
+                 1. Can edit (owner/staff/admin) → Quick Edit Livewire component
+                 2. Claimed but viewer is a stranger → disabled "Claimed" pill
+                 3. Unclaimed → "Claim Profile" button (opens modal) --}}
             <div class="absolute top-4 right-4 z-20">
-                @if($isOwner)
-                    <a href="{{ route('creators.claim.edit-as-owner', ['creatorId' => $creator->id]) }}"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900 text-sm font-semibold text-white hover:bg-gray-800 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg>
-                        Edit your profile
-                    </a>
+                @if($canEdit)
+                    <livewire:creator-quick-edit :creator="$creator" :key="'quick-edit-'.$creator->id" />
                 @elseif($isClaimed)
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-500 dark:text-gray-400 cursor-default" title="This profile has been claimed by its owner">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
