@@ -17,7 +17,7 @@ final class ImageSearchService
      */
     public function searchPexels(string $query, int $page = 1, int $perPage = 20): array
     {
-        $apiKey = config('services.pexels.api_key', env('PEXELS_API_KEY'));
+        $apiKey = config('blog.media.pexels.api_key');
 
         if (! $apiKey) {
             return ['results' => [], 'total_results' => 0, 'page' => $page, 'per_page' => $perPage, 'error' => 'Pexels API key not configured.'];
