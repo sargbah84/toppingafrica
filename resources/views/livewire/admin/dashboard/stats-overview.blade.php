@@ -1092,7 +1092,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                 </div>
 
                 {{-- Creator QR Card Shares (last 7 days) --}}
-                @php($qr = $this->qrCardShares)
+                @php $qr = $this->qrCardShares; @endphp
                 <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">Creator QR Shares</h3>
@@ -1283,7 +1283,14 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
     @endif
 
     {{-- Page Detail Modal --}}
-    @if ($pageDetail)
+    @php
+        $pd = is_array($pageDetail ?? null) ? $pageDetail : null;
+        $pdValid = $pd !== null
+            && !empty($pd['title'])
+            && !empty($pd['slug'])
+            && !empty($pd['type']);
+    @endphp
+    @if ($pdValid)
         <div class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="$wire.closePageDetail()">
             <div class="flex items-start justify-center min-h-screen px-4 pt-16 pb-20">
                 <div class="fixed inset-0 bg-black/50 transition-opacity" wire:click="closePageDetail"></div>
@@ -1292,8 +1299,8 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                     {{-- Header --}}
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                         <div class="min-w-0 flex-1">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ $pageDetail['title'] }}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">/{{ $pageDetail['slug'] }}</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ $pd['title'] ?? '' }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">/{{ $pd['slug'] ?? '' }}</p>
                         </div>
                         <button wire:click="closePageDetail" class="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
@@ -1304,11 +1311,11 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                     <div class="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($pageDetail['total_views']) }}</p>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format((int) ($pd['total_views'] ?? 0)) }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Page Views</p>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($pageDetail['unique_visitors']) }}</p>
+                                <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ number_format((int) ($pd['unique_visitors'] ?? 0)) }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unique Visitors</p>
                             </div>
                         </div>
@@ -1317,12 +1324,17 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                         <div>
                             <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Last 7 Days</h4>
                             <div class="flex items-end gap-1 h-20">
-                                @php $dailyViews = array_column($pageDetail['daily'], 'views'); $maxDaily = count($dailyViews) ? max(max($dailyViews), 1) : 1; @endphp
-                                @foreach ($pageDetail['daily'] as $day)
+                                @php
+                                    $dailyRaw = is_array($pd['daily'] ?? null) ? $pd['daily'] : [];
+                                    $dailyViews = array_column($dailyRaw, 'views');
+                                    $maxDaily = count($dailyViews) ? max(max($dailyViews), 1) : 1;
+                                @endphp
+                                @foreach ($dailyRaw as $day)
+                                    @php $dayViews = (int) ($day['views'] ?? 0); $dayDate = (string) ($day['date'] ?? ''); @endphp
                                     <div class="flex-1 flex flex-col items-center gap-1">
-                                        <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ $day['views'] }}</span>
-                                        <div class="w-full bg-indigo-500 rounded-t" style="height: {{ max(($day['views'] / $maxDaily) * 48, 2) }}px"></div>
-                                        <span class="text-[9px] text-gray-400">{{ Str::substr($day['date'], 4) }}</span>
+                                        <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ $dayViews }}</span>
+                                        <div class="w-full bg-indigo-500 rounded-t" style="height: {{ max(($dayViews / $maxDaily) * 48, 2) }}px"></div>
+                                        <span class="text-[9px] text-gray-400">{{ Str::substr($dayDate, 4) }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -1331,15 +1343,16 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                         {{-- Referrers --}}
                         <div>
                             <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Referrers</h4>
-                            @if (count($pageDetail['referrers']) > 0)
+                            @php $refs = is_array($pd['referrers'] ?? null) ? $pd['referrers'] : []; @endphp
+                            @if (count($refs) > 0)
                                 <div class="space-y-2">
-                                    @foreach ($pageDetail['referrers'] as $ref)
+                                    @foreach ($refs as $ref)
                                         <div class="flex items-center justify-between gap-2">
                                             <div class="flex items-center gap-2 min-w-0 flex-1">
                                                 <div class="w-1.5 h-4 rounded-full bg-indigo-500 flex-shrink-0"></div>
-                                                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $ref['domain'] }}</span>
+                                                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $ref['domain'] ?? '' }}</span>
                                             </div>
-                                            <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ number_format($ref['count']) }}</span>
+                                            <span class="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ number_format((int) ($ref['count'] ?? 0)) }}</span>
                                         </div>
                                     @endforeach
                                 </div>
@@ -1351,17 +1364,22 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
                         {{-- Devices --}}
                         <div>
                             <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Devices</h4>
-                            @if (count($pageDetail['devices']) > 0)
+                            @php $devices = is_array($pd['devices'] ?? null) ? $pd['devices'] : []; @endphp
+                            @if (count($devices) > 0)
                                 <div class="flex items-center gap-4">
-                                    @php $totalDeviceViews = max(array_sum(array_column($pageDetail['devices'], 'count')), 1); @endphp
-                                    @foreach ($pageDetail['devices'] as $device)
-                                        @php $pct = round(($device['count'] / $totalDeviceViews) * 100, 1); @endphp
+                                    @php $totalDeviceViews = max(array_sum(array_column($devices, 'count')), 1); @endphp
+                                    @foreach ($devices as $device)
+                                        @php
+                                            $devCount = (int) ($device['count'] ?? 0);
+                                            $devType = $device['device_type'] ?? 'unknown';
+                                            $pct = round(($devCount / $totalDeviceViews) * 100, 1);
+                                        @endphp
                                         <div class="flex items-center gap-2">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ match($device['device_type']) { 'desktop' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', 'mobile' => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', default => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' } }}">
-                                                {{ ucfirst($device['device_type'] ?? 'unknown') }}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ match($devType) { 'desktop' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', 'mobile' => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', default => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' } }}">
+                                                {{ ucfirst($devType) }}
                                             </span>
                                             <span class="text-sm text-gray-700 dark:text-gray-300">{{ $pct }}%</span>
-                                            <span class="text-xs text-gray-400">({{ $device['count'] }})</span>
+                                            <span class="text-xs text-gray-400">({{ $devCount }})</span>
                                         </div>
                                     @endforeach
                                 </div>
@@ -1373,7 +1391,7 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
 
                     {{-- Footer --}}
                     <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                        <a href="{{ $pageDetail['type'] === 'creator' ? '/creators/' . $pageDetail['slug'] : '/' . $pageDetail['slug'] }}" target="_blank" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">View page &rarr;</a>
+                        <a href="{{ ($pd['type'] ?? '') === 'creator' ? '/creators/' . ($pd['slug'] ?? '') : '/' . ($pd['slug'] ?? '') }}" target="_blank" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">View page &rarr;</a>
                         <button wire:click="closePageDetail" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
                             Close
                         </button>
