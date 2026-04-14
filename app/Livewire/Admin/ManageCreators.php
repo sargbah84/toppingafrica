@@ -89,6 +89,15 @@ class ManageCreators extends Component
     public bool $generateBatchFinished = false;
     public int $generateCreatorsBefore = 0;
 
+    // Add Creator (by search) modal state
+    public bool $showAddModal = false;
+    public string $addSearchQuery = '';
+    public array $addCandidates = [];
+    public array $addSelected = [];
+    public string $addStatus = '';
+    public int $addSavedCount = 0;
+    public int $addSkippedCount = 0;
+
     // Bulk actions
     public array $selected = [];
     public bool $selectAll = false;
@@ -137,6 +146,146 @@ class ManageCreators extends Component
         $this->selected = $value
             ? $this->getCreators()->pluck('id')->map(fn ($id) => (string) $id)->toArray()
             : [];
+    }
+
+    // ── Add Creator (search by name/handle) ──────────────────
+
+    public function openAddModal(): void
+    {
+        $this->showAddModal = true;
+        $this->addSearchQuery = '';
+        $this->addCandidates = [];
+        $this->addSelected = [];
+        $this->addStatus = '';
+        $this->addSavedCount = 0;
+        $this->addSkippedCount = 0;
+    }
+
+    public function closeAddModal(): void
+    {
+        $this->showAddModal = false;
+        $this->addCandidates = [];
+        $this->addSelected = [];
+        $this->addStatus = '';
+    }
+
+    public function searchForCreator(PerplexityService $perplexity): void
+    {
+        $this->validate([
+            'addSearchQuery' => 'required|string|min:2|max:120',
+        ], [
+            'addSearchQuery.required' => 'Enter a creator name or handle to search.',
+            'addSearchQuery.min' => 'Enter at least 2 characters.',
+        ]);
+
+        $this->addCandidates = [];
+        $this->addSelected = [];
+        $this->addStatus = '';
+
+        $results = $perplexity->searchCreatorByName($this->addSearchQuery, 5);
+
+        $candidates = [];
+        foreach ($results as $r) {
+            $name = $r['name'] ?? null;
+            if (! $name) {
+                continue;
+            }
+
+            $slug = Str::slug($name);
+            $exists = Creator::where('name', $name)->orWhere('slug', $slug)->exists();
+
+            $candidates[] = [
+                'name' => $name,
+                'country' => $r['country'] ?? null,
+                'category' => $r['category'] ?? null,
+                'bio_summary' => $r['bio_summary'] ?? null,
+                'contact_email' => $r['contact_email'] ?? null,
+                'follower_count' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($r['estimated_follower_count'] ?? null),
+                'follower_platform' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($r['follower_platform'] ?? null),
+                'instagram_handle' => $r['instagram_handle'] ?? null,
+                'tiktok_handle' => $r['tiktok_handle'] ?? null,
+                'youtube_channel_url' => $r['youtube_channel_url'] ?? null,
+                'twitter_handle' => $r['twitter_handle'] ?? null,
+                'facebook_url' => $r['facebook_url'] ?? null,
+                'website_url' => $r['website_url'] ?? null,
+                'already_exists' => $exists,
+                'raw' => $r,
+            ];
+        }
+
+        $this->addCandidates = $candidates;
+
+        if (empty($candidates)) {
+            $this->addStatus = 'No matches found. Try a different spelling or a social handle.';
+        }
+    }
+
+    public function saveSelectedCandidates(
+        ClaudeBioService $claude,
+        WikimediaService $wikimedia,
+        CreatorSocialLinkBuilder $linkBuilder,
+    ): void {
+        if (empty($this->addSelected)) {
+            $this->addStatus = 'Select at least one profile to save.';
+            return;
+        }
+
+        $saved = 0;
+        $skipped = 0;
+
+        foreach ($this->addSelected as $index) {
+            $i = (int) $index;
+            if (! isset($this->addCandidates[$i])) {
+                continue;
+            }
+
+            $candidate = $this->addCandidates[$i];
+            $name = $candidate['name'];
+            $slug = Str::slug($name);
+
+            if (Creator::where('name', $name)->orWhere('slug', $slug)->exists()) {
+                $skipped++;
+                continue;
+            }
+
+            $raw = $candidate['raw'];
+            $bio = $claude->generateBio($raw);
+            $image = $wikimedia->searchCreatorImage($name);
+
+            $creator = Creator::create([
+                'name' => $name,
+                'bio' => $bio,
+                'country' => $candidate['country'] ?? ($raw['country'] ?? ''),
+                'category' => $candidate['category'] ?? ($raw['category'] ?? ''),
+                'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($raw['contact_email'] ?? null),
+                'status' => 'pending',
+                'profile_image_url' => $image['image_url'] ?? null,
+                'profile_image_attribution' => $image['attribution'] ?? null,
+                'profile_image_license' => $image['license'] ?? null,
+                'follower_count' => $candidate['follower_count'],
+                'follower_platform' => $candidate['follower_platform'],
+            ]);
+
+            $linkBuilder->build($creator, $raw);
+            $saved++;
+        }
+
+        $this->addSavedCount = $saved;
+        $this->addSkippedCount = $skipped;
+
+        $parts = [];
+        if ($saved > 0) {
+            $parts[] = "{$saved} creator(s) added to the pending queue.";
+        }
+        if ($skipped > 0) {
+            $parts[] = "{$skipped} skipped (already exist).";
+        }
+        $this->addStatus = implode(' ', $parts) ?: 'Nothing saved.';
+
+        if ($saved > 0) {
+            session()->flash('success', "{$saved} creator(s) added.");
+            $this->closeAddModal();
+        }
     }
 
     // ── Generate ─────────────────────────────────────────────

@@ -70,13 +70,22 @@
                 </button>
             @endif
         </div>
-        <button wire:click="openGenerateModal"
-                class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition">
-            <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
-            </svg>
-            Generate New
-        </button>
+        <div class="flex items-center gap-2">
+            <button wire:click="openAddModal"
+                    class="inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                Add Creator
+            </button>
+            <button wire:click="openGenerateModal"
+                    class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-md hover:bg-indigo-700 transition">
+                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+                </svg>
+                Generate New
+            </button>
+        </div>
     </div>
 
     {{-- Table --}}
@@ -417,6 +426,121 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Add Creator (search) Modal --}}
+    @if($showAddModal)
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+        <div class="flex items-start justify-center min-h-screen px-4 pt-16 pb-20">
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closeAddModal"></div>
+
+            <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6 z-10">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Creator</h3>
+                    <button wire:click="closeAddModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Enter a creator's name or social handle (e.g. <span class="font-mono">@username</span>). The AI will search for matching profiles — pick the right one to add as pending.
+                </p>
+
+                <form wire:submit="searchForCreator" class="flex items-center gap-2 mb-4">
+                    <input wire:model="addSearchQuery" type="text" placeholder="e.g. Khaby Lame or @khaby.lame"
+                           class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <button type="submit" wire:loading.attr="disabled" wire:target="searchForCreator"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span wire:loading.remove wire:target="searchForCreator">Search</span>
+                        <span wire:loading wire:target="searchForCreator">
+                            <svg class="animate-spin h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </form>
+                @error('addSearchQuery') <p class="-mt-3 mb-3 text-xs text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                <div wire:loading wire:target="searchForCreator" class="text-center py-6 text-sm text-gray-500 dark:text-gray-400">
+                    Searching the AI for matches...
+                </div>
+
+                @if(! empty($addCandidates))
+                    <div wire:loading.remove wire:target="searchForCreator" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                        @foreach($addCandidates as $i => $c)
+                            <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600 {{ in_array((string)$i, $addSelected, true) ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-400 dark:border-indigo-500' : '' }} {{ $c['already_exists'] ? 'opacity-60' : 'cursor-pointer' }}">
+                                <input type="checkbox" wire:model.live="addSelected" value="{{ $i }}"
+                                       @if($c['already_exists']) disabled @endif
+                                       class="mt-1 rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $c['name'] }}</span>
+                                        @if($c['country'])
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $c['country'] }}</span>
+                                        @endif
+                                        @if($c['category'])
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">{{ $c['category'] }}</span>
+                                        @endif
+                                        @if($c['follower_count'])
+                                            <span class="text-xs text-gray-600 dark:text-gray-300">
+                                                {{ \App\Support\FollowerFormat::short($c['follower_count']) }}
+                                                @if($c['follower_platform'])
+                                                    <span class="text-gray-400 dark:text-gray-500">{{ ucfirst($c['follower_platform']) }}</span>
+                                                @endif
+                                            </span>
+                                        @endif
+                                        @if($c['already_exists'])
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Already added</span>
+                                        @endif
+                                    </div>
+                                    @if($c['bio_summary'])
+                                        <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{{ $c['bio_summary'] }}</p>
+                                    @endif
+                                    <div class="mt-1 flex items-center gap-2 flex-wrap text-xs text-gray-500 dark:text-gray-400">
+                                        @if($c['instagram_handle']) <span>IG: &#64;{{ $c['instagram_handle'] }}</span> @endif
+                                        @if($c['tiktok_handle']) <span>TikTok: &#64;{{ $c['tiktok_handle'] }}</span> @endif
+                                        @if($c['twitter_handle']) <span>X: &#64;{{ $c['twitter_handle'] }}</span> @endif
+                                        @if($c['youtube_channel_url']) <span>YouTube</span> @endif
+                                        @if($c['website_url']) <span>Website</span> @endif
+                                    </div>
+                                </div>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if($addStatus)
+                    <div class="mt-3 p-3 rounded-md text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">
+                        {{ $addStatus }}
+                    </div>
+                @endif
+
+                <div class="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" wire:click="saveSelectedCandidates" wire:loading.attr="disabled" wire:target="saveSelectedCandidates"
+                            @if(empty($addSelected)) disabled @endif
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span wire:loading wire:target="saveSelectedCandidates">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                        </span>
+                        <span wire:loading.remove wire:target="saveSelectedCandidates">
+                            Save{{ count($addSelected) > 0 ? ' ('.count($addSelected).')' : '' }}
+                        </span>
+                        <span wire:loading wire:target="saveSelectedCandidates">Saving...</span>
+                    </button>
+                    <button type="button" wire:click="closeAddModal"
+                            class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
     </div>
