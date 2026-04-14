@@ -106,6 +106,7 @@
 
                 {{-- Submit creator profile CTA --}}
                 @unless(auth()->user()->claimedCreators()->exists())
+                    @php $isVerified = auth()->user()->hasVerifiedEmail(); @endphp
                     <div class="bg-primary/5 dark:bg-primary/10 rounded-xl border border-primary/20 p-5 mb-6">
                         <div class="flex items-start gap-4">
                             <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -116,11 +117,18 @@
                             <div>
                                 <h3 class="font-bold text-gray-900 dark:text-white">Are you a content creator?</h3>
                                 <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Submit your profile to be featured on Topping Africa and reach a wider audience.</p>
-                                <a href="{{ route('creators.submit') }}"
-                                   class="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
-                                    Submit Your Profile
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
-                                </a>
+                                @if($isVerified)
+                                    <a href="{{ route('creators.submit') }}"
+                                       class="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
+                                        Submit Your Profile
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                                    </a>
+                                @else
+                                    <p class="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-gray-400 dark:text-gray-500 cursor-not-allowed" title="Verify your email to submit your profile">
+                                        Verify your email to continue
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+                                    </p>
+                                @endif
                             </div>
                         </div>
                     </div>

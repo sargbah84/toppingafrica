@@ -119,6 +119,13 @@
     {{-- Header --}}
     @include('blog.partials.header')
 
+    {{-- Email verification banner (shown site-wide for unverified logged-in users) --}}
+    @auth
+        @if(!auth()->user()->hasVerifiedEmail())
+            <livewire:email-verification-banner />
+        @endif
+    @endauth
+
     {{-- Main Content --}}
     <main class="min-h-screen">
         {{ $slot }}

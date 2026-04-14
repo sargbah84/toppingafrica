@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
     // actions, not dashboard-area navigation. Moving them would break
     // any existing inbound links without meaningful benefit.
     Route::get('/creator/submit', \App\Livewire\SubmitCreatorProfile::class)
+        ->middleware('verified')
         ->name('creators.submit');
 
     Route::get('/creator/profile/{creatorId}/edit', [CreatorClaimController::class, 'editAsOwner'])

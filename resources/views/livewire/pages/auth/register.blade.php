@@ -18,8 +18,10 @@ new #[Layout('layouts.guest')] class extends Component
     public string $password_confirmation = '';
     public string $recaptchaToken = '';
 
-    // Honeypot — hidden field that bots fill but humans leave empty
-    public string $website = '';
+    // Honeypot — hidden field that bots fill but humans leave empty.
+    // Named generically to avoid triggering form-fill extensions that target
+    // common field names like "website", "url", "phone", etc.
+    public string $hp_field = '';
 
     // Time gate — form must be open for at least 3 seconds
     public int $formLoadedAt = 0;
@@ -35,8 +37,7 @@ new #[Layout('layouts.guest')] class extends Component
     public function register(): void
     {
         // 1. Honeypot check — reject if the hidden field was filled
-        if ($this->website !== '') {
-            // Silently reject — don't reveal it's a honeypot
+        if ($this->hp_field !== '') {
             $this->addError('email', 'Registration failed. Please try again.');
             return;
         }
@@ -129,35 +130,59 @@ new #[Layout('layouts.guest')] class extends Component
 
     @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
 
-    <form x-data="{ siteKey: '{{ $recaptchaSiteKey }}' }"
-          x-on:submit.prevent="
-              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                  grecaptcha.enterprise.ready(async () => {
-                      try {
-                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'register' });
-                          $wire.set('recaptchaToken', token);
-                      } catch (e) {
-                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
+    <form x-data="{
+              siteKey: '{{ $recaptchaSiteKey }}',
+              submitting: false,
+              async handleSubmit() {
+                  if (this.submitting) return;
+                  this.submitting = true;
+                  try {
+                      if (!this.siteKey) {
+                          await $wire.register();
+                          return;
                       }
-                      $wire.register();
-                  });
-              } else if (siteKey) {
-                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                  $wire.register();
-              } else {
-                  $wire.register();
+                      // Wait up to 5s for the reCAPTCHA script to load
+                      const deadline = Date.now() + 5000;
+                      while (Date.now() < deadline && (typeof grecaptcha === 'undefined' || !grecaptcha.enterprise)) {
+                          await new Promise(r => setTimeout(r, 100));
+                      }
+                      let token = 'RECAPTCHA_NOT_LOADED';
+                      if (typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
+                          try {
+                              token = await new Promise((resolve, reject) => {
+                                  const t = setTimeout(() => reject(new Error('timeout')), 8000);
+                                  grecaptcha.enterprise.ready(async () => {
+                                      try {
+                                          const tok = await grecaptcha.enterprise.execute(this.siteKey, { action: 'register' });
+                                          clearTimeout(t);
+                                          resolve(tok);
+                                      } catch (e) { clearTimeout(t); reject(e); }
+                                  });
+                              });
+                          } catch (e) {
+                              token = 'RECAPTCHA_FAILED';
+                          }
+                      }
+                      await $wire.set('recaptchaToken', token, false);
+                      await $wire.register();
+                  } finally {
+                      this.submitting = false;
+                  }
               }
-          ">
+          }"
+          x-on:submit.prevent="handleSubmit()">
         @error('recaptcha')
             <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
             </div>
         @enderror
 
-        <!-- Honeypot — invisible to humans, bots auto-fill it -->
-        <div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px;">
-            <label for="website">Website</label>
-            <input wire:model="website" id="website" type="text" name="website" tabindex="-1" autocomplete="off">
+        <!-- Honeypot — invisible to humans, bots auto-fill it.
+             readonly + off-screen defeats most fake-data / form-filler extensions,
+             which skip readonly inputs. Real bots submitting the form directly
+             will still trip it by posting a non-empty value. -->
+        <div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden;">
+            <input wire:model="hp_field" id="hp_field" type="text" name="hp_field" tabindex="-1" autocomplete="off" readonly data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
         </div>
 
         <!-- Time gate -->
