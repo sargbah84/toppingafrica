@@ -74,6 +74,8 @@ Route::middleware('auth')->group(function () {
 Route::permanentRedirect('/creator/dashboard', '/dashboard');
 
 Route::get('/creators/suggest', [CreatorController::class, 'suggest'])->name('creators.suggest');
+Route::get('/creators/{slug}/qr-card', [CreatorController::class, 'qrCard'])->name('creators.qr-card');
+Route::get('/creators/{slug}/avatar', [CreatorController::class, 'avatar'])->name('creators.avatar');
 Route::get('/creators/{slug}', [CreatorController::class, 'show'])->name('creators.show');
 Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])
     ->middleware('throttle:5,1')

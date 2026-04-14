@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Http\Concerns\VerifiesRecaptcha;
 use App\Mail\CreatorClaimInvite;
 use App\Models\Creator;
+use App\Services\Creator\CreatorQrCodeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -83,6 +85,67 @@ class CreatorController extends Controller
         $canEdit = $creator->canBeEditedBy(auth()->user());
 
         return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed', 'canEdit'));
+    }
+
+    public function qrCard(string $slug, CreatorQrCodeService $service): JsonResponse
+    {
+        $creator = Creator::with('socialLinks')
+            ->where('slug', $slug)
+            ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
+            ->firstOrFail();
+
+        // Route the avatar through our own /creators/{slug}/avatar proxy so
+        // the canvas can draw it without CORS errors (S3 doesn't emit
+        // Access-Control-Allow-Origin for uploaded media).
+        $avatarUrl = $creator->profile_image_url
+            ? route('creators.avatar', $creator->slug)
+            : null;
+
+        return response()->json([
+            'name' => $creator->name,
+            'category' => $creator->category,
+            'country' => $creator->country,
+            'avatar_url' => $avatarUrl,
+            'avatar_color' => $creator->avatar_color,
+            'initials' => $creator->initials,
+            'vcard' => $service->buildVCard($creator),
+            'profile_url' => url($creator->public_url),
+        ]);
+    }
+
+    public function avatar(string $slug): \Symfony\Component\HttpFoundation\Response
+    {
+        $creator = Creator::where('slug', $slug)
+            ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
+            ->firstOrFail();
+
+        $source = $creator->profile_image_url;
+
+        if (! $source) {
+            abort(404);
+        }
+
+        $cacheKey = "creator-avatar:{$creator->id}:" . ($creator->updated_at?->timestamp ?? 0);
+
+        // Use the file cache store — the default DB cache rejects binary
+        // image bytes with "Incorrect string value" on MySQL utf8mb4 columns.
+        [$body, $contentType] = \Illuminate\Support\Facades\Cache::store('file')->remember($cacheKey, now()->addDay(), function () use ($source) {
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get($source);
+            if (! $response->successful()) {
+                return [null, null];
+            }
+
+            return [$response->body(), $response->header('Content-Type') ?: 'image/jpeg'];
+        });
+
+        if (! $body) {
+            abort(502);
+        }
+
+        return response($body, 200, [
+            'Content-Type' => $contentType,
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 
     public function toggleFollow(Request $request, string $slug): \Illuminate\Http\JsonResponse

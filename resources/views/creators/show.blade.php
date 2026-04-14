@@ -44,8 +44,9 @@
     <div class="max-w-3xl mx-auto">
         {{-- Profile Card --}}
         <div class="relative"
-             x-data="{ shareOpen: false, claimOpen: {{ session('success') || $errors->has('email') || $errors->has('recaptcha') ? 'true' : 'false' }} }"
-             x-on:creator-updated.window="setTimeout(() => window.location.reload(), 300)">
+             x-data="{ shareOpen: false, qrOpen: false, claimOpen: {{ session('success') || $errors->has('email') || $errors->has('recaptcha') ? 'true' : 'false' }} }"
+             x-on:creator-updated.window="setTimeout(() => window.location.reload(), 300)"
+             x-on:open-qr-modal.window="qrOpen = true">
 
             {{-- Top-right action — four states:
                  1. Can edit (owner/staff/admin) → Quick Edit Livewire component
@@ -140,8 +141,20 @@
                 </div>
             </div>
 
-            {{-- Action buttons: Follow + Share --}}
+            {{-- Action buttons: QR Card → Subscribe → Share --}}
             <div class="mt-6 flex items-center justify-center gap-3 px-6">
+                {{-- QR Card button — opens branded share card modal --}}
+                <button type="button" @click="qrOpen = true"
+                        class="group relative inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition shadow-sm"
+                        title="Get a shareable QR card">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"/>
+                    </svg>
+                    QR Card
+                    <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-300 ring-2 ring-white group-hover:animate-ping"></span>
+                </button>
+
                 <livewire:creator-follow-button :creator="$creator" variant="pill" :key="'follow-show-'.$creator->id" />
 
                 {{-- Share dropdown --}}
@@ -342,6 +355,68 @@
                     </div>
                 </div>
             @endif
+
+            {{-- QR Card Modal --}}
+            <div x-show="qrOpen" x-cloak
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                 x-data="creatorQrCard({ slug: @js($creator->slug), endpoint: @js(route('creators.qr-card', $creator->slug)) })"
+                 x-init="$watch('qrOpen', v => v && load())"
+                 @keydown.escape.window="qrOpen = false">
+                <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="qrOpen = false"></div>
+                <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Share this creator</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Download a QR card. Scanning opens {{ $creator->name }}'s profile on any phone.
+                                </p>
+                            </div>
+                            <button type="button" @click="qrOpen = false" class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        {{-- Canvas preview --}}
+                        <div class="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 aspect-[4/5] flex items-center justify-center">
+                            <template x-if="loading">
+                                <div class="flex flex-col items-center gap-3 text-gray-400">
+                                    <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                                    <span class="text-xs">Generating your card…</span>
+                                </div>
+                            </template>
+                            <template x-if="error">
+                                <p class="text-sm text-red-500 px-6 text-center" x-text="error"></p>
+                            </template>
+                            <canvas x-ref="cardCanvas" x-show="!loading && !error"
+                                    class="w-full h-full object-contain"></canvas>
+                        </div>
+
+                        {{-- Download buttons --}}
+                        <div class="mt-4 grid grid-cols-2 gap-3">
+                            <button type="button" @click="download('png')" :disabled="loading || error"
+                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                PNG
+                            </button>
+                            <button type="button" @click="download('jpeg')" :disabled="loading || error"
+                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-sm font-bold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                JPEG
+                            </button>
+                        </div>
+
+                        <p class="mt-3 text-[11px] text-center text-gray-400 dark:text-gray-500">
+                            Post to Instagram, X, WhatsApp — scanning opens {{ Str::of($creator->name)->before(' ') }}'s profile.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
