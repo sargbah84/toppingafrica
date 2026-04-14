@@ -204,7 +204,11 @@ class Creator extends Model implements HasMedia
 
     public function scopeSearch(Builder $query, string $search): Builder
     {
-        return $query->where('name', 'like', "%{$search}%");
+        return $query->where(fn ($q) => $q
+            ->where('name', 'like', "%{$search}%")
+            ->orWhere('category', 'like', "%{$search}%")
+            ->orWhere('bio', 'like', "%{$search}%")
+        );
     }
 
     public function getInitialsAttribute(): string

@@ -225,22 +225,170 @@
     </div>
 
     {{-- Search Overlay --}}
-    <div x-data="{ open: false }"
-         @toggle-search.window="open = !open"
+    @php
+        // Featured creators shown below the search input (empty state).
+        // Queried once here so the overlay has content on open — the live
+        // search-as-you-type replaces this list when the user types 2+ chars.
+        $searchFeaturedCreators = \App\Models\Creator::query()
+            ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
+            ->where(fn ($q) => $q->whereHas('media', fn ($m) => $m->where('collection_name', 'profile_image'))
+                ->orWhere('profile_image_url', '!=', ''))
+            ->orderByDesc('follower_count')
+            ->limit(12)
+            ->get(['id', 'name', 'slug', 'category', 'country', 'profile_image_url', 'follower_count']);
+    @endphp
+    <div x-data="{
+             open: false,
+             query: '',
+             creators: [],
+             posts: [],
+             loading: false,
+             debounceId: null,
+             get hasResults() { return this.creators.length > 0 || this.posts.length > 0; },
+             onInput() {
+                 clearTimeout(this.debounceId);
+                 const q = this.query.trim();
+                 if (q.length < 2) { this.creators = []; this.posts = []; this.loading = false; return; }
+                 this.loading = true;
+                 this.debounceId = setTimeout(() => {
+                     fetch('{{ route('blog.suggest') }}?q=' + encodeURIComponent(q))
+                         .then(r => r.json())
+                         .then(data => {
+                             this.creators = data.creators || [];
+                             this.posts = data.posts || [];
+                             this.loading = false;
+                         })
+                         .catch(() => { this.loading = false; });
+                 }, 250);
+             }
+         }"
+         @toggle-search.window="open = !open; if (open) $nextTick(() => $refs.searchInput && $refs.searchInput.focus())"
          @keydown.escape.window="open = false">
         <div x-show="open" x-transition:enter="transition-opacity duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="transition-opacity duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-white/95 dark:bg-gray-900/95 z-[997] flex items-start justify-center pt-[20vh]" x-cloak>
-            <div class="w-full max-w-2xl px-6">
-                <form action="{{ route('blog.search') }}" method="GET">
-                    <div class="relative">
-                        <input type="text" name="q" placeholder="Search articles..." autofocus
-                               class="w-full text-2xl md:text-3xl font-light bg-transparent border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 pb-4">
-                        <button type="submit" class="absolute right-0 bottom-4 text-gray-400 hover:text-primary">
-                            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                        </button>
+             class="fixed inset-0 bg-white/95 dark:bg-gray-900/95 z-[997] overflow-y-auto" x-cloak>
+            <div class="min-h-full flex flex-col items-center pt-[15vh] pb-16">
+                <div class="w-full max-w-3xl px-6">
+                    <form action="{{ route('blog.search') }}" method="GET">
+                        <div class="relative">
+                            <input type="text" name="q" x-model="query" x-ref="searchInput" @input="onInput()"
+                                   placeholder="Search articles, creators..."
+                                   class="w-full text-2xl md:text-3xl font-light bg-transparent border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 pb-4">
+                            <button type="submit" class="absolute right-0 bottom-4 text-gray-400 hover:text-primary">
+                                <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- Live results (search-as-you-type) --}}
+                    <div x-show="query.trim().length >= 2" x-cloak class="mt-8">
+                        <div x-show="loading" class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 py-4">Searching…</div>
+
+                        <div x-show="!loading && !hasResults" class="text-sm text-gray-400 italic py-4">
+                            No matches. Press Enter to run a full search.
+                        </div>
+
+                        {{-- Creators section --}}
+                        <div x-show="!loading && creators.length > 0" class="mb-6">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Creators</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                <template x-for="c in creators" :key="'c-' + c.slug">
+                                    <a :href="c.url" class="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:border-primary transition-colors text-center">
+                                        <div class="mx-auto w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                            <template x-if="c.image">
+                                                <img :src="c.image" :alt="c.name" loading="lazy" class="w-full h-full object-cover">
+                                            </template>
+                                            <template x-if="!c.image">
+                                                <span class="text-white text-sm font-bold" x-text="c.initials"></span>
+                                            </template>
+                                        </div>
+                                        <h4 class="mt-2 text-xs font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate" x-text="c.name"></h4>
+                                        <p class="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400 truncate" x-text="[c.category, c.country].filter(Boolean).join(' · ')"></p>
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Articles section --}}
+                        <div x-show="!loading && posts.length > 0">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Articles</h3>
+                            <div class="space-y-2">
+                                <template x-for="p in posts" :key="'p-' + p.url">
+                                    <a :href="p.url" class="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                        <div class="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                            <template x-if="p.image">
+                                                <img :src="p.image" :alt="p.title" loading="lazy" class="w-full h-full object-cover">
+                                            </template>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2" x-text="p.title"></h4>
+                                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-1" x-text="p.excerpt"></p>
+                                            <p class="mt-1 text-[11px] text-gray-400" x-show="p.author" x-text="'by ' + p.author"></p>
+                                        </div>
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- "See all results" link --}}
+                        <div x-show="!loading && hasResults" class="mt-5 text-center">
+                            <a :href="'{{ route('blog.search') }}?q=' + encodeURIComponent(query)" class="text-sm font-semibold text-primary hover:underline">
+                                See all results for "<span x-text="query"></span>" →
+                            </a>
+                        </div>
                     </div>
-                </form>
+
+                    {{-- Empty state carousel — featured creators when no query --}}
+                    @if($searchFeaturedCreators->count())
+                        <div x-show="query.trim().length < 2" x-cloak class="mt-10">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Featured Creators</h3>
+                                <a href="{{ url('/creators') }}" class="text-xs font-semibold text-primary hover:underline">View all →</a>
+                            </div>
+                            <div x-data="{
+                                     scrollBy(dir) {
+                                         this.$refs.track.scrollBy({ left: dir * 320, behavior: 'smooth' });
+                                     }
+                                 }" class="relative">
+                                <button type="button" @click="scrollBy(-1)"
+                                        class="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-md border border-gray-200 dark:border-gray-700 items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary"
+                                        aria-label="Scroll left">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                                </button>
+                                <div x-ref="track" class="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth -mx-2 px-2 pb-3" style="scrollbar-width: none;">
+                                    @foreach($searchFeaturedCreators as $creator)
+                                        <a href="{{ route('creators.show', $creator->slug) }}"
+                                           class="group shrink-0 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-primary transition-colors text-center snap-start">
+                                            <div class="mx-auto w-16 h-16 rounded-full overflow-hidden">
+                                                @if($creator->profile_image_url)
+                                                    <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                                @else
+                                                    <div class="w-full h-full flex items-center justify-center text-white text-lg font-bold" style="background-color: {{ $creator->avatar_color }}">
+                                                        {{ $creator->initials }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <h4 class="mt-2.5 text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">{{ $creator->name }}</h4>
+                                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                {{ $creator->category }}{{ $creator->country ? ' · ' . $creator->country : '' }}
+                                            </p>
+                                            @php($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
+                                            @if($followerShort)
+                                                <p class="mt-0.5 text-[11px] font-semibold text-primary">{{ $followerShort }} followers</p>
+                                            @endif
+                                        </a>
+                                    @endforeach
+                                </div>
+                                <button type="button" @click="scrollBy(1)"
+                                        class="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-md border border-gray-200 dark:border-gray-700 items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary"
+                                        aria-label="Scroll right">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
                 <button @click="open = false" class="absolute top-8 right-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>

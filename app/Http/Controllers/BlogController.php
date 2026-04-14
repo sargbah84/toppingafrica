@@ -210,6 +210,47 @@ class BlogController extends Controller
         return view('blog.tag', compact('tag', 'posts', 'categories'));
     }
 
+    public function suggest(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json(['creators' => [], 'posts' => []]);
+        }
+
+        $creators = Creator::query()
+            ->where(fn ($query) => $query->where('status', 'published')->orWhere('status', 'claimed'))
+            ->search($q)
+            ->orderByDesc('follower_count')
+            ->limit(5)
+            ->get(['id', 'name', 'slug', 'category', 'country', 'profile_image_url', 'follower_count'])
+            ->map(fn ($c) => [
+                'name' => $c->name,
+                'slug' => $c->slug,
+                'category' => $c->category,
+                'country' => $c->country,
+                'image' => $c->profile_image_url,
+                'initials' => $c->initials,
+                'url' => route('creators.show', $c->slug),
+            ]);
+
+        $posts = Post::published()
+            ->search($q)
+            ->with('author')
+            ->latest('published_at')
+            ->limit(5)
+            ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'author_id'])
+            ->map(fn ($p) => [
+                'title' => $p->title,
+                'excerpt' => \Illuminate\Support\Str::limit(strip_tags((string) $p->excerpt), 90),
+                'author' => $p->author?->name,
+                'image' => $p->featured_image_thumbnail,
+                'url' => url('/' . $p->slug),
+            ]);
+
+        return response()->json(['creators' => $creators, 'posts' => $posts]);
+    }
+
     public function search(Request $request): View
     {
         $query = $request->input('q', '');
@@ -218,11 +259,23 @@ class BlogController extends Controller
             ? Post::published()->search($query)->with('author', 'categories')->latest('published_at')->paginate(config('blog.per_page', 12))->withQueryString()
             : collect();
 
+        // Creators are a second, independent result set — cap at 12 since they
+        // share the search page with paginated posts. Visibility filter matches
+        // the public directory: published + claimed (not pending/rejected).
+        $creators = $query
+            ? Creator::query()
+                ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
+                ->search($query)
+                ->orderByDesc('follower_count')
+                ->limit(12)
+                ->get()
+            : collect();
+
         $categories = Category::active()->ordered()
             ->withCount(['posts' => fn ($q) => $q->published()])
             ->get();
 
-        return view('blog.search', compact('query', 'posts', 'categories'));
+        return view('blog.search', compact('query', 'posts', 'creators', 'categories'));
     }
 
     public function feed(): Response

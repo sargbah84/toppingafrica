@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 // Public blog routes
 Route::get('/', [BlogController::class, 'index'])->name('home');
 Route::get('/search', [BlogController::class, 'search'])->name('blog.search');
+Route::get('/search/suggest', [BlogController::class, 'suggest'])->name('blog.suggest');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/feed', [BlogController::class, 'feed'])->name('blog.feed');
 Route::get('/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
