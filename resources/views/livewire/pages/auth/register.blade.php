@@ -128,6 +128,8 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
     </div>
 
+    <x-auth.google-button label="Sign up with Google" />
+
     @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
 
     <form x-data="{

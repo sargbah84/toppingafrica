@@ -42,11 +42,20 @@ return [
         ],
     ],
 
+    // Search Console / programmatic Google APIs — separate client.
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'search_console_refresh_token' => env('GOOGLE_SEARCH_CONSOLE_REFRESH_TOKEN'),
         'search_console_site_url' => env('GOOGLE_SEARCH_CONSOLE_SITE_URL'),
+    ],
+
+    // User-facing Google Sign-In (Socialite). Dedicated OAuth client so its
+    // consent screen only requests email/profile scopes.
+    'google_oauth' => [
+        'client_id' => env('GOOGLE_OAUTH_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_OAUTH_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_OAUTH_REDIRECT_URI'),
     ],
 
     'google_search' => [
