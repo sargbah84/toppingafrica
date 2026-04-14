@@ -75,6 +75,9 @@ Route::permanentRedirect('/creator/dashboard', '/dashboard');
 
 Route::get('/creators/suggest', [CreatorController::class, 'suggest'])->name('creators.suggest');
 Route::get('/creators/{slug}/qr-card', [CreatorController::class, 'qrCard'])->name('creators.qr-card');
+Route::post('/creators/{slug}/qr-card/track', [CreatorController::class, 'trackQrDownload'])
+    ->middleware('throttle:30,1')
+    ->name('creators.qr-card.track');
 Route::get('/creators/{slug}/avatar', [CreatorController::class, 'avatar'])->name('creators.avatar');
 Route::get('/creators/{slug}', [CreatorController::class, 'show'])->name('creators.show');
 Route::post('/creators/{slug}/request-claim', [CreatorController::class, 'requestClaim'])

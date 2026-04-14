@@ -113,6 +113,28 @@ class CreatorController extends Controller
         ]);
     }
 
+    public function trackQrDownload(Request $request, string $slug): JsonResponse
+    {
+        $data = $request->validate([
+            'format' => 'required|string|in:png,jpeg,share,clipboard',
+        ]);
+
+        $creator = Creator::where('slug', $slug)
+            ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
+            ->firstOrFail();
+
+        \Illuminate\Support\Facades\DB::table('creator_qr_downloads')->insert([
+            'creator_id' => $creator->id,
+            'user_id' => $request->user()?->id,
+            'format' => $data['format'],
+            'ip_hash' => hash('sha256', (string) $request->ip()),
+            'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 500, ''),
+            'created_at' => now(),
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function avatar(string $slug): \Symfony\Component\HttpFoundation\Response
     {
         $creator = Creator::where('slug', $slug)

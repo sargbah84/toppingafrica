@@ -364,7 +364,13 @@
                  x-transition:enter-start="opacity-0"
                  x-transition:enter-end="opacity-100"
                  class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-                 x-data="creatorQrCard({ slug: @js($creator->slug), endpoint: @js(route('creators.qr-card', $creator->slug)) })"
+                 x-data="creatorQrCard({
+                     slug: @js($creator->slug),
+                     endpoint: @js(route('creators.qr-card', $creator->slug)),
+                     trackEndpoint: @js(route('creators.qr-card.track', $creator->slug)),
+                     csrf: @js(csrf_token()),
+                     creatorName: @js($creator->name),
+                 })"
                  x-init="$watch('qrOpen', v => v && load())"
                  @keydown.escape.window="qrOpen = false">
                 <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="qrOpen = false"></div>
@@ -399,10 +405,22 @@
                                     class="w-full h-full object-contain"></canvas>
                         </div>
 
-                        {{-- Download buttons --}}
-                        <div class="mt-4 grid grid-cols-2 gap-3">
+                        {{-- Primary action: native share (mobile) / copy image (desktop) --}}
+                        <button type="button" x-show="canShare" @click="shareNative()" :disabled="loading || error || busy"
+                                class="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold rounded-md hover:opacity-90 transition disabled:opacity-60">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg>
+                            <span x-text="busy ? 'Preparing…' : 'Share card'"></span>
+                        </button>
+                        <button type="button" x-show="!canShare && canCopy" @click="copyImage()" :disabled="loading || error || busy"
+                                class="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold rounded-md hover:opacity-90 transition disabled:opacity-60">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"/></svg>
+                            <span x-text="busy ? 'Preparing…' : (copied ? 'Copied to clipboard!' : 'Copy image')"></span>
+                        </button>
+
+                        {{-- Secondary: download PNG/JPEG --}}
+                        <div class="mt-3 grid grid-cols-2 gap-3">
                             <button type="button" @click="download('png')" :disabled="loading || error"
-                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
+                                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-sm font-bold rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-60">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
                                 PNG
                             </button>

@@ -1064,28 +1064,74 @@ GOOGLE_SEARCH_CONSOLE_SITE_URL=https://toppingafrica.com</pre>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {{-- Popular Posts --}}
-            <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Most Viewed Posts</h3>
-                <div class="space-y-3">
-                    @forelse ($this->popularPosts as $index => $post)
-                        <div class="flex items-start gap-3">
-                            <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400">
-                                {{ $index + 1 }}
-                            </span>
-                            <div class="min-w-0 flex-1">
-                                <a href="{{ route('admin.blog.posts.edit', $post->id) }}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate block">
-                                    {{ $post->title }}
-                                </a>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    {{ number_format($post->views_count) }} views
-                                </p>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+            {{-- Left column: Most Viewed Posts + QR Card Shares --}}
+            <div class="space-y-6">
+                {{-- Popular Posts --}}
+                <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Most Viewed Posts</h3>
+                    <div class="space-y-3">
+                        @forelse ($this->popularPosts as $index => $post)
+                            <div class="flex items-start gap-3">
+                                <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400">
+                                    {{ $index + 1 }}
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('admin.blog.posts.edit', $post->id) }}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate block">
+                                        {{ $post->title }}
+                                    </a>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        {{ number_format($post->views_count) }} views
+                                    </p>
+                                </div>
                             </div>
+                        @empty
+                            <p class="text-sm text-gray-500 dark:text-gray-400">No published posts yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Creator QR Card Shares (last 7 days) --}}
+                @php($qr = $this->qrCardShares)
+                <div class="bg-white dark:bg-gray-800 shadow rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">Creator QR Shares</h3>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">last 7 days</span>
+                    </div>
+
+                    <div class="flex items-baseline gap-3 mb-4">
+                        <span class="text-3xl font-black text-gray-900 dark:text-white">{{ number_format($qr['total']) }}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">total downloads & shares</span>
+                    </div>
+
+                    @if ($qr['total'] > 0)
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            @foreach (['png' => 'PNG', 'jpeg' => 'JPEG', 'share' => 'Native share', 'clipboard' => 'Copy'] as $key => $label)
+                                @if (!empty($qr['by_format'][$key]))
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        {{ $label }} <span class="font-bold">{{ number_format($qr['by_format'][$key]) }}</span>
+                                    </span>
+                                @endif
+                            @endforeach
                         </div>
-                    @empty
-                        <p class="text-sm text-gray-500 dark:text-gray-400">No published posts yet.</p>
-                    @endforelse
+
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Top creators</p>
+                        <div class="space-y-2">
+                            @foreach ($qr['top'] as $index => $row)
+                                <div class="flex items-center gap-3">
+                                    <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400">
+                                        {{ $index + 1 }}
+                                    </span>
+                                    <a href="{{ url('/creators/' . $row->slug) }}" target="_blank" rel="noopener" class="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 truncate flex-1">
+                                        {{ $row->name }}
+                                    </a>
+                                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">{{ number_format($row->shares) }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No QR card shares yet — creators can grab their shareable card from their profile page.</p>
+                    @endif
                 </div>
             </div>
 

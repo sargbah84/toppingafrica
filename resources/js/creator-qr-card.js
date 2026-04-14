@@ -81,12 +81,26 @@ function wrapText(ctx, text, maxWidth) {
     return lines;
 }
 
-export function creatorQrCard({ slug, endpoint }) {
+function canNativeShareFile() {
+    try {
+        if (!navigator.canShare) return false;
+        const probe = new File([new Blob([''], { type: 'image/png' })], 'probe.png', { type: 'image/png' });
+        return navigator.canShare({ files: [probe] });
+    } catch {
+        return false;
+    }
+}
+
+export function creatorQrCard({ slug, endpoint, trackEndpoint, csrf, creatorName }) {
     return {
         loading: false,
         error: null,
         data: null,
         rendered: false,
+        busy: false,
+        copied: false,
+        canShare: canNativeShareFile(),
+        canCopy: !!(navigator.clipboard && window.ClipboardItem),
 
         async load() {
             if (this.rendered && !this.error) return;
@@ -255,6 +269,75 @@ export function creatorQrCard({ slug, endpoint }) {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            this.track(format);
+        },
+
+        async shareNative() {
+            if (this.busy) return;
+            this.busy = true;
+            try {
+                const blob = await this.canvasToBlob('image/png');
+                if (!blob) return;
+                const file = new File([blob], `${slug}-topping-africa.png`, { type: 'image/png' });
+                await navigator.share({
+                    files: [file],
+                    title: `${creatorName} on Topping Africa`,
+                    text: `Check out ${creatorName} on Topping Africa`,
+                    url: this.data?.profile_url,
+                });
+                this.track('share');
+            } catch (e) {
+                // User cancelled — no-op. Other errors swallowed silently;
+                // the PNG/JPEG fallbacks still work.
+            } finally {
+                this.busy = false;
+            }
+        },
+
+        async copyImage() {
+            if (this.busy) return;
+            this.busy = true;
+            this.copied = false;
+            try {
+                const blob = await this.canvasToBlob('image/png');
+                if (!blob) return;
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                this.copied = true;
+                this.track('clipboard');
+                setTimeout(() => { this.copied = false; }, 2500);
+            } catch (e) {
+                // Fallback: download instead
+                this.download('png');
+            } finally {
+                this.busy = false;
+            }
+        },
+
+        canvasToBlob(mime) {
+            return new Promise((resolve) => {
+                const canvas = this.$refs.cardCanvas;
+                if (!canvas) return resolve(null);
+                canvas.toBlob((b) => resolve(b), mime, mime === 'image/jpeg' ? 0.92 : undefined);
+            });
+        },
+
+        track(format) {
+            // Fire-and-forget. Failures are silent — analytics shouldn't
+            // block or break the user-facing action.
+            try {
+                fetch(trackEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({ format }),
+                    keepalive: true,
+                });
+            } catch {
+                // ignore
+            }
         },
     };
 }

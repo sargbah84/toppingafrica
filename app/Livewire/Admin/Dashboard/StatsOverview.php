@@ -494,6 +494,38 @@ class StatsOverview extends Component
             ->get();
     }
 
+    #[Computed]
+    public function qrCardShares(): array
+    {
+        $sevenDaysAgo = now()->subDays(7);
+
+        $total = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->count();
+
+        $byFormat = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
+            ->select('format', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->groupBy('format')
+            ->pluck('count', 'format')
+            ->toArray();
+
+        $topCreators = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
+            ->join('creators', 'creator_qr_downloads.creator_id', '=', 'creators.id')
+            ->select('creators.id', 'creators.name', 'creators.slug', \Illuminate\Support\Facades\DB::raw('COUNT(*) as shares'))
+            ->where('creator_qr_downloads.created_at', '>=', $sevenDaysAgo)
+            ->groupBy('creators.id', 'creators.name', 'creators.slug')
+            ->orderByDesc('shares')
+            ->limit(5)
+            ->get();
+
+        return [
+            'total' => $total,
+            'by_format' => $byFormat,
+            'top' => $topCreators,
+        ];
+    }
+
     // ── Tools (AI Usage) Tab ──
 
     #[Computed]
