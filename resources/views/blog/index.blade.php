@@ -423,40 +423,53 @@
 
                 {{-- Top Content Creators This Week --}}
                 @if($topCreators->isNotEmpty())
-                <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-                    <div class="mb-5">
-                        <span class="inline-block w-8 h-[3px] bg-primary mr-2 align-middle"></span>
-                        <span class="text-xs font-semibold uppercase tracking-wider text-primary">Spotlight</span>
-                        <h3 class="text-xl font-black text-gray-900 dark:text-white mt-1">Top Creators This Week</h3>
-                    </div>
-                    <div class="space-y-4">
-                        @foreach($topCreators as $creator)
-                        <a href="{{ $creator->public_url }}" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <div class="relative flex-shrink-0">
-                                <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}"
-                                     class="w-11 h-11 rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shadow-sm"
-                                     loading="lazy">
-                                <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full text-[8px] font-bold text-white flex items-center justify-center">{{ $loop->iteration }}</span>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-primary transition-colors">{{ $creator->name }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $creator->category }}</p>
-                            </div>
-                            @if($creator->is_featured)
-                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded">Featured</span>
-                            @elseif($creator->is_trending)
-                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">Hot</span>
-                            @elseif($creator->is_rising)
-                                <span class="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">Rising</span>
-                            @endif
-                        </a>
+                <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm">
+                    <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+                        Top Content Creators This Week
+                    </h3>
+                    <ul class="space-y-3">
+                        @foreach($topCreators as $index => $creator)
+                            <li>
+                                <a href="{{ route('creators.show', $creator->slug) }}" class="flex items-center gap-3 group">
+                                    <div class="relative flex-shrink-0">
+                                        <div class="w-12 h-12 rounded-full overflow-hidden">
+                                            @if($creator->profile_image_url)
+                                                <img src="{{ $creator->profile_image_url }}" alt="{{ $creator->name }}"
+                                                     class="w-full h-full object-cover" loading="lazy">
+                                            @else
+                                                <div class="w-full h-full flex items-center justify-center text-white text-xs font-bold"
+                                                     style="background-color: {{ $creator->avatar_color }}">
+                                                    {{ $creator->initials }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
+                                            {{ $index + 1 }}
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <span class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1">
+                                            {{ $creator->name }}
+                                        </span>
+                                        @php($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
+                                        <span class="block text-xs text-gray-400 dark:text-gray-500">
+                                            @if($followerShort)
+                                                {{ $followerShort }} followers
+                                                @if($creator->category)
+                                                    · {{ $creator->category }}
+                                                @endif
+                                            @elseif($creator->category)
+                                                {{ $creator->category }}
+                                            @endif
+                                        </span>
+                                    </div>
+                                </a>
+                            </li>
                         @endforeach
-                    </div>
-                    <a href="/creators" class="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-primary hover:text-primary-hover transition-colors">
-                        View all creators
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
-                        </svg>
+                    </ul>
+                    <a href="{{ route('creators.index') }}"
+                       class="mt-4 block w-full text-center text-sm font-semibold text-primary hover:text-primary-hover border border-primary hover:bg-primary hover:text-white rounded-lg py-2 transition-colors">
+                        View More Creators
                     </a>
                 </div>
                 @endif

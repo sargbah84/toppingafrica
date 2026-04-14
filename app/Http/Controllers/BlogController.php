@@ -89,15 +89,13 @@ class BlogController extends Controller
             ->take(24)
             ->get();
 
-        // Top creators widget — creators with profile images, prioritize featured/trending
+        // Top creators widget — by page views this week, only with profile images
         $topCreators = Creator::published()
             ->where(function ($query) {
                 $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
                     ->orWhere('profile_image_url', '!=', '');
             })
-            ->orderByDesc('is_featured')
-            ->orderByDesc('is_trending')
-            ->orderByDesc('is_rising')
+            ->withCount(['views' => fn ($q) => $q->where('created_at', '>=', now()->startOfWeek())])
             ->orderByDesc('views_count')
             ->take(5)
             ->get();
