@@ -108,6 +108,8 @@ Route::prefix('admin')
             ->middleware('can:manage settings');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update')
             ->middleware('can:manage settings');
+        Route::post('settings/cache', [SettingController::class, 'runCacheAction'])->name('settings.cache')
+            ->middleware('can:manage settings');
         Route::get('settings/gsc-callback', [SettingController::class, 'gscCallback'])->name('settings.gsc-callback')
             ->middleware('can:manage settings');
     });

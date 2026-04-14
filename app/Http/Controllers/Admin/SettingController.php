@@ -10,7 +10,9 @@ use App\Models\Setting;
 use App\Services\GoogleSearchConsoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Spatie\Activitylog\Models\Activity;
 
@@ -245,5 +247,54 @@ class SettingController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * Cache maintenance actions — restricted to super admins so normal staff
+     * with `manage settings` permission can't accidentally flush production
+     * caches. Used when a deploy didn't pick up new views/config/routes.
+     */
+    public function runCacheAction(Request $request): RedirectResponse
+    {
+        if (!$request->user()?->is_super_admin) {
+            abort(403, 'Only super admins can manage caches.');
+        }
+
+        $actions = [
+            'clear' => ['optimize:clear', 'All caches cleared.'],
+            'optimize' => ['optimize', 'Caches rebuilt (optimize).'],
+            'refresh' => ['_refresh', 'Caches cleared and rebuilt.'],
+        ];
+
+        $action = (string) $request->input('cache_action');
+        if (!isset($actions[$action])) {
+            return back()->with('error', 'Unknown cache action.');
+        }
+
+        [$command, $message] = $actions[$action];
+
+        try {
+            if ($command === '_refresh') {
+                Artisan::call('optimize:clear');
+                Artisan::call('optimize');
+            } else {
+                Artisan::call($command);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Admin cache action failed', [
+                'action' => $action,
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Cache action failed: ' . $e->getMessage());
+        }
+
+        activity()
+            ->causedBy($request->user())
+            ->withProperties(['action' => $action, 'command' => $command])
+            ->log("Admin ran cache action: {$action}");
+
+        return back()->with('success', $message);
     }
 }

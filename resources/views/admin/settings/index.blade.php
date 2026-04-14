@@ -229,6 +229,61 @@
         </div>
     </form>
 
+    {{-- Cache Management (super admin only) — use after a deploy if views,
+         config, or routes aren't showing the latest changes. --}}
+    @if(auth()->user()->is_super_admin)
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mt-8">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">Cache Management</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+            Use <strong>Refresh</strong> after a deploy if new views, config, or routes aren't showing up. The next request will be slightly slower while caches rebuild.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <form method="POST" action="{{ route('admin.settings.cache') }}"
+                  x-data
+                  x-on:submit="if(!confirm('Refresh all caches? Clears then rebuilds optimization cache.')) $event.preventDefault()">
+                @csrf
+                <input type="hidden" name="cache_action" value="refresh">
+                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                    </svg>
+                    Refresh caches
+                </button>
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"><code>optimize:clear</code> + <code>optimize</code></p>
+            </form>
+
+            <form method="POST" action="{{ route('admin.settings.cache') }}"
+                  x-data
+                  x-on:submit="if(!confirm('Clear all caches?')) $event.preventDefault()">
+                @csrf
+                <input type="hidden" name="cache_action" value="clear">
+                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3.5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79"/>
+                    </svg>
+                    Clear only
+                </button>
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"><code>optimize:clear</code></p>
+            </form>
+
+            <form method="POST" action="{{ route('admin.settings.cache') }}"
+                  x-data
+                  x-on:submit="if(!confirm('Rebuild optimize cache?')) $event.preventDefault()">
+                @csrf
+                <input type="hidden" name="cache_action" value="optimize">
+                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white dark:bg-gray-700 px-3.5 py-2.5 text-sm font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5 10.5 4.5l-.75 6h5.25l-6.75 9 .75-6h-5.25Z"/>
+                    </svg>
+                    Rebuild optimize
+                </button>
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"><code>optimize</code></p>
+            </form>
+        </div>
+    </div>
+    @endif
+
     {{-- Sortable.js for drag-to-reorder header nav lists --}}
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
