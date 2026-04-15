@@ -303,7 +303,24 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                            <button type="button"
+                                    wire:click="enhanceBio"
+                                    wire:loading.attr="disabled"
+                                    wire:target="enhanceBio"
+                                    class="inline-flex items-center gap-1 px-2 py-1 bg-purple-600 text-white text-[11px] font-semibold rounded-md hover:bg-purple-700 disabled:opacity-50 transition">
+                                <svg wire:loading.remove wire:target="enhanceBio" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"/>
+                                </svg>
+                                <svg wire:loading wire:target="enhanceBio" class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span wire:loading.remove wire:target="enhanceBio">Enhance</span>
+                                <span wire:loading wire:target="enhanceBio">Enhancing...</span>
+                            </button>
+                        </div>
                         <textarea wire:model="editBio" rows="3" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
                         @error('editBio') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>

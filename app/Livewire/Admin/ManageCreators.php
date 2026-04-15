@@ -830,6 +830,29 @@ class ManageCreators extends Component
         $this->editPhotoName = null;
     }
 
+    public function enhanceBio(ClaudeBioService $claude): void
+    {
+        if (! $this->editingCreatorId) {
+            return;
+        }
+
+        $bio = trim((string) $this->editBio);
+
+        if ($bio === '') {
+            session()->flash('error', 'Add some bio text first, then click Enhance.');
+
+            return;
+        }
+
+        $this->editBio = $claude->enhanceBio($bio, [
+            'name' => $this->editName,
+            'country' => $this->editCountry,
+            'category' => $this->editCategory,
+        ]);
+
+        session()->flash('success', 'Bio enhanced. Review and click Save Changes to apply.');
+    }
+
     public function repullIntoForm(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
