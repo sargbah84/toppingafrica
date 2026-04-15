@@ -192,6 +192,17 @@ class Creator extends Model implements HasMedia
         return $this->attributes['profile_image_url'] ?? null;
     }
 
+    public function getDisplayFollowerCountAttribute(): ?int
+    {
+        $max = $this->socialLinks->max('follower_count');
+
+        if ($max !== null && $max > 0) {
+            return (int) $max;
+        }
+
+        return $this->follower_count;
+    }
+
     public function getPublicUrlAttribute(): string
     {
         return '/creators/' . $this->slug;

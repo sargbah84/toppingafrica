@@ -686,6 +686,7 @@ class ManageCreators extends Component
             'platform' => $link->platform,
             'url' => $link->url,
             'handle' => $link->handle ?? '',
+            'follower_count' => $link->follower_count,
         ])->toArray();
 
         $this->showEditModal = true;
@@ -698,6 +699,7 @@ class ManageCreators extends Component
             'platform' => 'instagram',
             'url' => '',
             'handle' => '',
+            'follower_count' => null,
         ];
     }
 
@@ -717,6 +719,7 @@ class ManageCreators extends Component
             'editContactEmail' => 'nullable|email|max:255',
             'editPhotoData' => 'nullable|string',
             'editBadge' => 'nullable|in:rising,trending,featured',
+            'editSocialLinks.*.follower_count' => 'nullable|integer|min:0',
         ]);
 
         $creator = Creator::findOrFail($this->editingCreatorId);
@@ -744,11 +747,16 @@ class ManageCreators extends Component
                 continue;
             }
 
+            $followerCount = isset($linkData['follower_count']) && $linkData['follower_count'] !== ''
+                ? (int) $linkData['follower_count']
+                : null;
+
             if (! empty($linkData['id'])) {
                 $creator->socialLinks()->where('id', $linkData['id'])->update([
                     'platform' => $linkData['platform'],
                     'url' => $linkData['url'],
                     'handle' => $linkData['handle'] ?: null,
+                    'follower_count' => $followerCount,
                 ]);
                 $existingIds[] = $linkData['id'];
             } else {
@@ -756,6 +764,7 @@ class ManageCreators extends Component
                     'platform' => $linkData['platform'],
                     'url' => $linkData['url'],
                     'handle' => $linkData['handle'] ?: null,
+                    'follower_count' => $followerCount,
                 ]);
                 $existingIds[] = $link->id;
             }

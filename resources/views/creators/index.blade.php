@@ -223,7 +223,7 @@
                             <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">
                                 {{ $creator->category }} &middot; {{ $creator->country }}
                             </p>
-                            @php($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
+                            @php($followerShort = \App\Support\FollowerFormat::short($creator->display_follower_count))
                             @if($followerShort)
                                 <p class="mt-0.5 text-[11px] font-semibold text-primary">
                                     {{ $followerShort }} followers

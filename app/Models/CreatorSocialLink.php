@@ -17,6 +17,11 @@ class CreatorSocialLink extends Model
         'platform',
         'url',
         'handle',
+        'follower_count',
+    ];
+
+    protected $casts = [
+        'follower_count' => 'integer',
     ];
 
     public function creator(): BelongsTo

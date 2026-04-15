@@ -402,7 +402,9 @@
                                     <input wire:model="editSocialLinks.{{ $index }}.url" type="url" placeholder="URL"
                                            class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
                                     <input wire:model="editSocialLinks.{{ $index }}.handle" type="text" placeholder="Handle"
-                                           class="w-28 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
+                                           class="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
+                                    <input wire:model="editSocialLinks.{{ $index }}.follower_count" type="number" min="0" placeholder="Followers"
+                                           class="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
                                     <button type="button" wire:click="removeSocialLink({{ $index }})"
                                             class="text-red-500 hover:text-red-700 dark:text-red-400">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

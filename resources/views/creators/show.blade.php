@@ -120,7 +120,7 @@
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path fill-rule="evenodd" d="M.664 10.59a1.65 1.65 0 0 1 0-1.18l.879-2.197a4.875 4.875 0 0 1 4.523-3.067h7.868a4.875 4.875 0 0 1 4.523 3.067l.879 2.197a1.65 1.65 0 0 1 0 1.18l-.879 2.197a4.875 4.875 0 0 1-4.523 3.067H6.066a4.875 4.875 0 0 1-4.523-3.067L.664 10.59ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clip-rule="evenodd"/></svg>
                         <span class="text-[11px] uppercase tracking-wider font-semibold">Followers</span>
                     </div>
-                    @php($followerShort = \App\Support\FollowerFormat::short($creator->follower_count))
+                    @php($followerShort = \App\Support\FollowerFormat::short($creator->display_follower_count))
                     <div class="mt-1 text-2xl font-black text-gray-900 dark:text-white">{{ $followerShort ?? '—' }}</div>
                 </div>
                 <div class="text-center">
