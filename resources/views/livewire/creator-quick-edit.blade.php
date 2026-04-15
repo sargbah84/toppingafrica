@@ -159,6 +159,9 @@
                                     <input type="url" wire:model="editSocialLinks.{{ $index }}.url"
                                            placeholder="https://..."
                                            class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-sm">
+                                    <input type="number" min="0" wire:model="editSocialLinks.{{ $index }}.follower_count"
+                                           placeholder="Followers"
+                                           class="w-28 shrink-0 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-sm">
                                     <button wire:click="removeSocialLink({{ $index }})" type="button"
                                             class="mt-2 text-gray-400 hover:text-red-500 transition">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>

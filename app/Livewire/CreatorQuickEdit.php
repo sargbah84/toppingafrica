@@ -58,6 +58,7 @@ class CreatorQuickEdit extends Component
                 'platform' => $link->platform,
                 'url' => $link->url,
                 'handle' => $link->handle ?? '',
+                'follower_count' => $link->follower_count,
             ])
             ->toArray();
 
@@ -78,6 +79,7 @@ class CreatorQuickEdit extends Component
             'platform' => 'instagram',
             'url' => '',
             'handle' => '',
+            'follower_count' => null,
         ];
     }
 
@@ -99,6 +101,7 @@ class CreatorQuickEdit extends Component
             'editSocialLinks' => 'nullable|array|max:6',
             'editSocialLinks.*.platform' => 'required|string',
             'editSocialLinks.*.url' => 'nullable|url',
+            'editSocialLinks.*.follower_count' => 'nullable|integer|min:0',
         ]);
 
         $this->creator->update([
@@ -120,11 +123,16 @@ class CreatorQuickEdit extends Component
                 continue;
             }
 
+            $followerCount = isset($linkData['follower_count']) && $linkData['follower_count'] !== ''
+                ? (int) $linkData['follower_count']
+                : null;
+
             if (! empty($linkData['id'])) {
                 $this->creator->socialLinks()->where('id', $linkData['id'])->update([
                     'platform' => $linkData['platform'],
                     'url' => $linkData['url'],
                     'handle' => $linkData['handle'] ?: null,
+                    'follower_count' => $followerCount,
                 ]);
                 $existingIds[] = $linkData['id'];
             } else {
@@ -132,6 +140,7 @@ class CreatorQuickEdit extends Component
                     'platform' => $linkData['platform'],
                     'url' => $linkData['url'],
                     'handle' => $linkData['handle'] ?: null,
+                    'follower_count' => $followerCount,
                 ]);
                 $existingIds[] = $link->id;
             }
