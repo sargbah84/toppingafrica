@@ -97,6 +97,16 @@ class ManageCreators extends Component
     public string $addStatus = '';
     public int $addSavedCount = 0;
     public int $addSkippedCount = 0;
+    public bool $addSearched = false;
+
+    // Manual entry fallback (shown when AI can't find the creator)
+    public bool $showManualForm = false;
+    public string $manualName = '';
+    public string $manualCountry = '';
+    public string $manualCategory = '';
+    public string $manualContactEmail = '';
+    public string $manualBio = '';
+    public array $manualSocialLinks = [];
 
     // Bulk actions
     public array $selected = [];
@@ -159,6 +169,8 @@ class ManageCreators extends Component
         $this->addStatus = '';
         $this->addSavedCount = 0;
         $this->addSkippedCount = 0;
+        $this->addSearched = false;
+        $this->resetManualForm();
     }
 
     public function closeAddModal(): void
@@ -167,6 +179,119 @@ class ManageCreators extends Component
         $this->addCandidates = [];
         $this->addSelected = [];
         $this->addStatus = '';
+        $this->addSearched = false;
+        $this->resetManualForm();
+    }
+
+    private function resetManualForm(): void
+    {
+        $this->showManualForm = false;
+        $this->manualName = '';
+        $this->manualCountry = '';
+        $this->manualCategory = '';
+        $this->manualContactEmail = '';
+        $this->manualBio = '';
+        $this->manualSocialLinks = [];
+        $this->resetErrorBag([
+            'manualName', 'manualCountry', 'manualCategory',
+            'manualContactEmail', 'manualBio',
+        ]);
+    }
+
+    public function openManualForm(): void
+    {
+        $this->showManualForm = true;
+        // Pre-fill name from the search query if the admin already typed something
+        if ($this->manualName === '' && $this->addSearchQuery !== '') {
+            $this->manualName = ltrim($this->addSearchQuery, '@');
+        }
+    }
+
+    public function cancelManualForm(): void
+    {
+        $this->resetManualForm();
+    }
+
+    public function addManualSocialLink(): void
+    {
+        $this->manualSocialLinks[] = [
+            'platform' => 'instagram',
+            'url' => '',
+            'handle' => '',
+            'follower_count' => null,
+        ];
+    }
+
+    public function removeManualSocialLink(int $index): void
+    {
+        unset($this->manualSocialLinks[$index]);
+        $this->manualSocialLinks = array_values($this->manualSocialLinks);
+    }
+
+    public function saveManualCreator(WikimediaService $wikimedia): void
+    {
+        $this->validate([
+            'manualName' => 'required|string|max:255',
+            'manualCountry' => 'required|string|max:100',
+            'manualCategory' => 'required|string|in:' . implode(',', $this->categories),
+            'manualContactEmail' => 'nullable|email|max:255',
+            'manualBio' => 'required|string|min:10',
+            'manualSocialLinks.*.platform' => 'required|in:instagram,tiktok,youtube,twitter,facebook,website',
+            'manualSocialLinks.*.url' => 'required|url|max:500',
+            'manualSocialLinks.*.handle' => 'nullable|string|max:100',
+            'manualSocialLinks.*.follower_count' => 'nullable|integer|min:0',
+        ], [
+            'manualName.required' => 'Name is required.',
+            'manualCountry.required' => 'Country is required.',
+            'manualCategory.required' => 'Category is required.',
+            'manualCategory.in' => 'Pick a category from the list.',
+            'manualBio.required' => 'Bio is required.',
+            'manualBio.min' => 'Bio must be at least 10 characters.',
+            'manualSocialLinks.*.url.required' => 'Enter a URL for each social link, or remove the row.',
+            'manualSocialLinks.*.url.url' => 'Enter a valid URL (including https://).',
+        ]);
+
+        $name = trim($this->manualName);
+        $slug = Str::slug($name);
+
+        if (Creator::where('name', $name)->orWhere('slug', $slug)->exists()) {
+            $this->addStatus = "A creator named \"{$name}\" already exists.";
+            return;
+        }
+
+        $image = $wikimedia->searchCreatorImage($name);
+
+        $creator = Creator::create([
+            'name' => $name,
+            'bio' => trim($this->manualBio),
+            'country' => trim($this->manualCountry),
+            'category' => $this->manualCategory,
+            'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($this->manualContactEmail ?: null),
+            'status' => 'pending',
+            'profile_image_url' => $image['image_url'] ?? null,
+            'profile_image_attribution' => $image['attribution'] ?? null,
+            'profile_image_license' => $image['license'] ?? null,
+        ]);
+
+        foreach ($this->manualSocialLinks as $linkData) {
+            if (empty($linkData['url'])) {
+                continue;
+            }
+
+            $followerCount = isset($linkData['follower_count']) && $linkData['follower_count'] !== ''
+                ? (int) $linkData['follower_count']
+                : null;
+
+            $creator->socialLinks()->create([
+                'platform' => $linkData['platform'],
+                'url' => trim($linkData['url']),
+                'handle' => ! empty($linkData['handle']) ? ltrim(trim($linkData['handle']), '@') : null,
+                'follower_count' => $followerCount,
+            ]);
+        }
+
+        session()->flash('success', "{$creator->name} added manually.");
+        $this->closeAddModal();
     }
 
     public function searchForCreator(PerplexityService $perplexity): void
@@ -181,6 +306,7 @@ class ManageCreators extends Component
         $this->addCandidates = [];
         $this->addSelected = [];
         $this->addStatus = '';
+        $this->addSearched = true;
 
         $results = $perplexity->searchCreatorByName($this->addSearchQuery, 5);
 
