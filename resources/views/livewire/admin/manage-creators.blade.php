@@ -540,26 +540,165 @@
                     </div>
                 @endif
 
-                <div class="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" wire:click="saveSelectedCandidates" wire:loading.attr="disabled" wire:target="saveSelectedCandidates"
-                            @if(empty($addSelected)) disabled @endif
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span wire:loading wire:target="saveSelectedCandidates">
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </span>
-                        <span wire:loading.remove wire:target="saveSelectedCandidates">
-                            Save{{ count($addSelected) > 0 ? ' ('.count($addSelected).')' : '' }}
-                        </span>
-                        <span wire:loading wire:target="saveSelectedCandidates">Saving...</span>
-                    </button>
-                    <button type="button" wire:click="closeAddModal"
-                            class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        Cancel
-                    </button>
-                </div>
+                {{-- Manual entry fallback: offer it when no candidates came back, and let admins open it any time --}}
+                @if(! $showManualForm)
+                    <div class="mt-4 flex items-center justify-between gap-3 rounded-md border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2">
+                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                            @if($addSearched && empty($addCandidates))
+                                Can't find them? You can add the creator manually.
+                            @else
+                                Creator not listed above? Add them manually instead.
+                            @endif
+                        </p>
+                        <button type="button" wire:click="openManualForm"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                            + Add manually
+                        </button>
+                    </div>
+                @endif
+
+                @if($showManualForm)
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Add creator manually</h4>
+                            <button type="button" wire:click="cancelManualForm"
+                                    class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                Back to search
+                            </button>
+                        </div>
+
+                        <form wire:submit="saveManualCreator" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span class="text-red-500">*</span></label>
+                                    <input wire:model="manualName" type="text"
+                                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    @error('manualName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Country <span class="text-red-500">*</span></label>
+                                    <input wire:model="manualCountry" type="text" list="manual-country-list"
+                                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    <datalist id="manual-country-list">
+                                        @foreach($africanCountries as $c)
+                                            <option value="{{ $c }}"></option>
+                                        @endforeach
+                                    </datalist>
+                                    @error('manualCountry') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category <span class="text-red-500">*</span></label>
+                                    <select wire:model="manualCategory"
+                                            class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        <option value="">Select a category...</option>
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat }}">{{ $cat }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('manualCategory') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Email <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+                                    <input wire:model="manualContactEmail" type="email"
+                                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    @error('manualContactEmail') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio <span class="text-red-500">*</span></label>
+                                <textarea wire:model="manualBio" rows="3" placeholder="A short 2-3 sentence bio describing the creator..."
+                                          class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                <p class="mt-1 text-xs text-gray-400">You can polish this later with the "Enhance" button on the Edit modal.</p>
+                                @error('manualBio') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Social Links <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+                                    <button type="button" wire:click="addManualSocialLink"
+                                            class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium">
+                                        + Add link
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    @foreach($manualSocialLinks as $index => $link)
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <select wire:model="manualSocialLinks.{{ $index }}.platform"
+                                                        class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs w-28">
+                                                    <option value="instagram">Instagram</option>
+                                                    <option value="tiktok">TikTok</option>
+                                                    <option value="youtube">YouTube</option>
+                                                    <option value="twitter">Twitter/X</option>
+                                                    <option value="facebook">Facebook</option>
+                                                    <option value="website">Website</option>
+                                                </select>
+                                                <input wire:model="manualSocialLinks.{{ $index }}.url" type="url" placeholder="https://..."
+                                                       class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
+                                                <input wire:model="manualSocialLinks.{{ $index }}.handle" type="text" placeholder="Handle"
+                                                       class="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
+                                                <input wire:model="manualSocialLinks.{{ $index }}.follower_count" type="number" min="0" placeholder="Followers"
+                                                       class="w-24 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs">
+                                                <button type="button" wire:click="removeManualSocialLink({{ $index }})"
+                                                        class="text-red-500 hover:text-red-700 dark:text-red-400">
+                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            @error('manualSocialLinks.'.$index.'.url') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <button type="submit" wire:loading.attr="disabled" wire:target="saveManualCreator"
+                                        class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span wire:loading wire:target="saveManualCreator">
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                    </span>
+                                    <span wire:loading.remove wire:target="saveManualCreator">Save Creator</span>
+                                    <span wire:loading wire:target="saveManualCreator">Saving...</span>
+                                </button>
+                                <button type="button" wire:click="cancelManualForm"
+                                        class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
+
+                @if(! $showManualForm)
+                    <div class="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="button" wire:click="saveSelectedCandidates" wire:loading.attr="disabled" wire:target="saveSelectedCandidates"
+                                @if(empty($addSelected)) disabled @endif
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span wire:loading wire:target="saveSelectedCandidates">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            </span>
+                            <span wire:loading.remove wire:target="saveSelectedCandidates">
+                                Save{{ count($addSelected) > 0 ? ' ('.count($addSelected).')' : '' }}
+                            </span>
+                            <span wire:loading wire:target="saveSelectedCandidates">Saving...</span>
+                        </button>
+                        <button type="button" wire:click="closeAddModal"
+                                class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            Cancel
+                        </button>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
