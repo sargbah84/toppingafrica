@@ -6,9 +6,12 @@ namespace App\Livewire\Admin\Blog;
 
 use App\DataTransferObjects\Blog\PostGenerationRequest;
 use App\Models\Category;
+use App\Models\Post;
+use App\Models\Tag;
 use App\Services\Blog\CreatorContextService;
 use App\Services\Blog\PostGeneratorService;
 use App\Services\Blog\TitleSuggestionService;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -312,22 +315,50 @@ class PostGenerator extends Component
 
     public function useContent(): void
     {
-        if ($this->generatedContent) {
-            $service = app(TitleSuggestionService::class);
-            $service->markTitleAsUsed($this->topic);
-            $this->usedTitles = $service->getUsedTitles();
-
-            session(['generated_post_content' => $this->generatedContent]);
-
-            $this->dispatch('use-generated-content', content: $this->generatedContent);
-
-            $currentRoute = request()->route()?->getName();
-            if ($currentRoute !== 'admin.blog.posts.create') {
-                $this->redirect(route('admin.blog.posts.create'), navigate: true);
-            } else {
-                $this->closeModal();
-            }
+        if (! $this->generatedContent) {
+            return;
         }
+
+        $service = app(TitleSuggestionService::class);
+        $service->markTitleAsUsed($this->topic);
+        $this->usedTitles = $service->getUsedTitles();
+
+        $content = $this->generatedContent;
+
+        $post = Post::create([
+            'author_id' => auth()->id(),
+            'title' => $content['title'] ?? 'Untitled',
+            'slug' => ! empty($content['slug']) ? $content['slug'] : Str::slug($content['title'] ?? 'untitled'),
+            'excerpt' => $content['excerpt'] ?? null,
+            'content' => $content['content'] ?? '',
+            'post_type' => $content['post_type'] ?? 'article',
+            'type_data' => $content['type_data'] ?? null,
+            'meta_title' => $content['meta_title'] ?? null,
+            'meta_description' => $content['meta_description'] ?? null,
+            'focus_keyword' => $content['focus_keyword'] ?? null,
+            'social_sharing' => $content['social_sharing'] ?? null,
+            'status' => 'draft',
+            'reading_time' => $content['reading_time'] ?? null,
+            'ai_provider' => $content['ai_provider'] ?? null,
+            'generation_params' => $content['generation_params'] ?? null,
+        ]);
+
+        if (! empty($content['category_ids'])) {
+            $post->categories()->sync($content['category_ids']);
+        }
+
+        if (! empty($content['suggested_tags'])) {
+            $tagIds = collect($content['suggested_tags'])->map(function (string $tagName): int {
+                return Tag::firstOrCreate(
+                    ['slug' => Str::slug($tagName)],
+                    ['name' => $tagName]
+                )->id;
+            })->toArray();
+            $post->tags()->sync($tagIds);
+        }
+
+        $this->closeModal();
+        $this->redirect(route('admin.blog.posts.edit', $post->id), navigate: true);
     }
 
     public function clearContent(): void
