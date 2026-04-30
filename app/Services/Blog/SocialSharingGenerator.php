@@ -28,10 +28,10 @@ final class SocialSharingGenerator
 
         $post = $title;
         if (strlen($post) > $availableLength) {
-            $post = substr($post, 0, $availableLength - 3) . '...';
+            $post = substr($post, 0, $availableLength - 3).'...';
         }
 
-        return trim($post . "\n\n" . $hashtagString);
+        return trim($post."\n\n".$hashtagString);
     }
 
     public function generateLinkedInPost(string $title, string $excerpt): string
@@ -42,7 +42,7 @@ final class SocialSharingGenerator
         $hook = $this->createHook($title);
         $body = $this->truncateToWordBoundary($excerpt, $maxLength - strlen($hook) - 50);
 
-        $post = $hook . "\n\n" . $body . "\n\n" . "Read more on Topping Africa!";
+        $post = $hook."\n\n".$body."\n\n".'Read more on Topping Africa!';
 
         if (strlen($post) < $minLength) {
             $post .= "\n\n#Africa #AfricanNews #ToppingAfrica";
@@ -56,12 +56,12 @@ final class SocialSharingGenerator
         $hashtags = [];
 
         foreach (array_slice($tags, 0, $count) as $tag) {
-            $hashtag = '#' . preg_replace('/[^a-zA-Z0-9]/', '', ucwords($tag));
+            $hashtag = '#'.preg_replace('/[^a-zA-Z0-9]/', '', ucwords($tag));
             $hashtags[] = $hashtag;
         }
 
         $defaultHashtags = ['#Africa', '#AfricanNews', '#ToppingAfrica'];
-        while (count($hashtags) < $count && !empty($defaultHashtags)) {
+        while (count($hashtags) < $count && ! empty($defaultHashtags)) {
             $hashtags[] = array_shift($defaultHashtags);
         }
 
@@ -93,6 +93,6 @@ final class SocialSharingGenerator
             $text = substr($text, 0, $lastSpace);
         }
 
-        return rtrim($text, '.,!?;:') . '...';
+        return rtrim($text, '.,!?;:').'...';
     }
 }

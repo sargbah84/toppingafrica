@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\Tag;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\View\View;
 
 class PostController extends Controller
@@ -29,11 +30,11 @@ class PostController extends Controller
             ->withQueryString();
 
         $statusCounts = [
-            'all'       => Post::count(),
+            'all' => Post::count(),
             'published' => Post::where('status', 'published')->count(),
-            'draft'     => Post::where('status', 'draft')->count(),
+            'draft' => Post::where('status', 'draft')->count(),
             'scheduled' => Post::where('status', 'scheduled')->count(),
-            'trashed'   => Post::onlyTrashed()->count(),
+            'trashed' => Post::onlyTrashed()->count(),
         ];
 
         return view('admin.blog.posts.index', compact('posts', 'statusCounts', 'status'));
@@ -56,27 +57,27 @@ class PostController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'slug'             => ['nullable', 'string', 'max:255', 'unique:posts,slug'],
-            'excerpt'          => ['nullable', 'string', 'max:500'],
-            'content'          => ['required', 'string'],
-            'featured_image'   => ['nullable', 'string', 'max:500'],
-            'post_type'        => ['nullable', 'string', 'max:50'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:posts,slug'],
+            'excerpt' => ['nullable', 'string', 'max:500'],
+            'content' => ['required', 'string'],
+            'featured_image' => ['nullable', 'string', 'max:500'],
+            'post_type' => ['nullable', 'string', 'max:50'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:300'],
-            'focus_keyword'    => ['nullable', 'string', 'max:100'],
-            'status'           => ['required', 'in:draft,published,scheduled'],
-            'published_at'     => ['nullable', 'date'],
-            'scheduled_at'     => ['nullable', 'date', 'after:now'],
-            'is_featured'      => ['boolean'],
-            'categories'       => ['nullable', 'array'],
-            'categories.*'     => ['exists:categories,id'],
-            'tags'             => ['nullable', 'array'],
-            'tags.*'           => ['exists:tags,id'],
+            'focus_keyword' => ['nullable', 'string', 'max:100'],
+            'status' => ['required', 'in:draft,published,scheduled'],
+            'published_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'is_featured' => ['boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['exists:categories,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['exists:tags,id'],
         ]);
 
         $post = Post::create([
-            ...\Illuminate\Support\Arr::except($validated, ['categories', 'tags']),
+            ...Arr::except($validated, ['categories', 'tags']),
             'author_id' => $request->user()->id,
         ]);
 
@@ -111,26 +112,26 @@ class PostController extends Controller
     public function update(Request $request, Post $post): RedirectResponse
     {
         $validated = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'slug'             => ['nullable', 'string', 'max:255', 'unique:posts,slug,' . $post->id],
-            'excerpt'          => ['nullable', 'string', 'max:500'],
-            'content'          => ['required', 'string'],
-            'featured_image'   => ['nullable', 'string', 'max:500'],
-            'post_type'        => ['nullable', 'string', 'max:50'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:posts,slug,'.$post->id],
+            'excerpt' => ['nullable', 'string', 'max:500'],
+            'content' => ['required', 'string'],
+            'featured_image' => ['nullable', 'string', 'max:500'],
+            'post_type' => ['nullable', 'string', 'max:50'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:300'],
-            'focus_keyword'    => ['nullable', 'string', 'max:100'],
-            'status'           => ['required', 'in:draft,published,scheduled'],
-            'published_at'     => ['nullable', 'date'],
-            'scheduled_at'     => ['nullable', 'date', 'after:now'],
-            'is_featured'      => ['boolean'],
-            'categories'       => ['nullable', 'array'],
-            'categories.*'     => ['exists:categories,id'],
-            'tags'             => ['nullable', 'array'],
-            'tags.*'           => ['exists:tags,id'],
+            'focus_keyword' => ['nullable', 'string', 'max:100'],
+            'status' => ['required', 'in:draft,published,scheduled'],
+            'published_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'is_featured' => ['boolean'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['exists:categories,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['exists:tags,id'],
         ]);
 
-        $post->update(\Illuminate\Support\Arr::except($validated, ['categories', 'tags']));
+        $post->update(Arr::except($validated, ['categories', 'tags']));
 
         $post->categories()->sync($validated['categories'] ?? []);
         $post->tags()->sync($validated['tags'] ?? []);

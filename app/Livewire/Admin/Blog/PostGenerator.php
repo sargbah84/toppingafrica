@@ -17,22 +17,35 @@ class PostGenerator extends Component
 
     // Title input mode: 'suggest' or 'manual'
     public string $inputMode = 'suggest';
+
     public string $selectedNiche = 'africa-news';
+
     public array $suggestedTitles = [];
+
     public array $usedTitles = [];
+
     public array $trendingKeywords = [];
+
     public bool $isLoadingTitles = false;
 
     public string $topic = '';
+
     public string $aiProvider = 'perplexity';
+
     public string $postType = 'article';
+
     public string $length = 'medium';
+
     public string $tone = 'professional';
+
     public ?string $targetKeyword = null;
+
     public ?int $categoryId = null;
 
     public bool $isGenerating = false;
+
     public ?array $generatedContent = null;
+
     public ?string $error = null;
 
     protected $rules = [

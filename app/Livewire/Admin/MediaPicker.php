@@ -15,25 +15,35 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class MediaPicker extends Component
 {
     public bool $showModal = false;
+
     public string $activeTab = 'library';
+
     public string $searchQuery = '';
+
     public ?string $selectedImageUrl = null;
+
     public string $context = 'featured_image';
 
     /** @var array<int, array<string, mixed>> */
     public array $pexelsResults = [];
+
     public int $pexelsPage = 1;
+
     public int $pexelsTotalResults = 0;
 
     /** @var array<int, array<string, mixed>> */
     public array $googleResults = [];
+
     public int $googleStart = 1;
+
     public int $googleTotalResults = 0;
 
     public bool $isDownloading = false;
 
     public string $librarySearch = '';
+
     public int $libraryLimit = 24;
+
     public int $libraryTotal = 0;
 
     /** @var array<string, string|null> */
@@ -43,6 +53,7 @@ class MediaPicker extends Component
     ];
 
     protected ImageSearchService $imageSearch;
+
     protected MediaService $mediaService;
 
     public function boot(ImageSearchService $imageSearch, MediaService $mediaService): void
@@ -90,7 +101,7 @@ class MediaPicker extends Component
 
     public function insertSelected(): void
     {
-        if (!$this->selectedImageUrl) {
+        if (! $this->selectedImageUrl) {
             return;
         }
 
@@ -113,6 +124,7 @@ class MediaPicker extends Component
 
         if (isset($data['error'])) {
             $this->apiErrors['pexels'] = $data['error'];
+
             return;
         }
 
@@ -128,6 +140,7 @@ class MediaPicker extends Component
 
         if (isset($data['error'])) {
             $this->pexelsPage--;
+
             return;
         }
 
@@ -149,6 +162,7 @@ class MediaPicker extends Component
 
         if (isset($data['error'])) {
             $this->apiErrors['google'] = $data['error'];
+
             return;
         }
 
@@ -164,6 +178,7 @@ class MediaPicker extends Component
 
         if (isset($data['error'])) {
             $this->googleStart -= 10;
+
             return;
         }
 
@@ -188,7 +203,7 @@ class MediaPicker extends Component
 
             $this->selectedImageUrl = $media->getUrl();
         } catch (\Throwable $e) {
-            $this->dispatch('notify', type: 'error', message: 'Failed to download image: ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Failed to download image: '.$e->getMessage());
         } finally {
             $this->isDownloading = false;
         }
@@ -217,8 +232,8 @@ class MediaPicker extends Component
 
         if (trim($this->librarySearch) !== '') {
             $query->where(function ($q) {
-                $q->where('file_name', 'like', '%' . $this->librarySearch . '%')
-                    ->orWhere('name', 'like', '%' . $this->librarySearch . '%');
+                $q->where('file_name', 'like', '%'.$this->librarySearch.'%')
+                    ->orWhere('name', 'like', '%'.$this->librarySearch.'%');
             });
         }
 

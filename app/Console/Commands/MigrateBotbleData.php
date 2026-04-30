@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 class MigrateBotbleData extends Command
 {
     protected $signature = 'migrate:botble {--fresh : Truncate local tables before importing} {--clean-shortcodes : Only clean Botble shortcodes from existing posts}';
+
     protected $description = 'Migrate data from the old Botble CMS database to the new schema';
 
     private string $conn = 'botble';
@@ -25,6 +26,7 @@ class MigrateBotbleData extends Command
     {
         if ($this->option('clean-shortcodes')) {
             $this->cleanBotbleShortcodes();
+
             return self::SUCCESS;
         }
 
@@ -69,7 +71,7 @@ class MigrateBotbleData extends Command
             User::updateOrCreate(
                 ['email' => $old->email],
                 [
-                    'name' => trim(($old->first_name ?? '') . ' ' . ($old->last_name ?? '')) ?: 'Admin',
+                    'name' => trim(($old->first_name ?? '').' '.($old->last_name ?? '')) ?: 'Admin',
                     'username' => $old->username,
                     'password' => $old->password ?? bcrypt('password'),
                     'is_super_admin' => (bool) $old->super_user,
@@ -337,8 +339,9 @@ class MigrateBotbleData extends Command
             $postSlug = $postSlugs[$old->reference_id] ?? null;
             $newPostId = $postSlug ? ($postSlugMap[$postSlug] ?? null) : null;
 
-            if (!$newPostId) {
+            if (! $newPostId) {
                 $bar->advance();
+
                 continue;
             }
 
@@ -368,7 +371,7 @@ class MigrateBotbleData extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("  Migrated " . count($idMap) . " comments.");
+        $this->info('  Migrated '.count($idMap).' comments.');
     }
 
     private function cleanBotbleShortcodes(): void
@@ -417,10 +420,10 @@ class MigrateBotbleData extends Command
                 }
 
                 if ($videoId) {
-                    return '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/' . $videoId . '" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>';
+                    return '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/'.$videoId.'" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>';
                 }
 
-                return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($url) . '</a>';
+                return '<a href="'.htmlspecialchars($url).'">'.htmlspecialchars($url).'</a>';
             },
             $content
         );
@@ -429,7 +432,7 @@ class MigrateBotbleData extends Command
         $content = preg_replace_callback(
             '/\[content-quote\s+content_text="([^"]+)"\s*\]\s*\[\/content-quote\]/s',
             function ($matches) {
-                return '<blockquote><p>' . $matches[1] . '</p></blockquote>';
+                return '<blockquote><p>'.$matches[1].'</p></blockquote>';
             },
             $content
         );

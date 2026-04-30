@@ -26,28 +26,37 @@ class PostEditor extends Component
 
     // Core fields
     public string $title = '';
+
     public string $slug = '';
+
     public string $excerpt = '';
+
     public string $content = '';
 
     // Post type
     public string $post_type = 'article';
+
     public array $type_data = [];
 
     // Taxonomy
     /** @var array<int> */
     public array $selectedCategories = [];
+
     public string $tagInput = '';
+
     /** @var array<string> */
     public array $selectedTags = [];
 
     // Media
     public $featuredImage = null;
+
     public ?string $existingFeaturedImageUrl = null;
 
     // SEO
     public string $meta_title = '';
+
     public string $meta_description = '';
+
     public string $focus_keyword = '';
 
     // Social / OG
@@ -60,12 +69,16 @@ class PostEditor extends Component
 
     // Status
     public string $status = 'draft';
+
     public ?string $scheduled_at = null;
+
     public bool $is_featured = false;
 
     // UI state
     public bool $showSeoPanel = false;
+
     public bool $showSocialPanel = false;
+
     public bool $autoGenerateSlug = true;
 
     /** @var array<string> */
@@ -308,7 +321,7 @@ class PostEditor extends Component
         if ($this->featuredImage) {
             $post->clearMediaCollection('featured_image');
             $post->addMedia($this->featuredImage->getRealPath())
-                ->usingFileName(Str::slug($this->title) . '.' . $this->featuredImage->getClientOriginalExtension())
+                ->usingFileName(Str::slug($this->title).'.'.$this->featuredImage->getClientOriginalExtension())
                 ->toMediaCollection('featured_image');
             $this->existingFeaturedImageUrl = $post->fresh()->featured_image_url;
             $this->featuredImage = null;

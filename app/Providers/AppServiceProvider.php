@@ -16,8 +16,8 @@ class AppServiceProvider extends ServiceProvider
             $config = $app['config']['recaptcha'];
 
             $credentialsPath = $config['credentials_path'] ?? null;
-            if ($credentialsPath && !str_starts_with($credentialsPath, '/') && !str_starts_with($credentialsPath, 'C:')) {
-                $credentialsPath = storage_path('app/' . $credentialsPath);
+            if ($credentialsPath && ! str_starts_with($credentialsPath, '/') && ! str_starts_with($credentialsPath, 'C:')) {
+                $credentialsPath = storage_path('app/'.$credentialsPath);
             }
 
             return new RecaptchaService(

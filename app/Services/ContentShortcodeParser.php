@@ -20,7 +20,7 @@ final class ContentShortcodeParser
                     ->published()
                     ->first();
 
-                if (!$post) {
+                if (! $post) {
                     return '';
                 }
 

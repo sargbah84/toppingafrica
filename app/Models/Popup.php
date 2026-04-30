@@ -70,9 +70,9 @@ final class Popup extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (Popup $popup) {
+        self::creating(function (Popup $popup) {
             if (empty($popup->slug)) {
-                $popup->slug = Str::slug($popup->name) . '-' . Str::random(6);
+                $popup->slug = Str::slug($popup->name).'-'.Str::random(6);
             }
         });
 
@@ -85,8 +85,8 @@ final class Popup extends Model
             Cache::forget('popups:backend:mobile');
         };
 
-        static::saved($clearCache);
-        static::deleted($clearCache);
+        self::saved($clearCache);
+        self::deleted($clearCache);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -140,7 +140,7 @@ final class Popup extends Model
 
     public function getCookieName(): string
     {
-        return 'popup_' . $this->slug . '_dismissed';
+        return 'popup_'.$this->slug.'_dismissed';
     }
 
     public function matchesPage(string $path): bool
@@ -183,6 +183,6 @@ final class Popup extends Model
         // Support wildcard patterns like "blog/*"
         $regex = str_replace('\*', '.*', preg_quote($pattern, '/'));
 
-        return (bool) preg_match('/^' . $regex . '$/', $path);
+        return (bool) preg_match('/^'.$regex.'$/', $path);
     }
 }

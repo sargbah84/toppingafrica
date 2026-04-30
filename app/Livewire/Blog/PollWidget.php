@@ -12,9 +12,13 @@ use Livewire\Component;
 class PollWidget extends Component
 {
     public Post $post;
+
     public ?int $selectedOption = null;
+
     public bool $hasVoted = false;
+
     public array $results = [];
+
     public int $totalVotes = 0;
 
     public function mount(Post $post): void
@@ -40,7 +44,7 @@ class PollWidget extends Component
 
     public function vote(): void
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return;
         }
 

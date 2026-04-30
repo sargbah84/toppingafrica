@@ -15,21 +15,31 @@ class CategoryManager extends Component
 {
     // Form fields
     public string $name = '';
+
     public string $slug = '';
+
     public string $description = '';
+
     public string $color = '#3b82f6';
+
     public string $icon = '';
+
     public ?int $parent_id = null;
+
     public bool $is_active = true;
 
     // Editing state
     public ?int $editingCategoryId = null;
+
     public bool $showForm = false;
 
     // Inline editing
     public ?int $inlineEditId = null;
+
     public string $inlineEditName = '';
+
     public string $inlineEditColor = '';
+
     public string $inlineEditIcon = '';
 
     public function openCreateForm(): void
@@ -88,6 +98,7 @@ class CategoryManager extends Component
 
         if ($category->posts_count > 0) {
             $this->dispatch('notify', type: 'error', message: 'Cannot delete a category with posts. Remove posts first.');
+
             return;
         }
 

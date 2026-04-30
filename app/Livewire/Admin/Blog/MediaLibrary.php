@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -22,14 +23,17 @@ class MediaLibrary extends Component
     #[Url(as: 'collection')]
     public string $collectionFilter = '';
 
-    /** @var array<\Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
+    /** @var array<TemporaryUploadedFile> */
     public array $uploads = [];
 
     public ?int $selectedMediaId = null;
+
     public ?string $selectedMediaUrl = null;
+
     public ?string $selectedMediaName = null;
 
     public bool $showUploadPanel = false;
+
     public string $uploadCollection = 'content_images';
 
     public int $perPage = 24;
@@ -58,7 +62,7 @@ class MediaLibrary extends Component
         foreach ($this->uploads as $upload) {
             // Create a standalone media entry using Spatie's Media model
             // Attach to a generic model or use the media library's standalone upload
-            $media = new Media();
+            $media = new Media;
             $media->name = pathinfo($upload->getClientOriginalName(), PATHINFO_FILENAME);
             $media->file_name = $upload->getClientOriginalName();
             $media->mime_type = $upload->getMimeType();
@@ -72,7 +76,7 @@ class MediaLibrary extends Component
 
             // Move file to media disk
             $path = $upload->storeAs(
-                'media/' . now()->format('Y/m'),
+                'media/'.now()->format('Y/m'),
                 $upload->hashName(),
                 'public'
             );
@@ -140,8 +144,8 @@ class MediaLibrary extends Component
     {
         return Media::query()
             ->when($this->search !== '', function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('file_name', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('file_name', 'like', '%'.$this->search.'%');
             })
             ->when($this->collectionFilter !== '', function ($query) {
                 $query->where('collection_name', $this->collectionFilter);

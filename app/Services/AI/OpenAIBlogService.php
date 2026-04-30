@@ -14,7 +14,9 @@ final class OpenAIBlogService implements BlogGeneratorInterface
     use TracksAiUsage;
 
     private string $apiKey;
+
     private string $model;
+
     private int $maxTokens;
 
     public function __construct()
@@ -32,7 +34,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
@@ -53,7 +55,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'openai', $this->model, 'blog-generation', false, $durationMs, $response->body());
                 Log::error('OpenAI API error', [
                     'status' => $response->status(),
@@ -89,7 +91,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->model,
@@ -110,7 +112,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'openai', $this->model, 'blog-social-sharing', false, $durationMs, $response->body());
                 throw new \RuntimeException('Failed to generate social sharing posts');
             }
@@ -118,6 +120,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
             $this->trackUsage($response, 'openai', $this->model, 'blog-social-sharing', true, $durationMs);
 
             $content = $response->json('choices.0.message.content');
+
             return json_decode($content, true) ?? [];
         } catch (\Exception $e) {
             Log::error('OpenAI social sharing generation failed', [
@@ -275,7 +278,7 @@ POLL,
             $keyword = $trend['keyword'] ?? '';
             $type = $trend['type'] ?? 'top';
             $value = $trend['formatted_value'] ?? $trend['value'] ?? '';
-            if (!empty($keyword)) {
+            if (! empty($keyword)) {
                 $lines[] = "- {$keyword} ({$type}, score: {$value})";
             }
         }

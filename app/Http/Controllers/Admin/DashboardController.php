@@ -20,12 +20,12 @@ class DashboardController extends Controller
     public function index(Request $request): View
     {
         $stats = [
-            'total_posts'      => Post::count(),
-            'published_posts'  => Post::where('status', 'published')->count(),
-            'draft_posts'      => Post::where('status', 'draft')->count(),
-            'scheduled_posts'  => Post::where('status', 'scheduled')->count(),
-            'total_views'      => PostView::count(),
-            'total_comments'   => Comment::count(),
+            'total_posts' => Post::count(),
+            'published_posts' => Post::where('status', 'published')->count(),
+            'draft_posts' => Post::where('status', 'draft')->count(),
+            'scheduled_posts' => Post::where('status', 'scheduled')->count(),
+            'total_views' => PostView::count(),
+            'total_comments' => Comment::count(),
             'pending_comments' => Comment::where('status', 'pending')->count(),
             'total_categories' => Category::count(),
         ];

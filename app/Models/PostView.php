@@ -35,14 +35,14 @@ class PostView extends Model
 
     public static function recordView(Post $post, string $ip, ?int $userId = null, ?string $userAgent = null): void
     {
-        $ipHash = hash('sha256', $ip . config('app.key'));
+        $ipHash = hash('sha256', $ip.config('app.key'));
 
         $recentView = static::where('post_id', $post->id)
             ->where('ip_hash', $ipHash)
             ->where('viewed_at', '>', now()->subDay())
             ->exists();
 
-        if (!$recentView) {
+        if (! $recentView) {
             static::create([
                 'post_id' => $post->id,
                 'user_id' => $userId,

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,15 +19,15 @@ return new class extends Migration
 
         // Backfill ip_hash from existing ip_address data
         $appKey = config('app.key');
-        \Illuminate\Support\Facades\DB::table('post_views')
+        DB::table('post_views')
             ->whereNotNull('ip_address')
             ->orderBy('id')
             ->chunk(500, function ($views) use ($appKey) {
                 foreach ($views as $view) {
-                    \Illuminate\Support\Facades\DB::table('post_views')
+                    DB::table('post_views')
                         ->where('id', $view->id)
                         ->update([
-                            'ip_hash' => hash('sha256', $view->ip_address . $appKey),
+                            'ip_hash' => hash('sha256', $view->ip_address.$appKey),
                             'viewed_at' => $view->created_at,
                         ]);
                 }

@@ -12,9 +12,11 @@ use Livewire\Component;
 class MyComments extends Component
 {
     public int $perPage = 10;
+
     public int $page = 1;
 
     public ?int $editingId = null;
+
     public string $editBody = '';
 
     public function loadMore(): void
@@ -24,8 +26,9 @@ class MyComments extends Component
 
     public function startEditing(int $commentId): void
     {
-        if (!auth()->user()->hasVerifiedEmail()) {
+        if (! auth()->user()->hasVerifiedEmail()) {
             $this->addError('editBody', 'You must verify your email address before editing comments.');
+
             return;
         }
 

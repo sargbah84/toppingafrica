@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterSubscriber;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -19,7 +20,7 @@ class NewsletterController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search): void {
                 $q->where('email', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 
@@ -40,7 +41,7 @@ class NewsletterController extends Controller
 
     public function export(): StreamedResponse
     {
-        $fileName = 'newsletter-subscribers-' . now()->format('Y-m-d') . '.csv';
+        $fileName = 'newsletter-subscribers-'.now()->format('Y-m-d').'.csv';
 
         return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
@@ -65,7 +66,7 @@ class NewsletterController extends Controller
         ]);
     }
 
-    public function destroy(NewsletterSubscriber $newsletter): \Illuminate\Http\RedirectResponse
+    public function destroy(NewsletterSubscriber $newsletter): RedirectResponse
     {
         $newsletter->delete();
 

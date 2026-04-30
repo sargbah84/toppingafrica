@@ -11,8 +11,11 @@ use Livewire\Component;
 class NewsletterSubscribe extends Component
 {
     public string $email = '';
+
     public string $name = '';
+
     public string $successMessage = '';
+
     public string $errorMessage = '';
 
     public function subscribe(): void
@@ -30,6 +33,7 @@ class NewsletterSubscribe extends Component
         if ($existing) {
             if ($existing->status === 'subscribed') {
                 $this->errorMessage = 'This email is already subscribed.';
+
                 return;
             }
 

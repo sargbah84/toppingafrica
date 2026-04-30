@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Blog\Seo;
 
-use App\Models\Post;
 use Illuminate\Support\Facades\Log;
 
 final class UserEngagementAnalyzer
@@ -61,6 +60,7 @@ final class UserEngagementAnalyzer
             ];
         } catch (\Exception $e) {
             Log::warning('User engagement analysis failed', ['error' => $e->getMessage()]);
+
             return ['score' => 0, 'sub_scores' => []];
         }
     }
@@ -95,7 +95,7 @@ final class UserEngagementAnalyzer
         return [
             'score' => min(100, $score),
             'count' => $internalCount,
-            'target' => $targets['min'] . '-' . $targets['max'],
+            'target' => $targets['min'].'-'.$targets['max'],
         ];
     }
 
@@ -129,7 +129,7 @@ final class UserEngagementAnalyzer
         return [
             'score' => min(100, $score),
             'count' => $externalCount,
-            'target' => $targets['min'] . '-' . $targets['max'],
+            'target' => $targets['min'].'-'.$targets['max'],
         ];
     }
 
@@ -187,7 +187,7 @@ final class UserEngagementAnalyzer
             }
         }
 
-        $found = !empty($ctaTypes);
+        $found = ! empty($ctaTypes);
 
         if (count($ctaTypes) >= 3) {
             $score = 100;

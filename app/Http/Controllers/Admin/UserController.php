@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -26,7 +25,7 @@ class UserController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -58,24 +57,24 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
-            'email'          => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password'       => ['required', Password::defaults()],
-            'role'           => ['nullable', 'string', 'exists:roles,name'],
-            'is_staff'       => ['boolean'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', Password::defaults()],
+            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'is_staff' => ['boolean'],
             'is_super_admin' => ['boolean'],
-            'bio'            => ['nullable', 'string', 'max:1000'],
-            'website'        => ['nullable', 'url', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'website' => ['nullable', 'url', 'max:255'],
         ]);
 
         $user = User::create([
-            'name'           => $validated['name'],
-            'email'          => $validated['email'],
-            'password'       => $validated['password'],
-            'is_staff'       => $request->boolean('is_staff'),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'is_staff' => $request->boolean('is_staff'),
             'is_super_admin' => $request->boolean('is_super_admin'),
-            'bio'            => $validated['bio'] ?? null,
-            'website'        => $validated['website'] ?? null,
+            'bio' => $validated['bio'] ?? null,
+            'website' => $validated['website'] ?? null,
         ]);
 
         if (! empty($validated['role'])) {
@@ -103,23 +102,23 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
-            'email'          => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password'       => ['nullable', Password::defaults()],
-            'role'           => ['nullable', 'string', 'exists:roles,name'],
-            'is_staff'       => ['boolean'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'password' => ['nullable', Password::defaults()],
+            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'is_staff' => ['boolean'],
             'is_super_admin' => ['boolean'],
-            'bio'            => ['nullable', 'string', 'max:1000'],
-            'website'        => ['nullable', 'url', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'website' => ['nullable', 'url', 'max:255'],
         ]);
 
         $data = [
-            'name'           => $validated['name'],
-            'email'          => $validated['email'],
-            'is_staff'       => $request->boolean('is_staff'),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'is_staff' => $request->boolean('is_staff'),
             'is_super_admin' => $request->boolean('is_super_admin'),
-            'bio'            => $validated['bio'] ?? null,
-            'website'        => $validated['website'] ?? null,
+            'bio' => $validated['bio'] ?? null,
+            'website' => $validated['website'] ?? null,
         ];
 
         if (! empty($validated['password'])) {

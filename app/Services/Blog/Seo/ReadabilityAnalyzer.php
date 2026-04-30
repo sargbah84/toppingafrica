@@ -63,6 +63,7 @@ final class ReadabilityAnalyzer
             ];
         } catch (\Exception $e) {
             Log::warning('Readability analysis failed', ['error' => $e->getMessage()]);
+
             return ['score' => 0, 'sub_scores' => []];
         }
     }
@@ -156,7 +157,7 @@ final class ReadabilityAnalyzer
             // Fallback: split by double newlines
             $plainText = strip_tags($htmlContent);
             $paragraphs = preg_split('/\n\s*\n/', $plainText);
-            $paragraphs = array_filter($paragraphs, fn($p) => trim($p) !== '');
+            $paragraphs = array_filter($paragraphs, fn ($p) => trim($p) !== '');
         }
 
         $count = count($paragraphs);
@@ -250,7 +251,7 @@ final class ReadabilityAnalyzer
         foreach ($sentences as $sentence) {
             $trimmed = strtolower(trim($sentence));
             foreach ($transitions as $transition) {
-                if (str_starts_with($trimmed, $transition . ' ') || str_starts_with($trimmed, $transition . ',')) {
+                if (str_starts_with($trimmed, $transition.' ') || str_starts_with($trimmed, $transition.',')) {
                     $sentencesWithTransition++;
                     break;
                 }
@@ -299,7 +300,7 @@ final class ReadabilityAnalyzer
         $passiveCount = 0;
         $passivePatterns = [
             // Core passive: "is/are/was/were + past participle" but exclude adjectival uses
-            '/\b(was|were)\s+(?!' . $adjectivalStr . '\b)([\w]+ed|[\w]+en)\s+by\b/i',
+            '/\b(was|were)\s+(?!'.$adjectivalStr.'\b)([\w]+ed|[\w]+en)\s+by\b/i',
             '/\b(is|are|was|were)\s+being\s+([\w]+ed|[\w]+en)\b/i',
             '/\b(has been|have been|had been)\s+([\w]+ed|[\w]+en)\b/i',
         ];
@@ -340,7 +341,7 @@ final class ReadabilityAnalyzer
     {
         $sentences = preg_split('/[.!?]+\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
 
-        return array_filter($sentences, fn($s) => str_word_count(trim($s)) >= 3);
+        return array_filter($sentences, fn ($s) => str_word_count(trim($s)) >= 3);
     }
 
     private function countSyllables(string $text): int
@@ -374,12 +375,25 @@ final class ReadabilityAnalyzer
 
     private function getFleschLevel(float $score): string
     {
-        if ($score >= 90) return 'Very Easy';
-        if ($score >= 80) return 'Easy';
-        if ($score >= 70) return 'Fairly Easy';
-        if ($score >= 60) return 'Standard';
-        if ($score >= 50) return 'Fairly Difficult';
-        if ($score >= 30) return 'Difficult';
+        if ($score >= 90) {
+            return 'Very Easy';
+        }
+        if ($score >= 80) {
+            return 'Easy';
+        }
+        if ($score >= 70) {
+            return 'Fairly Easy';
+        }
+        if ($score >= 60) {
+            return 'Standard';
+        }
+        if ($score >= 50) {
+            return 'Fairly Difficult';
+        }
+        if ($score >= 30) {
+            return 'Difficult';
+        }
+
         return 'Very Difficult';
     }
 

@@ -140,7 +140,7 @@ final class SchemaService
     /**
      * Generate BreadcrumbList schema.
      *
-     * @param array<int, array{name: string, url: string}> $items
+     * @param  array<int, array{name: string, url: string}>  $items
      * @return array<string, mixed>
      */
     public function breadcrumbList(array $items): array

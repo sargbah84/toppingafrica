@@ -41,14 +41,14 @@ class CategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'slug'        => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
             'description' => ['nullable', 'string', 'max:500'],
-            'color'       => ['nullable', 'string', 'max:20'],
-            'icon'        => ['nullable', 'string', 'max:100'],
-            'parent_id'   => ['nullable', 'exists:categories,id'],
-            'order'       => ['nullable', 'integer', 'min:0'],
-            'is_active'   => ['boolean'],
+            'color' => ['nullable', 'string', 'max:20'],
+            'icon' => ['nullable', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['boolean'],
         ]);
 
         Category::create($validated);
@@ -77,14 +77,14 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category): RedirectResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'slug'        => ['nullable', 'string', 'max:255', 'unique:categories,slug,' . $category->id],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug,'.$category->id],
             'description' => ['nullable', 'string', 'max:500'],
-            'color'       => ['nullable', 'string', 'max:20'],
-            'icon'        => ['nullable', 'string', 'max:100'],
-            'parent_id'   => ['nullable', 'exists:categories,id'],
-            'order'       => ['nullable', 'integer', 'min:0'],
-            'is_active'   => ['boolean'],
+            'color' => ['nullable', 'string', 'max:20'],
+            'icon' => ['nullable', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['boolean'],
         ]);
 
         $category->update($validated);

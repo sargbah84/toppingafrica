@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Google\Cloud\RecaptchaEnterprise\V1\Assessment;
 use Google\Cloud\RecaptchaEnterprise\V1\Client\RecaptchaEnterpriseServiceClient;
 use Google\Cloud\RecaptchaEnterprise\V1\CreateAssessmentRequest;
-use Google\Cloud\RecaptchaEnterprise\V1\Assessment;
 use Google\Cloud\RecaptchaEnterprise\V1\Event;
 use Illuminate\Support\Facades\Log;
 
@@ -25,14 +25,14 @@ final class RecaptchaService
     /**
      * Verify a reCAPTCHA token.
      *
-     * @param string $token The reCAPTCHA token from the frontend
-     * @param string $action The expected action name (e.g., 'login', 'register', 'comment')
-     * @param bool $isAuthenticated Whether the user is authenticated (allows fallback tokens)
+     * @param  string  $token  The reCAPTCHA token from the frontend
+     * @param  string  $action  The expected action name (e.g., 'login', 'register', 'comment')
+     * @param  bool  $isAuthenticated  Whether the user is authenticated (allows fallback tokens)
      * @return array{success: bool, score: float|null, error: string|null}
      */
     public function verify(string $token, string $action, bool $isAuthenticated = false): array
     {
-        if (!$this->enabled) {
+        if (! $this->enabled) {
             return [
                 'success' => true,
                 'score' => 1.0,
@@ -97,7 +97,7 @@ final class RecaptchaService
                 'token_valid' => $assessment->getTokenProperties()->getValid(),
             ]);
 
-            if (!$assessment->getTokenProperties()->getValid()) {
+            if (! $assessment->getTokenProperties()->getValid()) {
                 return [
                     'success' => false,
                     'score' => $score,
@@ -149,7 +149,7 @@ final class RecaptchaService
 
     public function isEnabled(): bool
     {
-        return $this->enabled && !empty($this->siteKey) && !empty($this->projectId);
+        return $this->enabled && ! empty($this->siteKey) && ! empty($this->projectId);
     }
 
     public function getSiteKey(): ?string
@@ -177,17 +177,17 @@ final class RecaptchaService
         string $token,
         string $action,
     ): Assessment {
-        $event = (new Event())
+        $event = (new Event)
             ->setSiteKey($this->siteKey)
             ->setToken($token)
             ->setExpectedAction($action);
 
-        $assessment = (new Assessment())
+        $assessment = (new Assessment)
             ->setEvent($event);
 
         $projectPath = sprintf('projects/%s', $this->projectId);
 
-        $request = (new CreateAssessmentRequest())
+        $request = (new CreateAssessmentRequest)
             ->setParent($projectPath)
             ->setAssessment($assessment);
 

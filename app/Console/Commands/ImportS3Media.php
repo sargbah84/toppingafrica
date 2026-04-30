@@ -12,6 +12,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class ImportS3Media extends Command
 {
     protected $signature = 'media:import-s3 {--fresh : Clear existing records first}';
+
     protected $description = 'Import existing S3 images into the Spatie media library';
 
     public function handle(): int
@@ -35,25 +36,27 @@ class ImportS3Media extends Command
         $directories = ['', 'general'];
 
         foreach ($directories as $dir) {
-            $this->info("Scanning: " . ($dir ?: 'root') . "/");
+            $this->info('Scanning: '.($dir ?: 'root').'/');
 
             try {
                 $files = $disk->files($dir);
             } catch (\Exception $e) {
-                $this->warn("  Could not scan '{$dir}': " . $e->getMessage());
+                $this->warn("  Could not scan '{$dir}': ".$e->getMessage());
+
                 continue;
             }
 
             // Filter to images only, skip resized variants
             $imageFiles = collect($files)->filter(function ($file) use ($imageExtensions) {
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                if (!in_array($ext, $imageExtensions)) {
+                if (! in_array($ext, $imageExtensions)) {
                     return false;
                 }
                 // Skip Botble resized variants like -600x480
                 if (preg_match('/-\d+x\d+\./', $file)) {
                     return false;
                 }
+
                 return true;
             });
 
@@ -67,6 +70,7 @@ class ImportS3Media extends Command
                 if (Media::where('file_name', $filename)->exists()) {
                     $skipped++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -93,13 +97,13 @@ class ImportS3Media extends Command
                     }
 
                     // Create the media record directly pointing to existing S3 file
-                    $media = new Media();
+                    $media = new Media;
                     $media->model_type = MediaLibraryItem::class;
                     $media->model_id = $item->id;
                     $media->collection_name = 'default';
                     $media->name = pathinfo($filename, PATHINFO_FILENAME);
                     $media->file_name = $filename;
-                    $media->mime_type = $mimeMap[$ext] ?? 'image/' . $ext;
+                    $media->mime_type = $mimeMap[$ext] ?? 'image/'.$ext;
                     $media->disk = 's3';
                     $media->size = $size;
                     $media->manipulations = [];
@@ -135,7 +139,7 @@ class ImportS3Media extends Command
 
                     $imported++;
                 } catch (\Exception $e) {
-                    $this->line("  Skipped {$filename}: " . $e->getMessage());
+                    $this->line("  Skipped {$filename}: ".$e->getMessage());
                 }
 
                 $bar->advance();

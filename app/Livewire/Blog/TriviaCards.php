@@ -11,7 +11,9 @@ use Livewire\Component;
 class TriviaCards extends Component
 {
     public Post $post;
+
     public array $facts = [];
+
     public string $sourceUrl = '';
 
     public function mount(Post $post): void

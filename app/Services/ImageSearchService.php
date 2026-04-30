@@ -114,7 +114,7 @@ final class ImageSearchService
         $response = Http::timeout(30)->get($url);
 
         if (! $response->successful()) {
-            throw new \RuntimeException('Failed to download image from: ' . $url);
+            throw new \RuntimeException('Failed to download image from: '.$url);
         }
 
         $contentType = $response->header('Content-Type') ?? 'image/jpeg';
@@ -127,12 +127,12 @@ final class ImageSearchService
         };
 
         if (! $filename) {
-            $filename = Str::random(20) . '.' . $extension;
+            $filename = Str::random(20).'.'.$extension;
         } elseif (! pathinfo($filename, PATHINFO_EXTENSION)) {
-            $filename .= '.' . $extension;
+            $filename .= '.'.$extension;
         }
 
-        $path = 'content/' . $filename;
+        $path = 'content/'.$filename;
 
         Storage::disk('s3')->put($path, $response->body(), 'public');
 

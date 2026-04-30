@@ -23,6 +23,7 @@ class CommentManager extends Component
     public string $search = '';
 
     public array $selected = [];
+
     public bool $selectAll = false;
 
     public function updatedStatus(): void
@@ -114,11 +115,11 @@ class CommentManager extends Component
             ->when($this->search !== '', function ($query): void {
                 $query->where(function ($q): void {
                     $q->where('body', 'like', "%{$this->search}%")
-                      ->orWhere('guest_name', 'like', "%{$this->search}%")
-                      ->orWhere('guest_email', 'like', "%{$this->search}%")
-                      ->orWhereHas('user', function ($uq): void {
-                          $uq->where('name', 'like', "%{$this->search}%");
-                      });
+                        ->orWhere('guest_name', 'like', "%{$this->search}%")
+                        ->orWhere('guest_email', 'like', "%{$this->search}%")
+                        ->orWhereHas('user', function ($uq): void {
+                            $uq->where('name', 'like', "%{$this->search}%");
+                        });
                 });
             })
             ->latest()

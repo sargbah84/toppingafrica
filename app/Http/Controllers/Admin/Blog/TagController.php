@@ -65,8 +65,8 @@ class TagController extends Controller
     public function update(Request $request, Tag $tag): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100', 'unique:tags,name,' . $tag->id],
-            'slug' => ['nullable', 'string', 'max:100', 'unique:tags,slug,' . $tag->id],
+            'name' => ['required', 'string', 'max:100', 'unique:tags,name,'.$tag->id],
+            'slug' => ['nullable', 'string', 'max:100', 'unique:tags,slug,'.$tag->id],
         ]);
 
         $tag->update($validated);

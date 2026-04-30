@@ -14,13 +14,21 @@ class AdForm extends Component
     public ?Ad $ad = null;
 
     public string $name = '';
+
     public string $position = '';
+
     public ?string $code = '';
+
     public ?string $imageUrl = null;
+
     public ?string $url = '';
+
     public bool $is_active = true;
+
     public int $order = 0;
+
     public ?string $starts_at = null;
+
     public ?string $ends_at = null;
 
     public function mount(?Ad $ad = null): void

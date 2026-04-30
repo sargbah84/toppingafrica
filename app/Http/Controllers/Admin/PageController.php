@@ -40,14 +40,14 @@ class PageController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'slug'             => ['nullable', 'string', 'max:255', 'unique:pages,slug'],
-            'content'          => ['required', 'string'],
-            'template'         => ['nullable', 'string', 'max:100'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:pages,slug'],
+            'content' => ['required', 'string'],
+            'template' => ['nullable', 'string', 'max:100'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:300'],
-            'status'           => ['required', 'in:draft,published'],
-            'order'            => ['nullable', 'integer', 'min:0'],
+            'status' => ['required', 'in:draft,published'],
+            'order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         Page::create($validated);
@@ -71,14 +71,14 @@ class PageController extends Controller
     public function update(Request $request, Page $page): RedirectResponse
     {
         $validated = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'slug'             => ['nullable', 'string', 'max:255', 'unique:pages,slug,' . $page->id],
-            'content'          => ['required', 'string'],
-            'template'         => ['nullable', 'string', 'max:100'],
-            'meta_title'       => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:pages,slug,'.$page->id],
+            'content' => ['required', 'string'],
+            'template' => ['nullable', 'string', 'max:100'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:300'],
-            'status'           => ['required', 'in:draft,published'],
-            'order'            => ['nullable', 'integer', 'min:0'],
+            'status' => ['required', 'in:draft,published'],
+            'order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $page->update($validated);

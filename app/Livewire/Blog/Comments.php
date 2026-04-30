@@ -15,23 +15,32 @@ use Livewire\Component;
 class Comments extends Component
 {
     use HasRecaptcha;
+
     public int $postId;
 
     // Comment form
     public string $name = '';
+
     public string $email = '';
+
     public string $body = '';
+
     public string $honeypot = '';
 
     // Reply form
     public ?int $replyingTo = null;
+
     public string $replyName = '';
+
     public string $replyEmail = '';
+
     public string $replyBody = '';
+
     public string $replyHoneypot = '';
 
     // Pagination
     public int $perPage = 10;
+
     public int $page = 1;
 
     // Flash messages
@@ -56,12 +65,13 @@ class Comments extends Component
             return;
         }
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return;
         }
 
-        if (!Auth::user()->hasVerifiedEmail()) {
+        if (! Auth::user()->hasVerifiedEmail()) {
             $this->addError('body', 'You must verify your email address before commenting.');
+
             return;
         }
 
@@ -69,7 +79,7 @@ class Comments extends Component
             'body' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
-        if (!$this->validateRecaptcha('comment')) {
+        if (! $this->validateRecaptcha('comment')) {
             return;
         }
 
@@ -93,12 +103,13 @@ class Comments extends Component
             return;
         }
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return;
         }
 
-        if (!Auth::user()->hasVerifiedEmail()) {
+        if (! Auth::user()->hasVerifiedEmail()) {
             $this->addError('replyBody', 'You must verify your email address before commenting.');
+
             return;
         }
 
@@ -106,7 +117,7 @@ class Comments extends Component
             'replyBody' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
-        if (!$this->validateRecaptcha('comment_reply')) {
+        if (! $this->validateRecaptcha('comment_reply')) {
             return;
         }
 

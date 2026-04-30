@@ -172,7 +172,7 @@ class PostsList extends Component
         }
 
         if ($this->search !== '') {
-            $query->where('title', 'like', '%' . $this->search . '%');
+            $query->where('title', 'like', '%'.$this->search.'%');
         }
 
         $query->orderBy($this->sortField, $this->sortDirection);
@@ -184,7 +184,7 @@ class PostsList extends Component
     {
         Post::whereIn('id', $this->selectedPosts)->delete();
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts moved to trash.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts moved to trash.');
     }
 
     protected function bulkPublish(): void
@@ -194,7 +194,7 @@ class PostsList extends Component
             'published_at' => now(),
         ]);
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts published.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts published.');
     }
 
     protected function bulkUnpublish(): void
@@ -204,6 +204,6 @@ class PostsList extends Component
             'published_at' => null,
         ]);
 
-        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts) . ' posts unpublished.');
+        $this->dispatch('notify', type: 'success', message: count($this->selectedPosts).' posts unpublished.');
     }
 }

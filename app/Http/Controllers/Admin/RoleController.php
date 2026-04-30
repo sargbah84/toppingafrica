@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -40,8 +41,8 @@ class RoleController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'          => ['required', 'string', 'max:255', 'unique:roles,name'],
-            'permissions'   => ['nullable', 'array'],
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
@@ -73,8 +74,8 @@ class RoleController extends Controller
     public function update(Request $request, Role $role): RedirectResponse
     {
         $validated = $request->validate([
-            'name'          => ['required', 'string', 'max:255', 'unique:roles,name,' . $role->id],
-            'permissions'   => ['nullable', 'array'],
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name,'.$role->id],
+            'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
@@ -104,18 +105,18 @@ class RoleController extends Controller
     /**
      * Group permissions by their prefix (e.g., "manage", "create", "edit").
      *
-     * @return array<string, \Illuminate\Support\Collection>
+     * @return array<string, Collection>
      */
     private function groupPermissions(\Illuminate\Database\Eloquent\Collection $permissions): array
     {
         $groups = [
-            'Posts'       => ['manage posts', 'create posts', 'edit posts', 'delete posts', 'publish posts'],
-            'Content'     => ['manage categories', 'manage tags', 'manage pages', 'manage menus'],
-            'Comments'    => ['manage comments', 'moderate comments'],
-            'Media'       => ['manage media'],
-            'Marketing'   => ['manage ads', 'manage newsletters'],
-            'Users'       => ['manage users'],
-            'System'      => ['manage settings', 'view analytics', 'use ai tools'],
+            'Posts' => ['manage posts', 'create posts', 'edit posts', 'delete posts', 'publish posts'],
+            'Content' => ['manage categories', 'manage tags', 'manage pages', 'manage menus'],
+            'Comments' => ['manage comments', 'moderate comments'],
+            'Media' => ['manage media'],
+            'Marketing' => ['manage ads', 'manage newsletters'],
+            'Users' => ['manage users'],
+            'System' => ['manage settings', 'view analytics', 'use ai tools'],
         ];
 
         $grouped = [];

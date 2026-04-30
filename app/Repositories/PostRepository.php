@@ -41,6 +41,7 @@ final class PostRepository
     public function update(Post $post, array $data): Post
     {
         $post->update($data);
+
         return $post->fresh();
     }
 

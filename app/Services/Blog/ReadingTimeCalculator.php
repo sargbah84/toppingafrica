@@ -26,7 +26,7 @@ final class ReadingTimeCalculator
     {
         $minutes = $this->calculate($content);
 
-        return $minutes . ' min read';
+        return $minutes.' min read';
     }
 
     private function stripHtmlAndFormatting(string $content): string

@@ -86,18 +86,18 @@ final class MediaService
             $disk = config('livewire.temporary_file_upload.disk', 'local');
 
             $realPath = $file->getRealPath();
-            if (!empty($realPath) && $realPath !== false && file_exists($realPath)) {
+            if (! empty($realPath) && $realPath !== false && file_exists($realPath)) {
                 return $realPath;
             }
 
             $path = $file->path();
             $fullPath = Storage::disk($disk)->path($path);
-            if (!empty($fullPath) && file_exists($fullPath)) {
+            if (! empty($fullPath) && file_exists($fullPath)) {
                 return $fullPath;
             }
 
             $pathName = $file->getPathname();
-            if (!empty($pathName) && file_exists($pathName)) {
+            if (! empty($pathName) && file_exists($pathName)) {
                 return $pathName;
             }
 
@@ -105,17 +105,17 @@ final class MediaService
         }
 
         $pathName = $file->getPathname();
-        if (!empty($pathName) && file_exists($pathName)) {
+        if (! empty($pathName) && file_exists($pathName)) {
             return $pathName;
         }
 
         $realPath = $file->getRealPath();
-        if (!empty($realPath) && $realPath !== false && file_exists($realPath)) {
+        if (! empty($realPath) && $realPath !== false && file_exists($realPath)) {
             return $realPath;
         }
 
         $path = $file->path();
-        if (!empty($path) && file_exists($path)) {
+        if (! empty($path) && file_exists($path)) {
             return $path;
         }
 

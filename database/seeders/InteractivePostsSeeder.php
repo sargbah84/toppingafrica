@@ -7,7 +7,6 @@ namespace Database\Seeders;
 use App\Models\Category;
 use App\Models\Post;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class InteractivePostsSeeder extends Seeder
 {
@@ -275,7 +274,7 @@ class InteractivePostsSeeder extends Seeder
             'reading_time' => 2,
         ]));
 
-        if (!empty($categorySlugs)) {
+        if (! empty($categorySlugs)) {
             $categoryIds = Category::whereIn('slug', $categorySlugs)->pluck('id');
             $post->categories()->sync($categoryIds);
         }

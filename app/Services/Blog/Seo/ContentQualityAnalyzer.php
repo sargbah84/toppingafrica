@@ -57,6 +57,7 @@ final class ContentQualityAnalyzer
             ];
         } catch (\Exception $e) {
             Log::warning('Content quality analysis failed', ['error' => $e->getMessage()]);
+
             return ['score' => 0, 'word_count' => 0, 'sub_scores' => []];
         }
     }
@@ -146,6 +147,7 @@ final class ContentQualityAnalyzer
             if ($wordCount >= 20) {
                 return 60;
             }
+
             return 40;
         }
 
@@ -157,6 +159,7 @@ final class ContentQualityAnalyzer
 
         if ($wordCount > $targets['max']) {
             $excess = $wordCount - $targets['max'];
+
             return max(60, 100 - (int) round($excess / 100));
         }
 
@@ -215,17 +218,17 @@ final class ContentQualityAnalyzer
         $variations = 0;
 
         // Plural/singular variations
-        if (stripos($text, $keyword . 's') !== false || stripos($text, rtrim($keyword, 's')) !== false) {
+        if (stripos($text, $keyword.'s') !== false || stripos($text, rtrim($keyword, 's')) !== false) {
             $variations++;
         }
 
         // -ing form
-        if (stripos($text, $keyword . 'ing') !== false) {
+        if (stripos($text, $keyword.'ing') !== false) {
             $variations++;
         }
 
         // -ed form
-        if (stripos($text, $keyword . 'ed') !== false) {
+        if (stripos($text, $keyword.'ed') !== false) {
             $variations++;
         }
 

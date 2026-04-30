@@ -14,54 +14,85 @@ class PopupManager extends Component
 {
     // Modal state
     public bool $showModal = false;
+
     public ?int $editingPopupId = null;
+
     public string $activeTab = 'content';
 
     // Core fields
     public string $name = '';
+
     public string $type = 'modal';
+
     public string $content = '';
+
     public bool $is_active = true;
 
     // Trigger settings
     public string $trigger_type = 'page_load';
+
     public ?string $trigger_value = null;
+
     public int $frequency_days = 0;
 
     // Display rules
     public string $display_on = 'all_pages';
+
     public array $show_on_pages = [];
+
     public string $showOnPageInput = '';
+
     public array $showOnPageResults = [];
+
     public array $exclude_pages = [];
+
     public string $excludePageInput = '';
+
     public array $excludePageResults = [];
+
     public string $device = 'all';
+
     public string $visibility = 'frontend';
+
     public int $priority = 10;
 
     // Style settings
     public string $position = 'center';
+
     public int $width_px = 600;
+
     public int $max_width_vw = 90;
+
     public string $animation = 'fade_in';
+
     public bool $show_overlay = true;
+
     public bool $close_on_overlay_click = true;
+
     public bool $show_close_button = true;
+
     public string $shadow = 'lg';
+
     public int $border_radius = 12;
+
     public int $border_width = 0;
+
     public string $border_color = '#e5e7eb';
+
     public int $padding = 0;
+
     public string $bg_color = '#ffffff';
+
     public string $overlay_color = 'rgba(0,0,0,0.6)';
 
     // Scheduling
     public ?string $starts_at = null;
+
     public ?string $ends_at = null;
 
     // Delete confirmation
     public bool $showDeleteConfirm = false;
+
     public ?int $deletePopupId = null;
 
     public array $types = [
@@ -238,7 +269,7 @@ class PopupManager extends Component
             $popup->update($data);
             $this->dispatch('notify', type: 'success', message: 'Popup updated.');
         } else {
-            $data['slug'] = Str::slug($this->name) . '-' . Str::random(6);
+            $data['slug'] = Str::slug($this->name).'-'.Str::random(6);
             Popup::create($data);
             $this->dispatch('notify', type: 'success', message: 'Popup created.');
         }
@@ -316,7 +347,7 @@ class PopupManager extends Component
             if ($uri === '/') {
                 $uri = '/';
             } else {
-                $uri = '/' . $uri;
+                $uri = '/'.$uri;
             }
 
             $name = $route->getName() ?? $uri;
@@ -335,16 +366,16 @@ class PopupManager extends Component
             $posts = Post::where('status', 'published')
                 ->where(function ($q) use ($query) {
                     $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('slug', 'like', "%{$query}%");
+                        ->orWhere('slug', 'like', "%{$query}%");
                 })
                 ->limit(10)
                 ->get(['title', 'slug']);
 
             foreach ($posts as $post) {
-                $path = '/' . $post->slug;
+                $path = '/'.$post->slug;
                 $pages[$path] = [
                     'path' => $path,
-                    'label' => $path . ' — ' . Str::limit($post->title, 40),
+                    'label' => $path.' — '.Str::limit($post->title, 40),
                     'type' => 'post',
                 ];
             }
@@ -370,29 +401,29 @@ class PopupManager extends Component
                 if (str_contains($segment, '{')) {
                     break;
                 }
-                $path .= '/' . $segment;
+                $path .= '/'.$segment;
                 $prefixes[$path] = true;
             }
         }
 
         foreach (array_keys($prefixes) as $prefix) {
-            $pattern = $prefix . '/*';
+            $pattern = $prefix.'/*';
             if (! isset($pages[$pattern]) && str_contains(strtolower($pattern), $query)) {
                 $label = str_replace('/', ' ', trim($prefix, '/'));
                 $pages[$pattern] = [
                     'path' => $pattern,
-                    'label' => $pattern . ' — All ' . $label . ' pages',
+                    'label' => $pattern.' — All '.$label.' pages',
                     'type' => 'wildcard',
                 ];
             }
         }
 
         // If the user typed a custom path with wildcard, always show it as an option
-        $trimmedQuery = '/' . ltrim($query, '/');
+        $trimmedQuery = '/'.ltrim($query, '/');
         if (str_contains($query, '*') && ! isset($pages[$trimmedQuery])) {
             array_unshift($pages, [
                 'path' => $trimmedQuery,
-                'label' => $trimmedQuery . ' — Custom wildcard pattern',
+                'label' => $trimmedQuery.' — Custom wildcard pattern',
                 'type' => 'wildcard',
             ]);
         }
@@ -404,7 +435,7 @@ class PopupManager extends Component
     {
         $popup = Popup::findOrFail($popupId);
         $this->resetForm();
-        $this->name = $popup->name . ' (Copy)';
+        $this->name = $popup->name.' (Copy)';
         $this->type = $popup->type;
         $this->content = $popup->content ?? '';
         $this->trigger_type = $popup->trigger_type;

@@ -36,7 +36,7 @@ class ImageUploadController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Upload failed: ' . $e->getMessage(),
+                'error' => 'Upload failed: '.$e->getMessage(),
             ], 500);
         }
     }

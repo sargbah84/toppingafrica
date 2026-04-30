@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\Blog\CategoryController;
 use App\Http\Controllers\Admin\Blog\PostController;
 use App\Http\Controllers\Admin\Blog\TagController;
-use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ImageUploadController;
 use App\Http\Controllers\Admin\NewsletterController;

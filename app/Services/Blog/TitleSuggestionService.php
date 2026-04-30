@@ -54,6 +54,7 @@ final class TitleSuggestionService
     public function getCachedTitles(string $niche = 'africa-news'): ?array
     {
         $cacheKey = "blog_title_suggestions_{$niche}";
+
         return Cache::get($cacheKey);
     }
 
@@ -95,7 +96,7 @@ final class TitleSuggestionService
             $prompt = $this->buildPrompt($nicheDescription, $count);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->post('https://api.perplexity.ai/chat/completions', [
                 'model' => config('blog.ai.providers.perplexity.model', 'sonar-pro'),
@@ -113,18 +114,21 @@ final class TitleSuggestionService
                 'temperature' => 0.7,
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('Perplexity title suggestion failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+
                 return [];
             }
 
             $content = $response->json('choices.0.message.content', '');
+
             return $this->parseJsonResponse($content);
         } catch (\Exception $e) {
             Log::error('Perplexity title suggestion error', ['error' => $e->getMessage()]);
+
             return [];
         }
     }
@@ -141,7 +145,7 @@ final class TitleSuggestionService
             $prompt = $this->buildPrompt($nicheDescription, $count);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->post('https://api.openai.com/v1/chat/completions', [
                 'model' => config('blog.ai.providers.openai.model', 'gpt-4o'),
@@ -159,18 +163,21 @@ final class TitleSuggestionService
                 'temperature' => 0.7,
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::error('OpenAI title suggestion failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+
                 return [];
             }
 
             $content = $response->json('choices.0.message.content', '');
+
             return $this->parseJsonResponse($content);
         } catch (\Exception $e) {
             Log::error('OpenAI title suggestion error', ['error' => $e->getMessage()]);
+
             return [];
         }
     }
@@ -219,7 +226,7 @@ PROMPT;
         try {
             $data = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
 
-            if (!is_array($data)) {
+            if (! is_array($data)) {
                 return [];
             }
 
@@ -230,12 +237,13 @@ PROMPT;
                     'category' => $item['category'] ?? 'General',
                     'type' => $item['type'] ?? 'article',
                 ];
-            }, array_filter($data, fn ($item) => !empty($item['title'])));
+            }, array_filter($data, fn ($item) => ! empty($item['title'])));
         } catch (\JsonException $e) {
             Log::warning('Failed to parse title suggestions JSON', [
                 'content' => substr($content, 0, 500),
                 'error' => $e->getMessage(),
             ]);
+
             return [];
         }
     }
@@ -258,7 +266,7 @@ PROMPT;
         $usedTitles = $this->getUsedTitles();
         $normalizedTitle = $this->normalizeTitle($title);
 
-        if (!in_array($normalizedTitle, $usedTitles, true)) {
+        if (! in_array($normalizedTitle, $usedTitles, true)) {
             $usedTitles[] = $normalizedTitle;
             Cache::forever('blog_used_titles', $usedTitles);
         }
@@ -272,6 +280,7 @@ PROMPT;
     public function isUsedTitle(string $title): bool
     {
         $normalizedTitle = $this->normalizeTitle($title);
+
         return in_array($normalizedTitle, $this->getUsedTitles(), true);
     }
 

@@ -13,15 +13,25 @@ use Livewire\Component;
 class SeoAnalysisPanel extends Component
 {
     public ?int $postId = null;
+
     public ?array $analysis = null;
+
     public bool $isAnalyzing = false;
+
     public bool $showAnalysisModal = false;
+
     public bool $showFullReport = false;
+
     public bool $showApplyPreview = false;
+
     public bool $isApplying = false;
+
     public ?string $errorMessage = null;
+
     public ?string $successMessage = null;
+
     public string $activeTab = 'strengths';
+
     public array $applyPreview = [];
 
     public function mount(?int $postId = null): void

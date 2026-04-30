@@ -57,7 +57,7 @@ class PollVote extends Model
             'post_id' => $post->id,
             'user_id' => $userId,
             'option_index' => $optionIndex,
-            'ip_hash' => hash('sha256', $ip . config('app.key')),
+            'ip_hash' => hash('sha256', $ip.config('app.key')),
             'created_at' => now(),
         ]);
 

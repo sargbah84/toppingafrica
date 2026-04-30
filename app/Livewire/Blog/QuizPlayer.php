@@ -11,8 +11,11 @@ use Livewire\Component;
 class QuizPlayer extends Component
 {
     public Post $post;
+
     public array $questions = [];
+
     public int $passingScore = 70;
+
     public bool $showAnswers = true;
 
     public function mount(Post $post): void

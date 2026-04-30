@@ -23,10 +23,12 @@ class TagManager extends Component
 
     // Form fields
     public string $name = '';
+
     public string $slug = '';
 
     // Edit state
     public ?int $editingTagId = null;
+
     public bool $showForm = false;
 
     public int $perPage = 25;
@@ -114,7 +116,7 @@ class TagManager extends Component
         return Tag::query()
             ->withCount('posts')
             ->when($this->search !== '', function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%');
+                $query->where('name', 'like', '%'.$this->search.'%');
             })
             ->orderBy('name')
             ->paginate($this->perPage);

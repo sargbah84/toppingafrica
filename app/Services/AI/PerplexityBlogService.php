@@ -14,7 +14,9 @@ final class PerplexityBlogService implements BlogGeneratorInterface
     use TracksAiUsage;
 
     private string $apiKey;
+
     private string $model;
+
     private int $maxTokens;
 
     public function __construct()
@@ -41,7 +43,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(120)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $this->model,
@@ -61,7 +63,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'perplexity', $this->model, 'blog-generation', false, $durationMs, $response->body());
                 $errorBody = $response->json() ?? [];
                 $errorMessage = $errorBody['error']['message'] ?? $response->body();
@@ -83,7 +85,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
                     throw new \RuntimeException('Perplexity API rate limit exceeded. Please try again later.');
                 }
 
-                throw new \RuntimeException('Perplexity API error: ' . $errorMessage);
+                throw new \RuntimeException('Perplexity API error: '.$errorMessage);
             }
 
             $this->trackUsage($response, 'perplexity', $this->model, 'blog-generation', true, $durationMs);
@@ -119,7 +121,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $startTime = microtime(true);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Authorization' => 'Bearer '.$this->apiKey,
                 'Content-Type' => 'application/json',
             ])->withoutVerifying()->timeout(60)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $this->model,
@@ -139,7 +141,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $this->trackUsage($response, 'perplexity', $this->model, 'blog-social-sharing', false, $durationMs, $response->body());
                 throw new \RuntimeException('Failed to generate social sharing posts');
             }
@@ -147,6 +149,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $this->trackUsage($response, 'perplexity', $this->model, 'blog-social-sharing', true, $durationMs);
 
             $content = $this->extractJson($response->json('choices.0.message.content'));
+
             return json_decode($content, true) ?? [];
         } catch (\Exception $e) {
             Log::error('Perplexity social sharing generation failed', [
@@ -306,7 +309,7 @@ POLL,
             $keyword = $trend['keyword'] ?? '';
             $type = $trend['type'] ?? 'top';
             $value = $trend['formatted_value'] ?? $trend['value'] ?? '';
-            if (!empty($keyword)) {
+            if (! empty($keyword)) {
                 $lines[] = "- {$keyword} ({$type}, score: {$value})";
             }
         }
@@ -369,7 +372,7 @@ PROMPT;
         return [
             'title' => $request->topic,
             'body' => $content,
-            'excerpt' => substr(strip_tags($content), 0, 160) . '...',
+            'excerpt' => substr(strip_tags($content), 0, 160).'...',
             'meta_title' => substr($request->topic, 0, 60),
             'meta_description' => substr(strip_tags($content), 0, 160),
             'focus_keyword' => strtolower(explode(' ', $request->topic)[0] ?? ''),

@@ -52,13 +52,14 @@ final class OnPageElementsAnalyzer
             ];
         } catch (\Exception $e) {
             Log::warning('On-page elements analysis failed', ['error' => $e->getMessage()]);
+
             return ['score' => 0, 'sub_scores' => []];
         }
     }
 
     private function analyzeFeaturedImage(?string $featuredImage): array
     {
-        $exists = !empty($featuredImage);
+        $exists = ! empty($featuredImage);
 
         return [
             'score' => $exists ? 100 : 0,
@@ -156,10 +157,10 @@ final class OnPageElementsAnalyzer
 
     private function analyzeExcerpt(?string $excerpt): array
     {
-        $exists = !empty(trim($excerpt ?? ''));
+        $exists = ! empty(trim($excerpt ?? ''));
         $length = mb_strlen(trim($excerpt ?? ''));
 
-        if (!$exists) {
+        if (! $exists) {
             return ['score' => 0, 'exists' => false, 'length' => 0];
         }
 

@@ -6,8 +6,11 @@ namespace App\Services\Blog\Seo;
 
 use App\Models\Post;
 use App\Models\SeoAnalysis;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 final class SeoIntelligenceService
 {
@@ -36,7 +39,7 @@ final class SeoIntelligenceService
         }
 
         // Combine type_data content for analysis
-        $combinedContent = $content . $this->extractTypeDataContent($post);
+        $combinedContent = $content.$this->extractTypeDataContent($post);
         $postType = $post->post_type ?? 'article';
         $isInteractive = in_array($postType, ['quiz', 'trivia', 'poll', 'video']);
 
@@ -131,12 +134,12 @@ final class SeoIntelligenceService
         $cooldown = $this->config['rate_limit']['cooldown_seconds'] ?? 1800;
         $lastAnalysis = $this->getLatestAnalysis($post);
 
-        if (!$lastAnalysis) {
+        if (! $lastAnalysis) {
             return true;
         }
 
         // Allow immediate re-analysis after applying recommendations
-        if (!empty($lastAnalysis->applied_recommendations)) {
+        if (! empty($lastAnalysis->applied_recommendations)) {
             return true;
         }
 
@@ -148,12 +151,12 @@ final class SeoIntelligenceService
         $cooldown = $this->config['rate_limit']['cooldown_seconds'] ?? 1800;
         $lastAnalysis = $this->getLatestAnalysis($post);
 
-        if (!$lastAnalysis) {
+        if (! $lastAnalysis) {
             return 0;
         }
 
         // No cooldown after applying recommendations
-        if (!empty($lastAnalysis->applied_recommendations)) {
+        if (! empty($lastAnalysis->applied_recommendations)) {
             return 0;
         }
 
@@ -202,7 +205,7 @@ final class SeoIntelligenceService
         $applied = [];
 
         // 1. Apply AI-optimized meta title
-        if (!empty($aiOptimizations['meta_title'])) {
+        if (! empty($aiOptimizations['meta_title'])) {
             $newTitle = $aiOptimizations['meta_title'];
             if ($newTitle !== ($post->meta_title ?: $post->title)) {
                 $oldLen = mb_strlen($post->meta_title ?: $post->title);
@@ -218,12 +221,12 @@ final class SeoIntelligenceService
         }
 
         // 2. Apply AI-optimized meta description
-        if (!empty($aiOptimizations['meta_description'])) {
+        if (! empty($aiOptimizations['meta_description'])) {
             $newDesc = $aiOptimizations['meta_description'];
             if ($newDesc !== $post->meta_description) {
                 $applied[] = [
                     'type' => 'meta_description',
-                    'description' => 'Meta Description: Optimized (' . mb_strlen($newDesc) . ' chars)',
+                    'description' => 'Meta Description: Optimized ('.mb_strlen($newDesc).' chars)',
                     'old' => $post->meta_description ?: '',
                     'new' => $newDesc,
                 ];
@@ -232,7 +235,7 @@ final class SeoIntelligenceService
         }
 
         // 3. Apply AI-optimized content
-        if (!empty($aiOptimizations['optimized_content'])) {
+        if (! empty($aiOptimizations['optimized_content'])) {
             $newContent = $aiOptimizations['optimized_content'];
 
             // Handle truncated content re-attachment
@@ -241,7 +244,7 @@ final class SeoIntelligenceService
                 $optimizedPart = str_replace($truncationMarker, '', $newContent);
                 $originalTruncPoint = min(20000, mb_strlen($post->content));
                 $remainingOriginal = mb_substr($post->content, $originalTruncPoint);
-                $newContent = !empty($remainingOriginal) ? $optimizedPart . $remainingOriginal : $optimizedPart;
+                $newContent = ! empty($remainingOriginal) ? $optimizedPart.$remainingOriginal : $optimizedPart;
             }
 
             if ($newContent !== $post->content) {
@@ -258,7 +261,7 @@ final class SeoIntelligenceService
                     $changes = $aiOptimizations['content_changes'] ?? ['Incorporated keywords and improved structure'];
                     $applied[] = [
                         'type' => 'content_optimization',
-                        'description' => 'Content: ' . implode(', ', array_slice($changes, 0, 3)),
+                        'description' => 'Content: '.implode(', ', array_slice($changes, 0, 3)),
                         'old' => '',
                         'new' => 'Content optimized with AI',
                     ];
@@ -271,12 +274,12 @@ final class SeoIntelligenceService
         $currentInternalLinks = $this->countInternalLinksInContent($post->content);
         if ($currentInternalLinks < 3) {
             $suggestedLinks = $this->suggestInternalLinks($post);
-            if (!empty($suggestedLinks)) {
+            if (! empty($suggestedLinks)) {
                 $linkHtml = $this->buildInternalLinksSection($suggestedLinks);
-                $post->content = $post->content . $linkHtml;
+                $post->content = $post->content.$linkHtml;
                 $applied[] = [
                     'type' => 'internal_links',
-                    'description' => 'Added ' . count($suggestedLinks) . ' internal links',
+                    'description' => 'Added '.count($suggestedLinks).' internal links',
                     'old' => '',
                     'new' => $linkHtml,
                 ];
@@ -284,16 +287,18 @@ final class SeoIntelligenceService
         }
 
         // 5. Add keyword suggestions as tags
-        if (!empty($keywordSuggestions)) {
+        if (! empty($keywordSuggestions)) {
             $existingTags = $post->tags->pluck('name')->map(fn ($n) => strtolower($n))->toArray();
             $addedTags = [];
             $addedNames = [];
 
             foreach ($keywordSuggestions as $keyword) {
-                if (count($addedTags) >= 4) break;
-                if (!in_array(strtolower($keyword), $existingTags)) {
-                    $tag = \App\Models\Tag::firstOrCreate(
-                        ['slug' => \Illuminate\Support\Str::slug($keyword)],
+                if (count($addedTags) >= 4) {
+                    break;
+                }
+                if (! in_array(strtolower($keyword), $existingTags)) {
+                    $tag = Tag::firstOrCreate(
+                        ['slug' => Str::slug($keyword)],
                         ['name' => $keyword]
                     );
                     $addedTags[] = $tag->id;
@@ -301,11 +306,11 @@ final class SeoIntelligenceService
                 }
             }
 
-            if (!empty($addedTags)) {
+            if (! empty($addedTags)) {
                 $post->tags()->syncWithoutDetaching($addedTags);
                 $applied[] = [
                     'type' => 'tags',
-                    'description' => 'Added ' . count($addedTags) . ' keyword suggestions as tags',
+                    'description' => 'Added '.count($addedTags).' keyword suggestions as tags',
                     'old' => '',
                     'new' => implode(', ', $addedNames),
                 ];
@@ -313,7 +318,7 @@ final class SeoIntelligenceService
         }
 
         // Save
-        if (!empty($applied)) {
+        if (! empty($applied)) {
             $post->save();
             $analysis->update(['applied_recommendations' => $applied]);
         }
@@ -335,10 +340,10 @@ final class SeoIntelligenceService
         $focusKeyword = $post->focus_keyword ?? '';
         $currentMetaTitle = $post->meta_title ?: $post->title;
         $currentMetaDesc = $post->meta_description ?: '';
-        $keywordsStr = !empty($keywordSuggestions) ? implode(', ', $keywordSuggestions) : 'none provided';
-        $improvementsStr = !empty($improvements) ? implode("\n- ", $improvements) : 'none';
+        $keywordsStr = ! empty($keywordSuggestions) ? implode(', ', $keywordSuggestions) : 'none provided';
+        $improvementsStr = ! empty($improvements) ? implode("\n- ", $improvements) : 'none';
         $headerIssues = $technicalDetails['header_issues'] ?? [];
-        $headerIssuesStr = !empty($headerIssues) ? implode("\n- ", $headerIssues) : 'none';
+        $headerIssuesStr = ! empty($headerIssues) ? implode("\n- ", $headerIssues) : 'none';
 
         // Build readability context
         $readabilityIssues = [];
@@ -349,13 +354,25 @@ final class SeoIntelligenceService
         $complexWordPct = $readabilityDetails['complex_word_percentage'] ?? 0;
         $avgParagraphLength = $readabilityDetails['avg_paragraph_length'] ?? 0;
 
-        if ($fleschScore < 60) $readabilityIssues[] = "Flesch Reading Ease is {$fleschScore} (target: 60-80). Simplify language.";
-        if ($avgSentenceLength > 20) $readabilityIssues[] = "Avg sentence length is {$avgSentenceLength} words (target: 15-20). Break long sentences.";
-        if ($passiveVoicePct > 15) $readabilityIssues[] = "Passive voice at {$passiveVoicePct}% (target: <15%). Use active voice.";
-        if ($transitionWordPct < 25) $readabilityIssues[] = "Transition words at {$transitionWordPct}% (target: 25%+). Add: however, furthermore, additionally, therefore.";
-        if ($complexWordPct > 15) $readabilityIssues[] = "Complex words at {$complexWordPct}% (target: <15%). Use simpler alternatives.";
-        if ($avgParagraphLength > 5) $readabilityIssues[] = "Avg paragraph length is {$avgParagraphLength} sentences (target: 3-5). Break up paragraphs.";
-        $readabilityStr = !empty($readabilityIssues) ? implode("\n- ", $readabilityIssues) : 'none';
+        if ($fleschScore < 60) {
+            $readabilityIssues[] = "Flesch Reading Ease is {$fleschScore} (target: 60-80). Simplify language.";
+        }
+        if ($avgSentenceLength > 20) {
+            $readabilityIssues[] = "Avg sentence length is {$avgSentenceLength} words (target: 15-20). Break long sentences.";
+        }
+        if ($passiveVoicePct > 15) {
+            $readabilityIssues[] = "Passive voice at {$passiveVoicePct}% (target: <15%). Use active voice.";
+        }
+        if ($transitionWordPct < 25) {
+            $readabilityIssues[] = "Transition words at {$transitionWordPct}% (target: 25%+). Add: however, furthermore, additionally, therefore.";
+        }
+        if ($complexWordPct > 15) {
+            $readabilityIssues[] = "Complex words at {$complexWordPct}% (target: <15%). Use simpler alternatives.";
+        }
+        if ($avgParagraphLength > 5) {
+            $readabilityIssues[] = "Avg paragraph length is {$avgParagraphLength} sentences (target: 3-5). Break up paragraphs.";
+        }
+        $readabilityStr = ! empty($readabilityIssues) ? implode("\n- ", $readabilityIssues) : 'none';
 
         // Keyword density context
         $keywordDensity = $contentDetails['keyword_density'] ?? 0;
@@ -368,18 +385,24 @@ final class SeoIntelligenceService
 
         // Engagement context
         $engagementIssues = [];
-        if (($engagementDetails['external_links_count'] ?? 0) < 2) $engagementIssues[] = 'Add 2-3 external links to authoritative sources.';
-        if (!($onPageDetails['has_lists'] ?? false)) $engagementIssues[] = 'Add bullet/numbered lists for scannability.';
-        if (($onPageDetails['header_count'] ?? 0) < 3) $engagementIssues[] = 'Add more H2/H3 subheadings.';
-        $engagementStr = !empty($engagementIssues) ? implode("\n- ", $engagementIssues) : 'none';
-        $contentRecsStr = !empty($contentRecommendations) ? implode("\n- ", $contentRecommendations) : 'none';
+        if (($engagementDetails['external_links_count'] ?? 0) < 2) {
+            $engagementIssues[] = 'Add 2-3 external links to authoritative sources.';
+        }
+        if (! ($onPageDetails['has_lists'] ?? false)) {
+            $engagementIssues[] = 'Add bullet/numbered lists for scannability.';
+        }
+        if (($onPageDetails['header_count'] ?? 0) < 3) {
+            $engagementIssues[] = 'Add more H2/H3 subheadings.';
+        }
+        $engagementStr = ! empty($engagementIssues) ? implode("\n- ", $engagementIssues) : 'none';
+        $contentRecsStr = ! empty($contentRecommendations) ? implode("\n- ", $contentRecommendations) : 'none';
         $imageCount = $onPageDetails['image_count'] ?? 0;
 
         // Truncate long content for AI
         $contentForPrompt = $post->content;
         $isLongContent = mb_strlen($contentForPrompt) > 20000;
         if ($isLongContent) {
-            $contentForPrompt = mb_substr($contentForPrompt, 0, 20000) . "\n\n[... CONTENT TRUNCATED ...]";
+            $contentForPrompt = mb_substr($contentForPrompt, 0, 20000)."\n\n[... CONTENT TRUNCATED ...]";
         }
         $truncationWarning = $isLongContent
             ? "\n\nCRITICAL: Content was truncated. Include ALL shown content. Append <!--TRUNCATED_CONTENT_CONTINUES--> at the end."
@@ -496,14 +519,14 @@ PROMPT;
     private function callAnthropicApi(string $systemPrompt, string $userPrompt): ?string
     {
         $apiKey = config('blog.ai.providers.anthropic.api_key') ?: env('ANTHROPIC_API_KEY');
-        if (!$apiKey) {
+        if (! $apiKey) {
             // Try OpenAI as fallback
             return $this->callOpenAiApi($systemPrompt, $userPrompt);
         }
 
         $model = config('blog.ai.providers.anthropic.model', 'claude-sonnet-4-6');
 
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
+        $response = Http::withHeaders([
             'x-api-key' => $apiKey,
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
@@ -521,16 +544,19 @@ PROMPT;
         }
 
         Log::error('Anthropic API error', ['status' => $response->status(), 'body' => $response->body()]);
+
         return null;
     }
 
     private function callOpenAiApi(string $systemPrompt, string $userPrompt): ?string
     {
         $apiKey = config('blog.ai.providers.openai.api_key') ?: env('OPENAI_API_KEY');
-        if (!$apiKey) return null;
+        if (! $apiKey) {
+            return null;
+        }
 
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
             'Content-Type' => 'application/json',
         ])->timeout(120)->post('https://api.openai.com/v1/chat/completions', [
             'model' => config('blog.ai.providers.openai.model', 'gpt-4o'),
@@ -546,6 +572,7 @@ PROMPT;
         }
 
         Log::error('OpenAI API error', ['status' => $response->status(), 'body' => $response->body()]);
+
         return null;
     }
 
@@ -553,18 +580,24 @@ PROMPT;
     {
         // Try direct JSON parse
         $decoded = json_decode($content, true);
-        if ($decoded) return $decoded;
+        if ($decoded) {
+            return $decoded;
+        }
 
         // Try extracting from markdown code block
         if (preg_match('/```(?:json)?\s*\n?(.*?)\n?\s*```/s', $content, $matches)) {
             $decoded = json_decode($matches[1], true);
-            if ($decoded) return $decoded;
+            if ($decoded) {
+                return $decoded;
+            }
         }
 
         // Try finding JSON object in text
         if (preg_match('/\{[\s\S]*"meta_title"[\s\S]*\}/m', $content, $matches)) {
             $decoded = json_decode($matches[0], true);
-            if ($decoded) return $decoded;
+            if ($decoded) {
+                return $decoded;
+            }
         }
 
         return null;
@@ -577,12 +610,16 @@ PROMPT;
 
         if (($technicalDetails['meta_title_status'] ?? '') !== 'optimal') {
             $optimized = $this->basicOptimizeMetaTitle($post->title, $post->focus_keyword);
-            if ($optimized) $result['meta_title'] = $optimized;
+            if ($optimized) {
+                $result['meta_title'] = $optimized;
+            }
         }
 
         if (($technicalDetails['meta_description_status'] ?? '') !== 'optimal') {
             $optimized = $this->basicOptimizeMetaDescription($post->title, $post->excerpt, $post->focus_keyword);
-            if ($optimized) $result['meta_description'] = $optimized;
+            if ($optimized) {
+                $result['meta_description'] = $optimized;
+            }
         }
 
         return $result;
@@ -599,27 +636,27 @@ PROMPT;
         $parts = [];
 
         // Quiz: extract question and answer text
-        if (!empty($typeData['questions'])) {
+        if (! empty($typeData['questions'])) {
             foreach ($typeData['questions'] as $q) {
                 $parts[] = $q['question'] ?? '';
                 foreach ($q['answers'] ?? [] as $a) {
                     $parts[] = $a['text'] ?? '';
                 }
-                if (!empty($q['explanation'])) {
+                if (! empty($q['explanation'])) {
                     $parts[] = $q['explanation'];
                 }
             }
         }
 
         // Trivia: extract fact text
-        if (!empty($typeData['facts'])) {
+        if (! empty($typeData['facts'])) {
             foreach ($typeData['facts'] as $fact) {
                 $parts[] = $fact['text'] ?? '';
             }
         }
 
         // Poll: extract option text
-        if (!empty($typeData['options'])) {
+        if (! empty($typeData['options'])) {
             foreach ($typeData['options'] as $option) {
                 $parts[] = $option['text'] ?? '';
             }
@@ -629,7 +666,7 @@ PROMPT;
             return '';
         }
 
-        return "\n\n" . implode("\n", array_filter($parts));
+        return "\n\n".implode("\n", array_filter($parts));
     }
 
     private function extractKeywordFromTitle(string $title): string
@@ -650,7 +687,8 @@ PROMPT;
         $words = preg_split('/\s+/', strtolower(trim($title)));
         $meaningful = array_filter($words, function ($word) use ($stopWords) {
             $clean = preg_replace('/[^a-z0-9]/', '', $word);
-            return strlen($clean) > 2 && !in_array($clean, $stopWords);
+
+            return strlen($clean) > 2 && ! in_array($clean, $stopWords);
         });
 
         // Take the first 3-4 meaningful words as the keyword phrase
@@ -671,7 +709,7 @@ PROMPT;
             $preview[] = [
                 'type' => 'meta_title',
                 'icon' => 'check',
-                'description' => 'Meta Title: Will optimize for SEO (' . mb_strlen($currentTitle) . ' chars -> 50-60 chars target)',
+                'description' => 'Meta Title: Will optimize for SEO ('.mb_strlen($currentTitle).' chars -> 50-60 chars target)',
                 'old' => $currentTitle,
                 'new' => 'Will be optimized',
             ];
@@ -698,22 +736,22 @@ PROMPT;
             $contentIssues[] = 'Add focus keyword naturally';
         }
         if ($keywordDensity > 2.0) {
-            $contentIssues[] = 'Reduce keyword density from ' . number_format($keywordDensity, 1) . '% to 1-2% (Google spam policy)';
+            $contentIssues[] = 'Reduce keyword density from '.number_format($keywordDensity, 1).'% to 1-2% (Google spam policy)';
         }
-        if (!($contentDetails['keyword_in_first_paragraph'] ?? false)) {
+        if (! ($contentDetails['keyword_in_first_paragraph'] ?? false)) {
             $contentIssues[] = 'Add keyword to first paragraph';
         }
-        if (!($contentDetails['keyword_in_headings'] ?? false)) {
+        if (! ($contentDetails['keyword_in_headings'] ?? false)) {
             $contentIssues[] = 'Add keyword to headings';
         }
 
         $keywordSuggestions = $analysis->keyword_suggestions ?? [];
-        if (!empty($keywordSuggestions)) {
-            $contentIssues[] = 'Weave in ' . count($keywordSuggestions) . ' semantic keywords';
+        if (! empty($keywordSuggestions)) {
+            $contentIssues[] = 'Weave in '.count($keywordSuggestions).' semantic keywords';
         }
 
         $headerIssues = $technicalDetails['header_issues'] ?? [];
-        if (!empty($headerIssues)) {
+        if (! empty($headerIssues)) {
             $contentIssues[] = 'Fix header hierarchy';
         }
 
@@ -739,15 +777,15 @@ PROMPT;
         if (($onPageDetails['header_count'] ?? 0) < 3) {
             $contentIssues[] = 'Add more subheadings';
         }
-        if (!($onPageDetails['has_lists'] ?? false)) {
+        if (! ($onPageDetails['has_lists'] ?? false)) {
             $contentIssues[] = 'Add bullet points/lists';
         }
 
-        if (!empty($contentIssues)) {
+        if (! empty($contentIssues)) {
             $preview[] = [
                 'type' => 'content_optimization',
                 'icon' => 'magic',
-                'description' => 'Content: Will ' . implode(', ', array_slice($contentIssues, 0, 5)),
+                'description' => 'Content: Will '.implode(', ', array_slice($contentIssues, 0, 5)),
                 'old' => '',
                 'new' => 'Content will be improved while preserving your voice and meaning',
             ];
@@ -756,11 +794,11 @@ PROMPT;
         // Internal links
         if (($engagementDetails['internal_links_count'] ?? 0) < 3) {
             $suggestedLinks = $this->suggestInternalLinks($post);
-            if (!empty($suggestedLinks)) {
+            if (! empty($suggestedLinks)) {
                 $preview[] = [
                     'type' => 'internal_links',
                     'icon' => 'link',
-                    'description' => 'Add ' . count($suggestedLinks) . ' internal links to related posts',
+                    'description' => 'Add '.count($suggestedLinks).' internal links to related posts',
                     'old' => '',
                     'new' => implode(', ', array_column($suggestedLinks, 'title')),
                 ];
@@ -768,14 +806,14 @@ PROMPT;
         }
 
         // Keyword suggestions as tags
-        if (!empty($keywordSuggestions)) {
+        if (! empty($keywordSuggestions)) {
             $existingTags = $post->tags->pluck('name')->map(fn ($n) => strtolower($n))->toArray();
-            $newKeywords = array_filter($keywordSuggestions, fn ($k) => !in_array(strtolower($k), $existingTags));
-            if (!empty($newKeywords)) {
+            $newKeywords = array_filter($keywordSuggestions, fn ($k) => ! in_array(strtolower($k), $existingTags));
+            if (! empty($newKeywords)) {
                 $preview[] = [
                     'type' => 'tags',
                     'icon' => 'tags',
-                    'description' => 'Add ' . count($newKeywords) . ' keyword suggestions as post tags',
+                    'description' => 'Add '.count($newKeywords).' keyword suggestions as post tags',
                     'old' => '',
                     'new' => implode(', ', $newKeywords),
                 ];
@@ -824,13 +862,14 @@ PROMPT;
 
         // If too long, truncate intelligently
         if ($currentLength > $targets['max']) {
-            $truncated = mb_substr($title, 0, $targets['max'] - 3) . '...';
+            $truncated = mb_substr($title, 0, $targets['max'] - 3).'...';
+
             return $truncated;
         }
 
         // If too short and we have a keyword, append it
-        if ($currentLength < $targets['min'] && !empty($keyword)) {
-            $withKeyword = $title . ' | ' . ucfirst($keyword);
+        if ($currentLength < $targets['min'] && ! empty($keyword)) {
+            $withKeyword = $title.' | '.ucfirst($keyword);
             if (mb_strlen($withKeyword) <= $targets['max']) {
                 return $withKeyword;
             }
@@ -843,7 +882,7 @@ PROMPT;
     {
         $targets = $this->config['targets']['meta_description_length'] ?? ['min' => 150, 'max' => 160];
 
-        if (!empty($excerpt) && mb_strlen($excerpt) >= $targets['min'] && mb_strlen($excerpt) <= $targets['max']) {
+        if (! empty($excerpt) && mb_strlen($excerpt) >= $targets['min'] && mb_strlen($excerpt) <= $targets['max']) {
             return null; // Already optimal
         }
 
@@ -852,13 +891,13 @@ PROMPT;
         $description = $base;
 
         // Ensure keyword is included
-        if (!empty($keyword) && stripos($description, $keyword) === false) {
-            $description .= '. Learn about ' . $keyword . '.';
+        if (! empty($keyword) && stripos($description, $keyword) === false) {
+            $description .= '. Learn about '.$keyword.'.';
         }
 
         // Adjust length
         if (mb_strlen($description) > $targets['max']) {
-            $description = mb_substr($description, 0, $targets['max'] - 3) . '...';
+            $description = mb_substr($description, 0, $targets['max'] - 3).'...';
         }
 
         if (mb_strlen($description) < $targets['min']) {
@@ -867,7 +906,7 @@ PROMPT;
 
         // Final trim
         if (mb_strlen($description) > $targets['max']) {
-            $description = mb_substr($description, 0, $targets['max'] - 3) . '...';
+            $description = mb_substr($description, 0, $targets['max'] - 3).'...';
         }
 
         return $description;
@@ -909,7 +948,7 @@ PROMPT;
             $relevance = 0;
 
             // Check keyword match
-            if (!empty($focusKeyword) && stripos($relatedTitle, $focusKeyword) !== false) {
+            if (! empty($focusKeyword) && stripos($relatedTitle, $focusKeyword) !== false) {
                 $relevance += 3;
             }
 
@@ -934,7 +973,7 @@ PROMPT;
             }
         }
 
-        usort($suggestions, fn($a, $b) => $b['relevance'] <=> $a['relevance']);
+        usort($suggestions, fn ($a, $b) => $b['relevance'] <=> $a['relevance']);
 
         return array_slice($suggestions, 0, 3);
     }
@@ -959,6 +998,6 @@ PROMPT;
     private function clearPostCache(int $postId): void
     {
         $prefix = $this->config['cache']['prefix'] ?? 'seo_intelligence_';
-        Cache::forget($prefix . 'post_' . $postId);
+        Cache::forget($prefix.'post_'.$postId);
     }
 }

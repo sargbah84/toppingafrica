@@ -66,6 +66,7 @@ final class TechnicalSeoAnalyzer
             ];
         } catch (\Exception $e) {
             Log::warning('Technical SEO analysis failed', ['error' => $e->getMessage()]);
+
             return ['score' => 0, 'sub_scores' => []];
         }
     }
@@ -177,7 +178,7 @@ final class TechnicalSeoAnalyzer
 
             // Check for hierarchy jumps (e.g., H2 -> H4 skipping H3)
             if ($prevLevel > 0 && $level > $prevLevel + 1) {
-                $issues[] = "Header hierarchy jump: H{$prevLevel} to H{$level} (skipped H" . ($prevLevel + 1) . ")";
+                $issues[] = "Header hierarchy jump: H{$prevLevel} to H{$level} (skipped H".($prevLevel + 1).')';
             }
 
             $prevLevel = $level;

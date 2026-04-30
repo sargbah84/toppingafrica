@@ -29,7 +29,7 @@ final class PostGeneratorService
         $service = match ($request->aiProvider) {
             'openai' => $this->openAiService,
             'perplexity' => $this->perplexityService,
-            default => throw new InvalidArgumentException('Invalid AI provider: ' . $request->aiProvider),
+            default => throw new InvalidArgumentException('Invalid AI provider: '.$request->aiProvider),
         };
 
         // Generate content using AI

@@ -42,7 +42,7 @@ class Category extends Model
         });
 
         static::updating(function (Category $category) {
-            if ($category->isDirty('name') && !$category->isDirty('slug')) {
+            if ($category->isDirty('name') && ! $category->isDirty('slug')) {
                 $category->slug = static::generateUniqueSlug($category->name, $category->id);
             }
         });
@@ -58,7 +58,7 @@ class Category extends Model
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->exists()
         ) {
-            $slug = $original . '-' . $count++;
+            $slug = $original.'-'.$count++;
         }
 
         return $slug;
