@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\SitemapController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // Public blog routes
 Route::get('/', [BlogController::class, 'index'])->name('home');
@@ -12,6 +12,7 @@ Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap')
 Route::get('/feed', [BlogController::class, 'feed'])->name('blog.feed');
 Route::get('/category/{slug}', [BlogController::class, 'category'])->name('blog.category');
 Route::get('/tag/{slug}', [BlogController::class, 'tag'])->name('blog.tag');
+Route::get('/author/{username}', [BlogController::class, 'author'])->name('blog.author');
 
 // Regular user pages (use blog layout)
 Route::middleware(['auth'])->group(function () {
@@ -24,6 +25,7 @@ Route::post('logout', function () {
     Auth::guard('web')->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
+
     return redirect('/login');
 })->middleware('auth')->name('logout');
 

@@ -38,7 +38,7 @@
                         <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
                              class="w-10 h-10 rounded-full object-cover">
                         <div>
-                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $post->author->name }}</span>
+                            <a href="{{ route('blog.author', $post->author->username) }}" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-primary transition-colors">{{ $post->author->name }}</a>
                             <div class="flex items-center gap-2 text-xs text-muted dark:text-gray-400">
                                 <span>{{ ($post->published_at ?? $post->created_at)->format('M d, Y') }}</span>
                                 <span>&middot;</span>
@@ -118,6 +118,12 @@
             {{-- Ad: In Article --}}
             <x-ad-slot position="in_article" />
 
+            {{-- Reactions & Bookmark --}}
+            <div class="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <livewire:blog.post-reactions :postId="$post->id" />
+                <livewire:blog.bookmark-button :postId="$post->id" />
+            </div>
+
             {{-- Tags --}}
             @if($post->tags->isNotEmpty())
                 <div class="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -136,11 +142,16 @@
             {{-- Author Box --}}
             @if($post->author)
                 <div class="mt-10 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-start gap-5">
-                    <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
-                         class="w-16 h-16 rounded-full object-cover flex-shrink-0">
+                    <a href="{{ route('blog.author', $post->author->username) }}" class="flex-shrink-0">
+                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
+                             class="w-16 h-16 rounded-full object-cover">
+                    </a>
                     <div>
-                        <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->name }}</h4>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at Topping Africa.' }}</p>
+                        <a href="{{ route('blog.author', $post->author->username) }}" class="font-bold text-gray-900 dark:text-white mb-1 hover:text-primary transition-colors">{{ $post->author->name }}</a>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-1">{{ $post->author->bio ?? 'Contributing writer at Topping Africa.' }}</p>
+                        <a href="{{ route('blog.author', $post->author->username) }}" class="inline-block mt-2 text-xs font-semibold text-primary hover:text-primary-hover transition-colors">
+                            View all articles
+                        </a>
                     </div>
                 </div>
             @endif

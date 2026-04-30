@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
+use App\Models\User;
 use App\Services\Blog\PostViewTracker;
 use App\Services\ContentShortcodeParser;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ class BlogController extends Controller
             ->with('author', 'categories', 'tags')
             ->firstOrFail();
 
-        if (!$post->isPublished()) {
+        if (! $post->isPublished()) {
             abort(404);
         }
 
@@ -149,6 +150,25 @@ class BlogController extends Controller
             ->get();
 
         return view('blog.tag', compact('tag', 'posts', 'categories'));
+    }
+
+    public function author(string $username): View
+    {
+        $author = User::where('username', $username)
+            ->where('is_staff', true)
+            ->firstOrFail();
+
+        $posts = Post::published()
+            ->where('author_id', $author->id)
+            ->with('author', 'categories')
+            ->latest('published_at')
+            ->paginate(config('blog.per_page', 12));
+
+        $categories = Category::active()->ordered()
+            ->withCount(['posts' => fn ($q) => $q->published()])
+            ->get();
+
+        return view('blog.author', compact('author', 'posts', 'categories'));
     }
 
     public function search(Request $request): View

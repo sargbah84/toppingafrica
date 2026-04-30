@@ -46,6 +46,11 @@
                             class="pb-3 text-sm font-semibold border-b-2 transition-colors">
                         Reading History
                     </button>
+                    <button @click="tab = 'bookmarks'"
+                            :class="tab === 'bookmarks' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'"
+                            class="pb-3 text-sm font-semibold border-b-2 transition-colors">
+                        Bookmarks
+                    </button>
                     <button @click="tab = 'comments'"
                             :class="tab === 'comments' ? 'border-primary text-primary' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'"
                             class="pb-3 text-sm font-semibold border-b-2 transition-colors">
@@ -57,6 +62,11 @@
             {{-- Reading History Tab --}}
             <div x-show="tab === 'history'" x-cloak>
                 <livewire:account.reading-history />
+            </div>
+
+            {{-- Bookmarks Tab --}}
+            <div x-show="tab === 'bookmarks'" x-cloak>
+                <livewire:account.my-bookmarks />
             </div>
 
             {{-- Comments Tab --}}

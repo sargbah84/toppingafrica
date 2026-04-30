@@ -35,7 +35,7 @@
         @endif
         @if(isset($showAuthor) && $showAuthor && $post->author)
             <span class="text-gray-400">&#8226;</span>
-            <span class="text-muted dark:text-gray-400">By {{ $post->author->name }}</span>
+            <a href="{{ route('blog.author', $post->author->username) }}" class="text-muted dark:text-gray-400 hover:text-primary transition-colors">By {{ $post->author->name }}</a>
         @endif
     </div>
 
