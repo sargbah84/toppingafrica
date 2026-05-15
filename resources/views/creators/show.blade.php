@@ -226,10 +226,10 @@
             {{-- Divider --}}
             <div class="mt-6 mx-auto w-16 border-t border-gray-200 dark:border-gray-700"></div>
 
-            {{-- About — widened beyond the profile card so the bio breathes. --}}
-            <div class="py-6 lg:-mx-32 xl:-mx-48">
+            {{-- About --}}
+            <div class="px-6 sm:px-10 py-6">
                 <h2 class="text-center text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">About Me</h2>
-                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed px-6 sm:px-10">
+                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
                     {{ $creator->bio }}
                 </p>
             </div>
@@ -446,10 +446,16 @@
                 Articles featuring {{ $creator->name }}
             </h2>
 
-            {{-- Masonry via CSS columns. `break-inside-avoid` keeps each card together. --}}
-            <div class="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
+            {{-- Masonry grid powered by Masonry.js (resources/js/creator-feed-masonry.js).
+                 The data-masonry-sizer element drives column count via Tailwind responsive widths:
+                 100% on mobile (1 col), 50% on sm (2 cols), 33.333% on lg (3 cols).
+                 Each item gets the same w-* classes so Masonry can pack them. --}}
+            <div data-creator-feed-masonry class="relative">
+                <div data-masonry-sizer class="w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"></div>
+
                 @foreach($featuredPosts as $index => $post)
-                    <a href="{{ url('/' . $post->slug) }}" class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6 break-inside-avoid">
+                    <a data-masonry-item href="{{ url('/' . $post->slug) }}"
+                       class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6 w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]">
                         @if($post->featured_image_url)
                             <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-auto object-cover" loading="lazy" />
                         @endif
@@ -467,7 +473,7 @@
                     </a>
 
                     @if($loop->iteration === 6 && ! $loop->last)
-                        <div class="break-inside-avoid empty:hidden">
+                        <div data-masonry-item class="mb-6 w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)] empty:hidden">
                             <x-ad-slot position="creator_feed" />
                         </div>
                     @endif

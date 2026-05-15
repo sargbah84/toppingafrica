@@ -1,5 +1,6 @@
 import './bootstrap';
 import './creator-qr-card';
+import './creator-feed-masonry';
 
 /**
  * Auto-inject a spinner into every submit button and toggle it on form submit.
