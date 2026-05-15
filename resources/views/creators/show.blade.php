@@ -447,16 +447,25 @@
                 Articles featuring {{ $creator->name }}
             </h2>
 
-            {{-- Masonry grid powered by Masonry.js (resources/js/creator-feed-masonry.js).
-                 The data-masonry-sizer element drives column count via Tailwind responsive widths:
-                 100% on mobile (1 col), 50% on sm (2 cols), 33.333% on lg (3 cols).
-                 Each item gets the same w-* classes so Masonry can pack them. --}}
+            {{-- Masonry grid (resources/js/creator-feed-masonry.js).
+                 Item/sizer widths are set via a <style> block below so they don't depend on
+                 Tailwind JIT extracting arbitrary calc() classes (which it silently dropped). --}}
+            <style>
+                .creator-feed-item { width: 100%; }
+                @media (min-width: 640px) {
+                    .creator-feed-item { width: calc((100% - 1.5rem) / 2); }
+                }
+                @media (min-width: 1024px) {
+                    .creator-feed-item { width: calc((100% - 3rem) / 3); }
+                }
+            </style>
+
             <div data-creator-feed-masonry class="relative">
-                <div data-masonry-sizer class="w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"></div>
+                <div data-masonry-sizer class="creator-feed-item"></div>
 
                 @foreach($featuredPosts as $index => $post)
                     <a data-masonry-item href="{{ url('/' . $post->slug) }}"
-                       class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6 w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]">
+                       class="creator-feed-item group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6">
                         @if($post->featured_image_url)
                             <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-auto object-cover" loading="lazy" />
                         @endif
@@ -474,7 +483,7 @@
                     </a>
 
                     @if($loop->iteration === 6 && ! $loop->last)
-                        <div data-masonry-item class="mb-6 w-full sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)] empty:hidden">
+                        <div data-masonry-item class="creator-feed-item mb-6 empty:hidden">
                             <x-ad-slot position="creator_feed" />
                         </div>
                     @endif
