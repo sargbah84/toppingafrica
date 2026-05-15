@@ -19,10 +19,13 @@ class BlogController extends Controller
 {
     public function index(): View
     {
-        // Hero: 3 latest featured posts
+        // Hero: top 3 featured posts by views from the past 7 days.
+        // Ties (including 0-view weeks) fall back to newest published first.
         $heroPost = Post::published()
             ->featured()
             ->with('author', 'categories')
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+            ->orderByDesc('weekly_views_count')
             ->latest('published_at')
             ->take(3)
             ->get();
