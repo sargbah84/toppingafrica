@@ -259,6 +259,7 @@ Return a JSON object with these exact keys (no markdown, just JSON):
     "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8", "tag9", "tag10"],
     "categories": ["Category1", "Category2"],
     "internal_link_topics": ["Related topic 1", "Related topic 2", "Related topic 3"],
+    "featured_creator_slugs": ["creator-slug-1", "creator-slug-2"],
     "type_data": {}
 }
 
@@ -409,6 +410,7 @@ PROMPT;
             'tags' => [],
             'categories' => [],
             'internal_link_topics' => [],
+            'featured_creator_slugs' => [],
         ];
     }
 
@@ -424,6 +426,10 @@ PROMPT;
             'tags' => array_slice($data['tags'] ?? [], 0, 10),
             'categories' => array_slice($data['categories'] ?? [], 0, 3),
             'internal_link_topics' => $data['internal_link_topics'] ?? [],
+            'featured_creator_slugs' => array_values(array_filter(
+                $data['featured_creator_slugs'] ?? [],
+                fn ($s) => is_string($s) && $s !== ''
+            )),
         ];
     }
 }

@@ -112,6 +112,7 @@ final class PostGeneratorService
             internalLinks: $internalLinks,
             postType: $request->postType,
             typeData: $content['type_data'] ?? [],
+            featuredCreatorSlugs: $content['featured_creator_slugs'] ?? [],
         );
     }
 

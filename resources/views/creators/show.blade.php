@@ -439,6 +439,37 @@
             </div>
         </div>
     </div>
+
+    @if(isset($featuredPosts) && $featuredPosts->isNotEmpty())
+        <div class="max-w-5xl mx-auto mt-12">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                Articles featuring {{ $creator->name }}
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach($featuredPosts as $post)
+                    <a href="{{ url('/' . $post->slug) }}" class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                        @if($post->featured_image_url)
+                            <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-44 object-cover" loading="lazy" />
+                        @endif
+                        <div class="p-4">
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary line-clamp-2">
+                                {{ $post->title }}
+                            </h3>
+                            @if($post->excerpt)
+                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{{ $post->excerpt }}</p>
+                            @endif
+                            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                                {{ $post->published_at?->format('M j, Y') }}
+                            </p>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+            <div class="mt-8">
+                {{ $featuredPosts->links() }}
+            </div>
+        </div>
+    @endif
 </section>
 
 </x-layouts.blog>

@@ -84,7 +84,13 @@ class CreatorController extends Controller
         // True when the current user can edit this profile inline (owner, staff, or super-admin).
         $canEdit = $creator->canBeEditedBy(auth()->user());
 
-        return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed', 'canEdit'));
+        // Published posts that feature this creator (via the post_creator pivot).
+        $featuredPosts = $creator->posts()
+            ->published()
+            ->latest('published_at')
+            ->paginate(12);
+
+        return view('creators.show', compact('creator', 'isFollowing', 'isOwner', 'isClaimed', 'canEdit', 'featuredPosts'));
     }
 
     public function qrCard(string $slug, CreatorQrCodeService $service): JsonResponse

@@ -483,6 +483,55 @@
                 </div>
             </div>
 
+            {{-- Featured Creators --}}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6" wire:key="creators-picker">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Featured Creators</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Tag the creators featured in this post. They'll appear on each creator's profile page.</p>
+
+                <div class="relative mb-3">
+                    <input
+                        wire:model.live.debounce.300ms="creatorSearch"
+                        type="text"
+                        placeholder="Search creators by name..."
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    />
+
+                    @if (! empty($creatorSearchResults))
+                        <div class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                            @foreach ($creatorSearchResults as $result)
+                                <button
+                                    type="button"
+                                    wire:click="selectCreator({{ $result['id'] }})"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center justify-between gap-2 text-sm"
+                                >
+                                    <span class="text-gray-900 dark:text-white">{{ $result['name'] }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        @if ($result['country']){{ $result['country'] }}@endif
+                                        @if ($result['is_featured']) <span class="text-amber-600">★</span>@endif
+                                    </span>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($selectedCreators as $creator)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                            {{ $creator['name'] }}
+                            <button wire:click="removeCreator({{ $creator['id'] }})" class="hover:text-purple-900 dark:hover:text-purple-200">
+                                <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                    @endforeach
+                    @if (empty($selectedCreators))
+                        <p class="text-xs text-gray-400 dark:text-gray-500 italic">No creators tagged yet.</p>
+                    @endif
+                </div>
+            </div>
+
             {{-- Featured Image --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
                 <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Featured Image</h3>

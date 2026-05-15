@@ -165,6 +165,11 @@ class Post extends Model implements HasMedia
         return $this->belongsToMany(Tag::class);
     }
 
+    public function creators(): BelongsToMany
+    {
+        return $this->belongsToMany(Creator::class)->withTimestamps();
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);

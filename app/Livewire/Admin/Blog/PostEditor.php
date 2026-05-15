@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Livewire\Admin\Blog;
 
 use App\Models\Category;
+use App\Models\Creator;
 use App\Models\Post;
 use App\Models\Reaction;
 use App\Models\Tag;
+use App\Services\Blog\CreatorContextService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -47,6 +49,15 @@ class PostEditor extends Component
 
     /** @var array<string> */
     public array $selectedTags = [];
+
+    // Featured creators (post_creator pivot)
+    public string $creatorSearch = '';
+
+    /** @var array<array{id:int,name:string,slug:string,country:?string,category:?string,is_featured:bool,is_trending:bool}> */
+    public array $creatorSearchResults = [];
+
+    /** @var array<array{id:int,name:string,slug:string,country:?string,category:?string,is_featured:bool,is_trending:bool}> */
+    public array $selectedCreators = [];
 
     // Media
     public $featuredImage = null;
@@ -106,7 +117,7 @@ class PostEditor extends Component
 
     public function loadPost(int $postId): void
     {
-        $post = Post::with(['categories', 'tags'])->findOrFail($postId);
+        $post = Post::with(['categories', 'tags', 'creators'])->findOrFail($postId);
 
         $this->postId = $post->id;
         $this->title = $post->title;
@@ -117,6 +128,15 @@ class PostEditor extends Component
         $this->type_data = $post->type_data ?? [];
         $this->selectedCategories = $post->categories->pluck('id')->toArray();
         $this->selectedTags = $post->tags->pluck('name')->toArray();
+        $this->selectedCreators = $post->creators->map(fn (Creator $c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'slug' => $c->slug,
+            'country' => $c->country,
+            'category' => $c->category,
+            'is_featured' => (bool) $c->is_featured,
+            'is_trending' => (bool) $c->is_trending,
+        ])->toArray();
         $this->meta_title = $post->meta_title ?? '';
         $this->meta_description = $post->meta_description ?? '';
         $this->focus_keyword = $post->focus_keyword ?? '';
@@ -252,6 +272,56 @@ class PostEditor extends Component
         $this->selectedTags = array_values($this->selectedTags);
     }
 
+    public function updatedCreatorSearch(): void
+    {
+        $query = trim($this->creatorSearch);
+
+        if (strlen($query) < 2) {
+            $this->creatorSearchResults = [];
+
+            return;
+        }
+
+        $selectedIds = array_column($this->selectedCreators, 'id');
+
+        $this->creatorSearchResults = app(CreatorContextService::class)
+            ->searchCreators($query)
+            ->reject(fn (Creator $c) => in_array($c->id, $selectedIds, true))
+            ->map(fn (Creator $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'slug' => $c->slug,
+                'country' => $c->country,
+                'category' => $c->category,
+                'is_featured' => (bool) $c->is_featured,
+                'is_trending' => (bool) $c->is_trending,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    public function selectCreator(int $creatorId): void
+    {
+        if (collect($this->selectedCreators)->contains('id', $creatorId)) {
+            return;
+        }
+
+        $match = collect($this->creatorSearchResults)->firstWhere('id', $creatorId);
+        if ($match) {
+            $this->selectedCreators[] = $match;
+        }
+
+        $this->creatorSearch = '';
+        $this->creatorSearchResults = [];
+    }
+
+    public function removeCreator(int $creatorId): void
+    {
+        $this->selectedCreators = array_values(
+            array_filter($this->selectedCreators, fn ($c) => $c['id'] !== $creatorId)
+        );
+    }
+
     public function removeFeaturedImage(): void
     {
         // For existing posts, remove from media collection immediately
@@ -360,6 +430,9 @@ class PostEditor extends Component
         })->toArray();
         $post->tags()->sync($tagIds);
 
+        // Sync featured creators
+        $post->creators()->sync(array_column($this->selectedCreators, 'id'));
+
         // Handle featured image upload (direct file upload)
         if ($this->featuredImage) {
             $post->clearMediaCollection('featured_image');
@@ -461,6 +534,8 @@ class PostEditor extends Component
             'selectedCategories.*' => ['integer', 'exists:categories,id'],
             'selectedTags' => ['array'],
             'selectedTags.*' => ['string', 'max:50'],
+            'selectedCreators' => ['array'],
+            'selectedCreators.*.id' => ['integer', 'exists:creators,id'],
             'featuredImage' => ['nullable', 'image', 'max:5120'],
             'meta_title' => ['nullable', 'string'],
             'meta_description' => ['nullable', 'string'],

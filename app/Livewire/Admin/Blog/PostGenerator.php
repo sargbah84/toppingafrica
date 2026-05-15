@@ -6,6 +6,7 @@ namespace App\Livewire\Admin\Blog;
 
 use App\DataTransferObjects\Blog\PostGenerationRequest;
 use App\Models\Category;
+use App\Models\Creator;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\CreatorContextService;
@@ -321,6 +322,7 @@ class PostGenerator extends Component
                 'generation_params' => $postData->generationParams,
                 'post_type' => $postData->postType,
                 'type_data' => $postData->typeData,
+                'featured_creator_slugs' => $postData->featuredCreatorSlugs,
             ];
 
             $this->dispatch('content-generated', content: $this->generatedContent);
@@ -376,6 +378,19 @@ class PostGenerator extends Component
                     )->id;
                 })->toArray();
                 $post->tags()->sync($tagIds);
+            }
+
+            // Attach creators the AI actually referenced (filtered to the set the user originally selected).
+            if (! empty($content['featured_creator_slugs']) && ! empty($this->selectedCreators)) {
+                $allowedIds = array_column($this->selectedCreators, 'id');
+                $creatorIds = Creator::whereIn('slug', $content['featured_creator_slugs'])
+                    ->whereIn('id', $allowedIds)
+                    ->pluck('id')
+                    ->all();
+
+                if (! empty($creatorIds)) {
+                    $post->creators()->sync($creatorIds);
+                }
             }
 
             $this->generatedContent = null;

@@ -107,6 +107,7 @@ final class CreatorContextService
         $lines[] = "- Highlight their country, category, and any notable badges (Featured/Trending/Rising).";
         $lines[] = "- If writing a listicle or ranking, use these creators as the list entries.";
         $lines[] = "- You may organize/rank them based on the data provided (follower count, badges, etc.).";
+        $lines[] = "- In your JSON response, return a `featured_creator_slugs` array containing ONLY the slugs of creators you actually referenced by name in the article body. Omit any creator you did not meaningfully feature.";
 
         return "\n" . implode("\n", $lines) . "\n";
     }

@@ -129,6 +129,11 @@ class Creator extends Model implements HasMedia
         return $this->belongsToMany(User::class, 'creator_follows')->withTimestamps();
     }
 
+    public function posts(): BelongsToMany
+    {
+        return $this->belongsToMany(Post::class)->withTimestamps();
+    }
+
     /**
      * Polymorphic page-view records for this creator. The same View model
      * is shared with Post; ViewTracker handles the recording.

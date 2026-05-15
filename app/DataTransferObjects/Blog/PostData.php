@@ -31,6 +31,7 @@ final readonly class PostData
         public array $internalLinks = [],
         public string $postType = 'article',
         public array $typeData = [],
+        public array $featuredCreatorSlugs = [],
     ) {}
 
     public function toArray(): array
@@ -81,6 +82,7 @@ final readonly class PostData
             suggestedTags: $data['suggested_tags'] ?? [],
             suggestedCategories: $data['suggested_categories'] ?? [],
             internalLinks: $data['internal_links'] ?? [],
+            featuredCreatorSlugs: $data['featured_creator_slugs'] ?? [],
         );
     }
 }
