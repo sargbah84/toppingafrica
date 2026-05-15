@@ -8,7 +8,8 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.guest')] class extends Component
 {
     public string $email = '';
-    public string $recaptchaToken = '';
+
+    public mixed $recaptchaToken = '';
 
     /**
      * Send a password reset link to the provided email address.
@@ -21,9 +22,11 @@ new #[Layout('layouts.guest')] class extends Component
 
         $recaptcha = app(RecaptchaService::class);
         if ($recaptcha->isEnabled()) {
-            $result = $recaptcha->verify($this->recaptchaToken, 'forgot_password');
-            if (!$result['success']) {
+            $token = is_string($this->recaptchaToken) ? $this->recaptchaToken : 'RECAPTCHA_INVALID';
+            $result = $recaptcha->verify($token, 'forgot_password');
+            if (! $result['success']) {
                 $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
+
                 return;
             }
         }

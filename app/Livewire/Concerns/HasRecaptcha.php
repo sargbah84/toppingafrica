@@ -8,21 +8,23 @@ use App\Services\RecaptchaService;
 
 trait HasRecaptcha
 {
-    public string $recaptchaToken = '';
+    public mixed $recaptchaToken = '';
 
     protected function validateRecaptcha(string $action): bool
     {
         $recaptchaService = app(RecaptchaService::class);
 
-        if (!$recaptchaService->isEnabled()) {
+        if (! $recaptchaService->isEnabled()) {
             return true;
         }
 
         $isAuthenticated = auth()->check();
-        $result = $recaptchaService->verify($this->recaptchaToken, $action, $isAuthenticated);
+        $token = is_string($this->recaptchaToken) ? $this->recaptchaToken : 'RECAPTCHA_INVALID';
+        $result = $recaptchaService->verify($token, $action, $isAuthenticated);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
+
             return false;
         }
 

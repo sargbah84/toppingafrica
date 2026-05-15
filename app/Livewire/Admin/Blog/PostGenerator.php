@@ -21,28 +21,46 @@ class PostGenerator extends Component
 
     // Title input mode: 'suggest' or 'manual'
     public string $inputMode = 'suggest';
+
     public string $selectedNiche = 'africa-news';
+
     public array $suggestedTitles = [];
+
     public array $usedTitles = [];
+
     public array $trendingKeywords = [];
+
     public bool $isLoadingTitles = false;
 
     public string $topic = '';
+
     public string $aiProvider = 'perplexity';
+
     public string $postType = 'article';
+
     public string $length = 'medium';
+
     public string $tone = 'professional';
+
     public ?string $targetKeyword = null;
+
     public ?int $categoryId = null;
 
     // Creator feature fields
     public bool $featureCreators = false;
+
     public string $creatorSearch = '';
+
     public array $creatorSearchResults = [];
+
     public array $selectedCreators = [];
 
     public bool $isGenerating = false;
+
+    public bool $isSaving = false;
+
     public ?array $generatedContent = null;
+
     public ?string $error = null;
 
     protected $rules = [
@@ -193,9 +211,9 @@ class PostGenerator extends Component
 
     public function toggleFeatureCreators(): void
     {
-        $this->featureCreators = !$this->featureCreators;
+        $this->featureCreators = ! $this->featureCreators;
 
-        if (!$this->featureCreators) {
+        if (! $this->featureCreators) {
             $this->selectedCreators = [];
             $this->creatorSearch = '';
             $this->creatorSearchResults = [];
@@ -315,50 +333,57 @@ class PostGenerator extends Component
 
     public function useContent(): void
     {
-        if (! $this->generatedContent) {
+        if (! $this->generatedContent || $this->isSaving) {
             return;
         }
 
-        $service = app(TitleSuggestionService::class);
-        $service->markTitleAsUsed($this->topic);
-        $this->usedTitles = $service->getUsedTitles();
+        $this->isSaving = true;
 
-        $content = $this->generatedContent;
+        try {
+            $service = app(TitleSuggestionService::class);
+            $service->markTitleAsUsed($this->topic);
+            $this->usedTitles = $service->getUsedTitles();
 
-        $post = Post::create([
-            'author_id' => auth()->id(),
-            'title' => $content['title'] ?? 'Untitled',
-            'slug' => ! empty($content['slug']) ? $content['slug'] : Str::slug($content['title'] ?? 'untitled'),
-            'excerpt' => $content['excerpt'] ?? null,
-            'content' => $content['content'] ?? '',
-            'post_type' => $content['post_type'] ?? 'article',
-            'type_data' => $content['type_data'] ?? null,
-            'meta_title' => $content['meta_title'] ?? null,
-            'meta_description' => $content['meta_description'] ?? null,
-            'focus_keyword' => $content['focus_keyword'] ?? null,
-            'social_sharing' => $content['social_sharing'] ?? null,
-            'status' => 'draft',
-            'reading_time' => $content['reading_time'] ?? null,
-            'ai_provider' => $content['ai_provider'] ?? null,
-            'generation_params' => $content['generation_params'] ?? null,
-        ]);
+            $content = $this->generatedContent;
 
-        if (! empty($content['category_ids'])) {
-            $post->categories()->sync($content['category_ids']);
+            $post = Post::create([
+                'author_id' => auth()->id(),
+                'title' => $content['title'] ?? 'Untitled',
+                'slug' => ! empty($content['slug']) ? $content['slug'] : Str::slug($content['title'] ?? 'untitled'),
+                'excerpt' => $content['excerpt'] ?? null,
+                'content' => $content['content'] ?? '',
+                'post_type' => $content['post_type'] ?? 'article',
+                'type_data' => $content['type_data'] ?? null,
+                'meta_title' => $content['meta_title'] ?? null,
+                'meta_description' => $content['meta_description'] ?? null,
+                'focus_keyword' => $content['focus_keyword'] ?? null,
+                'social_sharing' => $content['social_sharing'] ?? null,
+                'status' => 'draft',
+                'reading_time' => $content['reading_time'] ?? null,
+                'ai_provider' => $content['ai_provider'] ?? null,
+                'generation_params' => $content['generation_params'] ?? null,
+            ]);
+
+            if (! empty($content['category_ids'])) {
+                $post->categories()->sync($content['category_ids']);
+            }
+
+            if (! empty($content['suggested_tags'])) {
+                $tagIds = collect($content['suggested_tags'])->map(function (string $tagName): int {
+                    return Tag::firstOrCreate(
+                        ['slug' => Str::slug($tagName)],
+                        ['name' => $tagName]
+                    )->id;
+                })->toArray();
+                $post->tags()->sync($tagIds);
+            }
+
+            $this->generatedContent = null;
+            $this->closeModal();
+            $this->redirect(route('admin.blog.posts.edit', $post->id), navigate: true);
+        } finally {
+            $this->isSaving = false;
         }
-
-        if (! empty($content['suggested_tags'])) {
-            $tagIds = collect($content['suggested_tags'])->map(function (string $tagName): int {
-                return Tag::firstOrCreate(
-                    ['slug' => Str::slug($tagName)],
-                    ['name' => $tagName]
-                )->id;
-            })->toArray();
-            $post->tags()->sync($tagIds);
-        }
-
-        $this->closeModal();
-        $this->redirect(route('admin.blog.posts.edit', $post->id), navigate: true);
     }
 
     public function clearContent(): void

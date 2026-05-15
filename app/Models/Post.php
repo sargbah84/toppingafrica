@@ -64,14 +64,15 @@ class Post extends Model implements HasMedia
         parent::boot();
 
         static::creating(function (Post $post) {
-            if (empty($post->slug)) {
-                $post->slug = static::generateUniqueSlug($post->title);
-            }
+            $source = ! empty($post->slug) ? $post->slug : (string) $post->title;
+            $post->slug = static::generateUniqueSlug($source);
         });
 
         static::updating(function (Post $post) {
-            if ($post->isDirty('title') && ! $post->isDirty('slug')) {
-                $post->slug = static::generateUniqueSlug($post->title, $post->id);
+            if ($post->isDirty('slug')) {
+                $post->slug = static::generateUniqueSlug($post->slug, $post->id);
+            } elseif ($post->isDirty('title')) {
+                $post->slug = static::generateUniqueSlug((string) $post->title, $post->id);
             }
         });
     }

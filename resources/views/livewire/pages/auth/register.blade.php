@@ -13,10 +13,14 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.guest')] class extends Component
 {
     public string $name = '';
+
     public string $email = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
-    public string $recaptchaToken = '';
+
+    public mixed $recaptchaToken = '';
 
     // Honeypot — hidden field that bots fill but humans leave empty.
     // Named generically to avoid triggering form-fill extensions that target
@@ -39,21 +43,24 @@ new #[Layout('layouts.guest')] class extends Component
         // 1. Honeypot check — reject if the hidden field was filled
         if ($this->hp_field !== '') {
             $this->addError('email', 'Registration failed. Please try again.');
+
             return;
         }
 
         // 2. Time gate — reject if submitted too fast (< 3 seconds)
         if ($this->formLoadedAt > 0 && (time() - $this->formLoadedAt) < 3) {
             $this->addError('email', 'Registration failed. Please try again.');
+
             return;
         }
 
         // 3. Rate limit — max 3 registrations per IP per hour
-        $throttleKey = 'register:' . request()->ip();
+        $throttleKey = 'register:'.request()->ip();
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             $seconds = RateLimiter::availableIn($throttleKey);
             $minutes = (int) ceil($seconds / 60);
             $this->addError('email', "Too many registration attempts. Please try again in {$minutes} minute(s).");
+
             return;
         }
 
@@ -63,8 +70,9 @@ new #[Layout('layouts.guest')] class extends Component
                 $name = trim($value);
 
                 // Must contain at least one vowel
-                if (!preg_match('/[aeiouAEIOU]/', $name)) {
+                if (! preg_match('/[aeiouAEIOU]/', $name)) {
                     $fail('Please enter a valid name.');
+
                     return;
                 }
 
@@ -74,6 +82,7 @@ new #[Layout('layouts.guest')] class extends Component
                     $upperCount = strlen(preg_replace('/[^A-Z]/', '', $letters));
                     if ($upperCount / strlen($letters) > 0.6) {
                         $fail('Please enter a valid name.');
+
                         return;
                     }
                 }
@@ -82,6 +91,7 @@ new #[Layout('layouts.guest')] class extends Component
                 foreach (explode(' ', $name) as $word) {
                     if (strlen($word) > 20) {
                         $fail('Please enter a valid name.');
+
                         return;
                     }
                 }
@@ -92,9 +102,11 @@ new #[Layout('layouts.guest')] class extends Component
 
         $recaptcha = app(RecaptchaService::class);
         if ($recaptcha->isEnabled()) {
-            $result = $recaptcha->verify($this->recaptchaToken, 'register');
-            if (!$result['success']) {
+            $token = is_string($this->recaptchaToken) ? $this->recaptchaToken : 'RECAPTCHA_INVALID';
+            $result = $recaptcha->verify($token, 'register');
+            if (! $result['success']) {
                 $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
+
                 return;
             }
         }
