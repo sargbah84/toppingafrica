@@ -108,6 +108,44 @@ class ContentCalendar extends Component
         $this->ideaSearch = '';
     }
 
+    public function movePost(int $postId, string $date): void
+    {
+        $post = Post::findOrFail($postId);
+
+        if (! in_array($post->status, ['scheduled', 'draft'], true)) {
+            return;
+        }
+
+        try {
+            $target = CarbonImmutable::createFromFormat('Y-m-d', $date);
+        } catch (\Throwable) {
+            return;
+        }
+
+        if ($post->status === 'scheduled') {
+            $original = $post->scheduled_at ?? now();
+            $newDate = $target->setTime($original->hour, $original->minute, $original->second);
+
+            if ($newDate->isPast()) {
+                $this->dispatch('notify', type: 'error', message: 'Scheduled date must be in the future.');
+
+                return;
+            }
+
+            $post->update(['scheduled_at' => $newDate]);
+            $this->dispatch('notify', type: 'success', message: "Moved to {$target->format('M j, Y')}.");
+
+            return;
+        }
+
+        $original = $post->created_at ?? now();
+        $newDate = $target->setTime($original->hour, $original->minute, $original->second);
+
+        $post->created_at = $newDate;
+        $post->save();
+        $this->dispatch('notify', type: 'success', message: "Moved to {$target->format('M j, Y')}.");
+    }
+
     public function generateFromIdea(int $ideaId): void
     {
         $idea = ContentIdea::findOrFail($ideaId);

@@ -136,7 +136,16 @@
                     'bg-white dark:bg-gray-800' => $inMonth,
                     'bg-gray-50 dark:bg-gray-900/40' => ! $inMonth,
                     'ring-2 ring-inset ring-indigo-500' => $isToday,
-                ])>
+                ])
+                    x-data="{ dragOver: false }"
+                    :class="dragOver && 'bg-indigo-50 dark:bg-indigo-900/30 ring-2 ring-indigo-400'"
+                    @dragover.prevent="dragOver = true"
+                    @dragleave="dragOver = false"
+                    @drop.prevent="
+                        dragOver = false;
+                        const id = $event.dataTransfer.getData('text/plain');
+                        if (id) $wire.movePost(parseInt(id), '{{ $date->toDateString() }}');
+                    ">
                     @if ($inMonth && $date->gte(\Carbon\CarbonImmutable::now()->startOfDay()))
                         <div class="pointer-events-none absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                             <button type="button" wire:click="openIdeaPicker('{{ $date->toDateString() }}')"
@@ -169,10 +178,14 @@
                     <div class="flex flex-1 flex-col gap-1">
                         @foreach ($primaryPosts as $post)
                             <button type="button" wire:click="openPost({{ $post->id }})"
+                                    @if ($post->status === 'scheduled')
+                                        draggable="true"
+                                        @dragstart="$event.dataTransfer.setData('text/plain', '{{ $post->id }}'); $event.dataTransfer.effectAllowed = 'move';"
+                                    @endif
                                     @class([
                                         'group block w-full shrink-0 rounded border-l-2 px-1.5 py-0.5 text-left transition-colors',
                                         'border-emerald-500 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30' => $post->status === 'published',
-                                        'border-indigo-500 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/30' => $post->status === 'scheduled',
+                                        'border-indigo-500 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/30 cursor-grab active:cursor-grabbing' => $post->status === 'scheduled',
                                     ])>
                                 <div class="truncate text-xs font-medium text-gray-900 dark:text-gray-100">
                                     {{ $post->title }}
@@ -194,7 +207,9 @@
 
                         @foreach ($visibleDrafts as $post)
                             <button type="button" wire:click="openPost({{ $post->id }})"
-                                    class="group block w-full shrink-0 rounded border-l-2 border-amber-500 bg-amber-50 px-1.5 py-0.5 text-left transition-colors hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30">
+                                    draggable="true"
+                                    @dragstart="$event.dataTransfer.setData('text/plain', '{{ $post->id }}'); $event.dataTransfer.effectAllowed = 'move';"
+                                    class="group block w-full shrink-0 cursor-grab rounded border-l-2 border-amber-500 bg-amber-50 px-1.5 py-0.5 text-left transition-colors hover:bg-amber-100 active:cursor-grabbing dark:bg-amber-900/20 dark:hover:bg-amber-900/30">
                                 <div class="truncate text-xs font-medium text-gray-900 dark:text-gray-100">
                                     {{ $post->title }}
                                 </div>
