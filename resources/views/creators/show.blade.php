@@ -464,27 +464,14 @@
                 <div data-masonry-sizer class="creator-feed-item"></div>
 
                 @foreach($featuredPosts as $index => $post)
-                    <a data-masonry-item href="{{ url('/' . $post->slug) }}"
-                       class="creator-feed-item group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6">
-                        @if($post->featured_image_url)
-                            <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-auto object-cover" loading="lazy" />
-                        @endif
-                        <div class="p-4">
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary line-clamp-2">
-                                {{ $post->title }}
-                            </h3>
-                            @if($post->excerpt)
-                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ $post->excerpt }}</p>
-                            @endif
-                            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                                {{ $post->published_at?->format('M j, Y') }}
-                            </p>
-                        </div>
-                    </a>
+                    <div data-masonry-item class="creator-feed-item mb-6">
+                        @include('blog.partials.post-card', ['post' => $post, 'showAuthor' => true, 'aspectAuto' => true])
+                    </div>
 
-                    @if($loop->iteration === 6 && ! $loop->last)
-                        <div data-masonry-item class="creator-feed-item mb-6 empty:hidden">
+                    @if($loop->iteration === 4 && ! $loop->last && \App\Models\Ad::active()->position('creator_feed')->exists())
+                        <div data-masonry-item class="creator-feed-item mb-6">
                             <x-ad-slot position="creator_feed" />
+                            <p class="mt-1 text-center text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Advertisement</p>
                         </div>
                     @endif
                 @endforeach

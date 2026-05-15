@@ -1,4 +1,13 @@
-{{-- Post Card Grid Style (Athena-inspired) --}}
+{{-- Post Card Grid Style (Athena-inspired).
+     Pass $aspectAuto = true to let images flow at natural height (e.g. for masonry layouts). --}}
+@php
+    $imageClasses = (isset($aspectAuto) && $aspectAuto)
+        ? 'w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105'
+        : 'w-full aspect-[4/3] object-cover transition-transform duration-500 group-hover:scale-105';
+    $placeholderClasses = (isset($aspectAuto) && $aspectAuto)
+        ? 'w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center'
+        : 'w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center';
+@endphp
 <article class="group animate-fade-in">
     {{-- Image --}}
     <figure class="relative mb-5 overflow-hidden rounded-sm">
@@ -6,10 +15,10 @@
             @if($post->featured_image_url)
                 <img src="{{ $post->featured_image_url }}"
                      alt="{{ $post->title }}"
-                     class="w-full aspect-[4/3] object-cover transition-transform duration-500 group-hover:scale-105"
+                     class="{{ $imageClasses }}"
                      loading="lazy">
             @else
-                <div class="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                <div class="{{ $placeholderClasses }}">
                     <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V5.25a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v14.25a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>
                 </div>
             @endif
