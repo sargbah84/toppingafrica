@@ -281,7 +281,10 @@ class Post extends Model implements HasMedia
 
     public function scopePopular($query)
     {
-        return $query->orderByDesc('views_count');
+        return $query
+            ->withCount(['views as total_views_count'])
+            ->orderByDesc('total_views_count')
+            ->latest('published_at');
     }
 
     public function scopeSearch($query, string $term)

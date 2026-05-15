@@ -27,20 +27,18 @@ class BlogController extends Controller
             ->take(3)
             ->get();
 
-        // Most Popular: top 2 by views
-        $mostPopular = Post::published()
-            ->popular()
+        // Most Popular + Trending: ranked by views from the past 7 days.
+        // Pull 5 in one query, then split: top 2 → Most Popular, next 3 → Trending.
+        $weeklyPopular = Post::published()
             ->with('author', 'categories')
-            ->take(2)
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+            ->orderByDesc('weekly_views_count')
+            ->latest('published_at')
+            ->take(5)
             ->get();
 
-        // Trending: next 3 popular posts (skip 2)
-        $trending = Post::published()
-            ->popular()
-            ->with('author', 'categories')
-            ->skip(2)
-            ->take(3)
-            ->get();
+        $mostPopular = $weeklyPopular->take(2);
+        $trending = $weeklyPopular->slice(2, 3)->values();
 
         // Featured Videos: from "Music Videos" or "Featured Videos" categories
         $featuredVideos = Post::published()
