@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\IsStaff;
+use App\Livewire\Admin\Blog\ContentCalendar;
 use App\Livewire\Admin\Blog\ContentLab;
 use App\Livewire\Admin\ManageCreators;
 use App\Livewire\Admin\ManageTrends;
@@ -54,6 +55,9 @@ Route::prefix('admin')
 
             // Content Lab
             Route::get('lib', ContentLab::class)->name('content-lab');
+
+            // Content Calendar
+            Route::get('calendar', ContentCalendar::class)->name('calendar');
         });
 
         // Pages
