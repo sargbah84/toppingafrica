@@ -24,6 +24,7 @@
                     <option value="in_article">In Article</option>
                     <option value="after_content">After Content</option>
                     <option value="footer">Footer</option>
+                    <option value="creator_feed">Creator Feed</option>
                 </select>
                 @error('position')
                     <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>

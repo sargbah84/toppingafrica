@@ -226,10 +226,10 @@
             {{-- Divider --}}
             <div class="mt-6 mx-auto w-16 border-t border-gray-200 dark:border-gray-700"></div>
 
-            {{-- About --}}
-            <div class="px-6 sm:px-10 py-6">
+            {{-- About — widened beyond the profile card so the bio breathes. --}}
+            <div class="py-6 lg:-mx-32 xl:-mx-48">
                 <h2 class="text-center text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">About Me</h2>
-                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
+                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed px-6 sm:px-10">
                     {{ $creator->bio }}
                 </p>
             </div>
@@ -445,24 +445,32 @@
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                 Articles featuring {{ $creator->name }}
             </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach($featuredPosts as $post)
-                    <a href="{{ url('/' . $post->slug) }}" class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+
+            {{-- Masonry via CSS columns. `break-inside-avoid` keeps each card together. --}}
+            <div class="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
+                @foreach($featuredPosts as $index => $post)
+                    <a href="{{ url('/' . $post->slug) }}" class="group block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden mb-6 break-inside-avoid">
                         @if($post->featured_image_url)
-                            <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-44 object-cover" loading="lazy" />
+                            <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}" class="w-full h-auto object-cover" loading="lazy" />
                         @endif
                         <div class="p-4">
                             <h3 class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary line-clamp-2">
                                 {{ $post->title }}
                             </h3>
                             @if($post->excerpt)
-                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{{ $post->excerpt }}</p>
+                                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{{ $post->excerpt }}</p>
                             @endif
                             <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
                                 {{ $post->published_at?->format('M j, Y') }}
                             </p>
                         </div>
                     </a>
+
+                    @if($loop->iteration === 6 && ! $loop->last)
+                        <div class="break-inside-avoid empty:hidden">
+                            <x-ad-slot position="creator_feed" />
+                        </div>
+                    @endif
                 @endforeach
             </div>
             <div class="mt-8">

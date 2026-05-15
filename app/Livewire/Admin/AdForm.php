@@ -56,7 +56,7 @@ class AdForm extends Component
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'position' => ['required', 'string', 'in:header,sidebar,in_article,after_content,footer'],
+            'position' => ['required', 'string', 'in:header,sidebar,in_article,after_content,footer,creator_feed'],
             'code' => ['nullable', 'string', 'max:10000'],
             'imageUrl' => ['nullable', 'string', 'max:500'],
             'url' => ['nullable', 'url', 'max:500'],
