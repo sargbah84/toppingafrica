@@ -40,7 +40,6 @@ class Post extends Model implements HasMedia
         'status',
         'published_at',
         'scheduled_at',
-        'views_count',
         'reading_time',
         'is_featured',
         'ai_provider',
@@ -54,7 +53,6 @@ class Post extends Model implements HasMedia
         'generation_params' => 'array',
         'published_at' => 'datetime',
         'scheduled_at' => 'datetime',
-        'views_count' => 'integer',
         'reading_time' => 'integer',
         'is_featured' => 'boolean',
     ];
@@ -242,11 +240,6 @@ class Post extends Model implements HasMedia
         ]);
     }
 
-    public function incrementViewsCount(): void
-    {
-        $this->increment('views_count');
-    }
-
     public function getFormattedReadingTimeAttribute(): string
     {
         return ($this->reading_time ?? 1).' min read';
@@ -282,8 +275,8 @@ class Post extends Model implements HasMedia
     public function scopePopular($query)
     {
         return $query
-            ->withCount(['views as total_views_count'])
-            ->orderByDesc('total_views_count')
+            ->withCount('views')
+            ->orderByDesc('views_count')
             ->latest('published_at');
     }
 
@@ -306,10 +299,6 @@ class Post extends Model implements HasMedia
         return LogOptions::defaults()
             ->logOnly(['title', 'status', 'author_id', 'post_type'])
             ->logOnlyDirty()
-            // Critical — without this, every $post->increment('views_count')
-            // from the ViewTracker would write an activity log row with
-            // empty changes (because views_count isn't in logOnly). At site
-            // traffic scale this accumulates thousands of noise rows per day.
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => "Post {$eventName}: {$this->title}");
     }

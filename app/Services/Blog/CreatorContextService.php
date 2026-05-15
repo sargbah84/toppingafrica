@@ -121,6 +121,7 @@ final class CreatorContextService
             ->when($query, fn ($q) => $q->where('name', 'like', "%{$query}%"))
             ->when($country, fn ($q) => $q->where('country', $country))
             ->when($category, fn ($q) => $q->where('category', $category))
+            ->withCount('views')
             ->orderByDesc('is_featured')
             ->orderByDesc('is_trending')
             ->orderByDesc('views_count')

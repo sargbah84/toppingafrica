@@ -28,12 +28,6 @@ class ViewTracker
 
     public function getViewsFor(Model $subject): int
     {
-        // Prefer the denormalized counter on the subject if it has one;
-        // fall back to a live COUNT query otherwise.
-        if (isset($subject->views_count)) {
-            return (int) $subject->views_count;
-        }
-
         return View::query()->forViewable($subject)->count();
     }
 

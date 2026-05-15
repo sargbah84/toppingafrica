@@ -130,14 +130,6 @@ class View extends Model
                 'device_type' => static::detectDeviceType($userAgent),
                 'viewed_at' => now(),
             ]);
-
-            // Bump the denormalized counter on the subject if it has one.
-            // Both Post and Creator implement incrementViewsCount() — using
-            // method_exists keeps the model layer loose and lets future
-            // viewable types opt in or out without changing this code.
-            if (method_exists($subject, 'incrementViewsCount')) {
-                $subject->incrementViewsCount();
-            }
         }
     }
 

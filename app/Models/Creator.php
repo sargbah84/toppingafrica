@@ -44,7 +44,6 @@ class Creator extends Model implements HasMedia
         'is_featured',
         'follower_count',
         'follower_platform',
-        'views_count',
     ];
 
     protected $casts = [
@@ -55,7 +54,6 @@ class Creator extends Model implements HasMedia
         'is_trending' => 'boolean',
         'is_featured' => 'boolean',
         'follower_count' => 'integer',
-        'views_count' => 'integer',
     ];
 
     protected static function boot(): void
@@ -138,15 +136,6 @@ class Creator extends Model implements HasMedia
     public function views(): MorphMany
     {
         return $this->morphMany(View::class, 'viewable');
-    }
-
-    /**
-     * Bump the denormalized views_count counter. Called by View::recordView()
-     * after a new (deduplicated) view is recorded.
-     */
-    public function incrementViewsCount(): void
-    {
-        $this->increment('views_count');
     }
 
     /**

@@ -28,7 +28,6 @@ class PostFactory extends Factory
             'content' => fake()->paragraphs(3, true),
             'post_type' => 'article',
             'status' => 'draft',
-            'views_count' => 0,
             'reading_time' => fake()->numberBetween(2, 15),
             'is_featured' => false,
         ];

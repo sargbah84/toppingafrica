@@ -43,18 +43,24 @@ class BlogController extends Controller
         $mostPopular = $weeklyPopular->take(2);
         $trending = $weeklyPopular->slice(2, 3)->values();
 
-        // Featured Videos: from "Music Videos" or "Featured Videos" categories
+        // Featured Videos: top 4 from "Music Videos" or "Featured Videos" categories
+        // by views in the past 7 days, tiebreaking by newest published first.
         $featuredVideos = Post::published()
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', [3, 27]))
             ->with('author', 'categories')
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+            ->orderByDesc('weekly_views_count')
             ->latest('published_at')
             ->take(4)
             ->get();
 
-        // Movies + TV posts for "Explore What's On TV"
+        // Movies + TV posts for "Explore What's On TV": top 5 by views in the
+        // past 7 days, tiebreaking by newest published first.
         $tvPosts = Post::published()
             ->whereHas('categories', fn ($q) => $q->where('categories.id', 4))
             ->with('author', 'categories')
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+            ->orderByDesc('weekly_views_count')
             ->latest('published_at')
             ->take(5)
             ->get();
@@ -90,14 +96,16 @@ class BlogController extends Controller
             ->take(24)
             ->get();
 
-        // Top creators widget — by page views this week, only with profile images
+        // Top creators widget — by page views this week, only with profile images.
+        // Aliased to weekly_views_count to avoid colliding with the historical
+        // creators.views_count column (now removed) and any future denormalization.
         $topCreators = Creator::published()
             ->where(function ($query) {
                 $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
                     ->orWhere('profile_image_url', '!=', '');
             })
-            ->withCount(['views' => fn ($q) => $q->where('created_at', '>=', now()->startOfWeek())])
-            ->orderByDesc('views_count')
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->startOfWeek())])
+            ->orderByDesc('weekly_views_count')
             ->take(5)
             ->get();
 
@@ -133,6 +141,7 @@ class BlogController extends Controller
 
         $post = Post::where('slug', $slug)
             ->with('author', 'categories', 'tags')
+            ->withCount('views')
             ->firstOrFail();
 
         if (! $post->isPublished() && ! $request->hasValidSignature()) {
@@ -167,8 +176,8 @@ class BlogController extends Controller
             ->get();
 
         $topCreators = Creator::published()
-            ->withCount(['views' => fn ($q) => $q->where('created_at', '>=', now()->startOfWeek())])
-            ->orderByDesc('views_count')
+            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->startOfWeek())])
+            ->orderByDesc('weekly_views_count')
             ->take(5)
             ->get();
 

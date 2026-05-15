@@ -343,9 +343,10 @@ class StatsOverview extends Component
     {
         return Creator::query()
             ->where('status', 'published')
+            ->withCount('views')
             ->orderByDesc('views_count')
             ->limit(5)
-            ->get(['name', 'slug', 'category', 'country', 'views_count', 'follower_count']);
+            ->get(['id', 'name', 'slug', 'category', 'country', 'follower_count']);
     }
 
     #[Computed]
@@ -433,10 +434,10 @@ class StatsOverview extends Component
     {
         return Post::query()
             ->with('author:id,name')
-            ->select(['id', 'title', 'slug', 'status', 'author_id', 'views_count', 'created_at', 'published_at'])
+            ->withCount('views')
             ->latest()
             ->limit(10)
-            ->get();
+            ->get(['id', 'title', 'slug', 'status', 'author_id', 'created_at', 'published_at']);
     }
 
     #[Computed]
@@ -488,10 +489,10 @@ class StatsOverview extends Component
     {
         return Post::query()
             ->published()
-            ->select(['id', 'title', 'slug', 'views_count', 'published_at'])
+            ->withCount('views')
             ->orderByDesc('views_count')
             ->limit(10)
-            ->get();
+            ->get(['id', 'title', 'slug', 'published_at']);
     }
 
     #[Computed]

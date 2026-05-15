@@ -396,6 +396,7 @@ class PostEditor extends Component
         }
 
         $post = Post::withCount([
+            'views',
             'reactions',
             'comments' => fn ($q) => $q->where('status', 'approved'),
         ])->find($this->postId);

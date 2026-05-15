@@ -166,7 +166,11 @@ class PostsList extends Component
     {
         $query = Post::query()
             ->with(['author', 'categories'])
-            ->withCount(['reactions', 'comments' => fn ($q) => $q->where('status', 'approved')]);
+            ->withCount([
+                'views',
+                'reactions',
+                'comments' => fn ($q) => $q->where('status', 'approved'),
+            ]);
 
         if ($this->statusFilter === 'trashed') {
             $query->onlyTrashed();

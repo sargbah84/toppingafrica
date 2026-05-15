@@ -214,7 +214,6 @@ class MigrateBotbleData extends Command
                     'post_type' => 'article',
                     'status' => $status,
                     'published_at' => $status === 'published' ? $old->created_at : null,
-                    'views_count' => $old->views ?? 0,
                     'reading_time' => $readingTime,
                     'is_featured' => (bool) $old->is_featured,
                     'created_at' => $old->created_at,

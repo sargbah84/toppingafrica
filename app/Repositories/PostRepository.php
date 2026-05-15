@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\View;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -229,7 +230,7 @@ final class PostRepository
 
     public function getTotalViews(): int
     {
-        return (int) $this->model->sum('views_count');
+        return View::query()->ofType(Post::class)->count();
     }
 
     public function getForSitemap(): Collection
