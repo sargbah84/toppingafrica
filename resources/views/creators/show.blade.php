@@ -226,10 +226,11 @@
             {{-- Divider --}}
             <div class="mt-6 mx-auto w-16 border-t border-gray-200 dark:border-gray-700"></div>
 
-            {{-- About --}}
-            <div class="px-6 sm:px-10 py-6">
+            {{-- About — breaks out of the profile card (max-w-3xl ≈ 768px) to ~85% of the
+                 section's max-w-container (1240px) on lg+ via negative horizontal margins. --}}
+            <div class="px-6 sm:px-10 py-6 lg:-mx-36">
                 <h2 class="text-center text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">About Me</h2>
-                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
+                <p class="text-center text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                     {{ $creator->bio }}
                 </p>
             </div>
@@ -441,7 +442,7 @@
     </div>
 
     @if(isset($featuredPosts) && $featuredPosts->isNotEmpty())
-        <div class="max-w-5xl mx-auto mt-12">
+        <div class="mt-12">
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                 Articles featuring {{ $creator->name }}
             </h2>
