@@ -227,6 +227,7 @@ PROMPT;
         $trendingSection = $this->buildTrendingKeywordsSection($request);
         $typeSection = $this->buildPostTypeSection($request);
         $creatorSection = $request->additionalContext['creator_prompt'] ?? '';
+        $editorialSection = $request->additionalContext['editorial_guidance'] ?? '';
 
         return <<<PROMPT
 Generate a comprehensive blog post with the following requirements:
@@ -235,7 +236,7 @@ Topic: {$request->topic}
 Target Length: approximately {$wordCount} words
 Tone: {$tone}
 Target Keyword (if any): {$request->targetKeyword}
-{$trendingSection}{$creatorSection}{$typeSection}
+{$trendingSection}{$creatorSection}{$editorialSection}{$typeSection}
 Use your online search capabilities to include the latest information and trends about this topic, particularly as they relate to Africa.
 
 SEO CHECKLIST — ensure the body content includes ALL of the following:
