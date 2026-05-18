@@ -10,6 +10,8 @@ use App\Models\ContentIdea;
 use App\Models\Post;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Blog\ContentAgentService;
+use Spatie\Activitylog\Models\Activity;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -72,6 +74,10 @@ class ContentCalendar extends Component
 
     public bool $agentSettingsSaved = false;
 
+    public bool $showDryRun = false;
+
+    public bool $showActivityFeed = false;
+
     protected array $allowedStatuses = ['all', 'published', 'scheduled', 'draft'];
 
     public const DRAFTS_PER_CELL = 3;
@@ -103,6 +109,72 @@ class ContentCalendar extends Component
     public function toggleAgentSettings(): void
     {
         $this->showAgentSettings = ! $this->showAgentSettings;
+    }
+
+    public function openDryRun(): void
+    {
+        $this->showDryRun = true;
+    }
+
+    public function closeDryRun(): void
+    {
+        $this->showDryRun = false;
+    }
+
+    public function openActivityFeed(): void
+    {
+        $this->showActivityFeed = true;
+    }
+
+    public function closeActivityFeed(): void
+    {
+        $this->showActivityFeed = false;
+    }
+
+    #[Computed]
+    public function agentLastRun(): array
+    {
+        $summary = Setting::get('content_agent_last_run_summary');
+        $ranAt = Setting::get('content_agent_last_run_at');
+
+        if (! $summary) {
+            return ['has_run' => false];
+        }
+
+        $decoded = is_string($summary) ? json_decode($summary, true) : $summary;
+        $decoded = is_array($decoded) ? $decoded : [];
+
+        return array_merge([
+            'has_run' => true,
+            'ran_at' => $ranAt,
+        ], $decoded);
+    }
+
+    #[Computed]
+    public function dryRunPreview(): array
+    {
+        $agent = app(ContentAgentService::class);
+        $config = $agent->config();
+        $count = max(1, (int) $config['posts_per_day']);
+
+        $ideas = $agent->pickIdeas($count);
+        $slots = $agent->buildSlots($ideas->count(), \Carbon\CarbonImmutable::now('Africa/Lagos'));
+
+        return [
+            'config' => $config,
+            'ideas' => $ideas,
+            'slots' => $slots,
+        ];
+    }
+
+    #[Computed]
+    public function agentActivity(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Activity::query()
+            ->where('log_name', 'content_agent')
+            ->latest()
+            ->limit(30)
+            ->get();
     }
 
     public function saveAgentSettings(): void

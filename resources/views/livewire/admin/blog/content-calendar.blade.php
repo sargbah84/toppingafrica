@@ -45,11 +45,11 @@
 
     {{-- AI Agent settings panel --}}
     <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <button type="button" wire:click="toggleAgentSettings"
-                class="flex w-full items-center justify-between px-4 py-3 text-left">
-            <div class="flex items-center gap-3">
+        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" wire:click="toggleAgentSettings"
+                    class="flex flex-1 items-center gap-3 text-left">
                 <span @class([
-                    'inline-flex h-8 w-8 items-center justify-center rounded-full',
+                    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' => $agentEnabled,
                     'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' => ! $agentEnabled,
                 ])>
@@ -57,24 +57,48 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
                     </svg>
                 </span>
-                <div>
+                <div class="flex-1">
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">AI Content Agent</h2>
+                    @php $lastRun = $this->agentLastRun; @endphp
                     <p class="text-xs text-gray-500 dark:text-gray-400">
                         @if ($agentEnabled)
                             <span class="text-emerald-600 dark:text-emerald-400">Active</span> · runs daily at {{ $agentRunTime }} Lagos · {{ $agentPostsPerDay }} posts/day
                         @else
                             <span class="text-gray-500 dark:text-gray-400">Disabled</span> · configure and enable to start auto-publishing
                         @endif
+                        @if ($lastRun['has_run'] ?? false)
+                            <span class="mx-1">·</span>
+                            <span>Last run {{ $lastRun['ran_at'] ? \Carbon\Carbon::parse($lastRun['ran_at'])->diffForHumans() : '—' }}:
+                                {{ $lastRun['dispatched'] ?? 0 }}/{{ $lastRun['ideas_picked'] ?? 0 }} dispatched
+                                @if (($lastRun['status'] ?? null) === 'no_ideas')
+                                    <span class="text-amber-600 dark:text-amber-400">· no ideas available</span>
+                                @endif
+                            </span>
+                        @endif
                     </p>
                 </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $showAgentSettings ? 'Hide' : 'Configure' }}</span>
-                <svg @class(['h-4 w-4 text-gray-400 transition-transform', 'rotate-180' => $showAgentSettings]) fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <svg @class(['h-4 w-4 shrink-0 text-gray-400 transition-transform', 'rotate-180' => $showAgentSettings]) fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
                 </svg>
+            </button>
+            <div class="flex items-center gap-2 border-l border-gray-200 pl-3 dark:border-gray-700 sm:pl-3">
+                <button type="button" wire:click="openDryRun"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Dry run
+                </button>
+                <button type="button" wire:click="openActivityFeed"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
+                    </svg>
+                    Activity
+                </button>
             </div>
-        </button>
+        </div>
 
         @if ($showAgentSettings)
             <div class="border-t border-gray-200 p-5 dark:border-gray-700">
@@ -734,6 +758,160 @@
                                 </svg>
                             Edit Post
                         </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Dry-run preview modal --}}
+    @if ($showDryRun)
+        @php $preview = $this->dryRunPreview; @endphp
+        <div class="fixed inset-0 z-40 overflow-y-auto" wire:key="dry-run-modal">
+            <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeDryRun"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-3xl rounded-lg bg-white shadow-xl dark:bg-gray-800"
+                     x-data
+                     @keydown.escape.window="$wire.closeDryRun()">
+
+                    <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Dry run preview</h3>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                Shows what the agent would do if it ran right now. No posts are generated.
+                            </p>
+                        </div>
+                        <button type="button" wire:click="closeDryRun"
+                                class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="max-h-[70vh] overflow-y-auto px-6 py-5">
+                        @if ($preview['ideas']->isEmpty())
+                            <div class="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
+                                <strong>No eligible ideas right now.</strong> The agent would log a "no_ideas" run and exit.
+                                Open <a href="{{ route('admin.blog.content-lab') }}" class="font-medium underline">Content Lab</a> to seed more.
+                            </div>
+                        @else
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                The agent would generate {{ $preview['ideas']->count() }} {{ \Illuminate\Support\Str::plural('post', $preview['ideas']->count()) }} and schedule them at the slots below.
+                            </p>
+                            <ul class="mt-3 space-y-2">
+                                @foreach ($preview['ideas'] as $index => $idea)
+                                    @php $slot = $preview['slots'][$index] ?? null; @endphp
+                                    <li class="flex items-start gap-3 rounded-md border border-gray-200 p-3 dark:border-gray-700">
+                                        <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">{{ $index + 1 }}</span>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $idea->title }}</p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                                <span class="capitalize">{{ $idea->status }}</span>
+                                                @if ($idea->seo_score)
+                                                    <span>SEO {{ $idea->seo_score }}</span>
+                                                @endif
+                                                @if ($idea->niche)
+                                                    <span>{{ $idea->niche }}</span>
+                                                @endif
+                                                @if ($slot)
+                                                    <span class="font-medium text-indigo-600 dark:text-indigo-400">
+                                                        → {{ $slot->format('D, M j · g:i A') }} Lagos
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        <div class="mt-5 rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/40 dark:text-gray-400">
+                            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                <div><span class="font-semibold">Posts/day:</span> {{ $preview['config']['posts_per_day'] }}</div>
+                                <div><span class="font-semibold">Window:</span> {{ sprintf('%02d:00', $preview['config']['window_start']) }} – {{ sprintf('%02d:00', $preview['config']['window_end']) }}</div>
+                                <div><span class="font-semibold">Gap:</span> {{ $preview['config']['min_gap'] }}–{{ $preview['config']['max_gap'] }}h</div>
+                                <div><span class="font-semibold">SEO min:</span> {{ $preview['config']['min_seo_score'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end border-t border-gray-200 bg-gray-50 px-6 py-3 dark:border-gray-700 dark:bg-gray-900/40">
+                        <button type="button" wire:click="closeDryRun"
+                                class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Activity feed modal --}}
+    @if ($showActivityFeed)
+        @php $activity = $this->agentActivity; @endphp
+        <div class="fixed inset-0 z-40 overflow-y-auto" wire:key="activity-modal">
+            <div class="fixed inset-0 bg-gray-900/70 transition-opacity" wire:click="closeActivityFeed"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-2xl rounded-lg bg-white shadow-xl dark:bg-gray-800"
+                     x-data
+                     @keydown.escape.window="$wire.closeActivityFeed()">
+
+                    <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Agent activity</h3>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Most recent 30 events the agent logged.</p>
+                        </div>
+                        <button type="button" wire:click="closeActivityFeed"
+                                class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="max-h-[70vh] overflow-y-auto px-3 py-2">
+                        @if ($activity->isEmpty())
+                            <div class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                                The agent hasn't logged anything yet. Once it runs, events will appear here.
+                            </div>
+                        @else
+                            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach ($activity as $entry)
+                                    @php
+                                        $props = $entry->properties ?? collect();
+                                        $event = $entry->event ?? 'event';
+                                        $dotClass = match ($event) {
+                                            'post_scheduled' => 'bg-emerald-500',
+                                            'daily_run' => 'bg-indigo-500',
+                                            'generation_failed' => 'bg-red-500',
+                                            default => 'bg-gray-400',
+                                        };
+                                    @endphp
+                                    <li class="flex items-start gap-3 px-3 py-3">
+                                        <span class="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full {{ $dotClass }}"></span>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm text-gray-900 dark:text-gray-100">{{ $entry->description }}</p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                                <span>{{ $entry->created_at->diffForHumans() }}</span>
+                                                <span class="capitalize">{{ str_replace('_', ' ', $event) }}</span>
+                                                @if ($props->get('seo_score'))
+                                                    <span>SEO {{ $props->get('seo_score') }}</span>
+                                                @endif
+                                                @if ($props->get('scheduled_at'))
+                                                    <span>→ {{ \Carbon\Carbon::parse($props->get('scheduled_at'))->format('M j · g:i A') }}</span>
+                                                @endif
+                                                @if ($props->get('error'))
+                                                    <span class="text-red-600 dark:text-red-400">{{ $props->get('error') }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                 </div>
             </div>

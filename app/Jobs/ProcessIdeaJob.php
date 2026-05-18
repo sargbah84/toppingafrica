@@ -54,9 +54,20 @@ class ProcessIdeaJob implements ShouldQueue
 
         try {
             $post = $this->generatePost($agent, $generator, $idea);
-            $this->improveSeo($seo, $agent, $post);
+            $finalScore = $this->improveSeo($seo, $agent, $post);
             $this->schedulePost($post);
             $idea->markAsGenerated($post->id);
+
+            activity('content_agent')
+                ->event('post_scheduled')
+                ->performedOn($post->fresh())
+                ->withProperties([
+                    'idea_id' => $idea->id,
+                    'idea_title' => $idea->title,
+                    'seo_score' => $finalScore,
+                    'scheduled_at' => $post->scheduled_at?->toDateTimeString(),
+                ])
+                ->log("Scheduled post #{$post->id} (SEO: {$finalScore})");
 
             Log::info('ProcessIdeaJob: scheduled post', [
                 'idea_id' => $idea->id,
@@ -68,6 +79,15 @@ class ProcessIdeaJob implements ShouldQueue
                 'status' => 'pending',
                 'generation_error' => Str::limit($e->getMessage(), 500),
             ]);
+
+            activity('content_agent')
+                ->event('generation_failed')
+                ->withProperties([
+                    'idea_id' => $idea->id,
+                    'idea_title' => $idea->title,
+                    'error' => Str::limit($e->getMessage(), 200),
+                ])
+                ->log("Failed to generate post for idea #{$idea->id}");
 
             Log::error('ProcessIdeaJob: failed', [
                 'idea_id' => $idea->id,
@@ -129,14 +149,16 @@ class ProcessIdeaJob implements ShouldQueue
         return $post;
     }
 
-    private function improveSeo(SeoIntelligenceService $seo, ContentAgentService $agent, Post $post): void
+    private function improveSeo(SeoIntelligenceService $seo, ContentAgentService $agent, Post $post): int
     {
         $config = $agent->config();
         $threshold = $config['min_seo_score'];
         $maxAttempts = $config['max_improve_attempts'];
+        $latestScore = 0;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             $analysis = $seo->analyzePost($post->fresh());
+            $latestScore = $analysis->overall_score;
 
             if ($analysis->overall_score >= $threshold) {
                 Log::info('ProcessIdeaJob: SEO target met', [
@@ -145,7 +167,7 @@ class ProcessIdeaJob implements ShouldQueue
                     'score' => $analysis->overall_score,
                 ]);
 
-                return;
+                return $latestScore;
             }
 
             try {
@@ -157,9 +179,11 @@ class ProcessIdeaJob implements ShouldQueue
                     'error' => $e->getMessage(),
                 ]);
 
-                return;
+                return $latestScore;
             }
         }
+
+        return $latestScore;
     }
 
     private function schedulePost(Post $post): void

@@ -14,6 +14,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Spatie\Activitylog\Facades\CauserResolver;
+use Spatie\Activitylog\Models\Activity;
 
 class DailyContentAgentJob implements ShouldQueue
 {
@@ -80,6 +82,16 @@ class DailyContentAgentJob implements ShouldQueue
 
         Setting::set('content_agent_last_run_at', now()->toDateTimeString());
         Setting::set('content_agent_last_run_summary', $this->summary($ideas->count(), $dispatched, 'ok'));
+
+        activity('content_agent')
+            ->event('daily_run')
+            ->withProperties([
+                'ideas_picked' => $ideas->count(),
+                'dispatched' => $dispatched,
+                'first_slot' => $slots[0]?->toDateTimeString(),
+                'last_slot' => isset($slots[count($slots) - 1]) ? $slots[count($slots) - 1]->toDateTimeString() : null,
+            ])
+            ->log("Daily run: picked {$ideas->count()} ideas, dispatched {$dispatched} jobs");
 
         Log::info('DailyContentAgentJob: dispatched per-idea jobs', [
             'ideas_picked' => $ideas->count(),
