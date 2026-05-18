@@ -8,6 +8,7 @@ use App\Jobs\GenerateContentIdeaPostJob;
 use App\Models\Category;
 use App\Models\ContentIdea;
 use App\Models\Post;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,14 +43,112 @@ class ContentCalendar extends Component
 
     public string $ideaSearch = '';
 
+    // Agent settings panel
+    public bool $showAgentSettings = false;
+
+    public bool $agentEnabled = false;
+
+    public int $agentPostsPerDay = 4;
+
+    public int $agentWindowStartHour = 7;
+
+    public int $agentWindowEndHour = 21;
+
+    public float $agentMinGapHours = 1.5;
+
+    public float $agentMaxGapHours = 2.5;
+
+    public string $agentRunTime = '06:00';
+
+    public int $agentMinSeoScore = 70;
+
+    public int $agentMaxImproveAttempts = 3;
+
+    public string $agentInstructions = '';
+
+    public string $agentAvoidTopics = '';
+
+    public string $agentEmphasizeTopics = '';
+
+    public bool $agentSettingsSaved = false;
+
     protected array $allowedStatuses = ['all', 'published', 'scheduled', 'draft'];
 
     public const DRAFTS_PER_CELL = 3;
+
+    public const AGENT_SETTING_KEYS = [
+        'agentEnabled' => ['key' => 'content_agent_enabled', 'default' => false, 'cast' => 'bool'],
+        'agentPostsPerDay' => ['key' => 'content_agent_posts_per_day', 'default' => 4, 'cast' => 'int'],
+        'agentWindowStartHour' => ['key' => 'content_agent_window_start', 'default' => 7, 'cast' => 'int'],
+        'agentWindowEndHour' => ['key' => 'content_agent_window_end', 'default' => 21, 'cast' => 'int'],
+        'agentMinGapHours' => ['key' => 'content_agent_min_gap', 'default' => 1.5, 'cast' => 'float'],
+        'agentMaxGapHours' => ['key' => 'content_agent_max_gap', 'default' => 2.5, 'cast' => 'float'],
+        'agentRunTime' => ['key' => 'content_agent_run_time', 'default' => '06:00', 'cast' => 'string'],
+        'agentMinSeoScore' => ['key' => 'content_agent_min_seo_score', 'default' => 70, 'cast' => 'int'],
+        'agentMaxImproveAttempts' => ['key' => 'content_agent_max_improve_attempts', 'default' => 3, 'cast' => 'int'],
+        'agentInstructions' => ['key' => 'content_agent_instructions', 'default' => '', 'cast' => 'string'],
+        'agentAvoidTopics' => ['key' => 'content_agent_avoid_topics', 'default' => '', 'cast' => 'string'],
+        'agentEmphasizeTopics' => ['key' => 'content_agent_emphasize_topics', 'default' => '', 'cast' => 'string'],
+    ];
 
     public function mount(): void
     {
         if ($this->month === null || ! $this->isValidMonth($this->month)) {
             $this->month = CarbonImmutable::now()->format('Y-m');
+        }
+
+        $this->loadAgentSettings();
+    }
+
+    public function toggleAgentSettings(): void
+    {
+        $this->showAgentSettings = ! $this->showAgentSettings;
+    }
+
+    public function saveAgentSettings(): void
+    {
+        $this->validate([
+            'agentPostsPerDay' => 'integer|min:1|max:10',
+            'agentWindowStartHour' => 'integer|min:0|max:23',
+            'agentWindowEndHour' => 'integer|min:1|max:23|gt:agentWindowStartHour',
+            'agentMinGapHours' => 'numeric|min:0.25|max:12',
+            'agentMaxGapHours' => 'numeric|min:0.25|max:12|gte:agentMinGapHours',
+            'agentRunTime' => ['regex:/^([01]\d|2[0-3]):([0-5]\d)$/'],
+            'agentMinSeoScore' => 'integer|min:0|max:100',
+            'agentMaxImproveAttempts' => 'integer|min:1|max:5',
+            'agentInstructions' => 'string|max:5000',
+            'agentAvoidTopics' => 'string|max:2000',
+            'agentEmphasizeTopics' => 'string|max:2000',
+        ]);
+
+        foreach (self::AGENT_SETTING_KEYS as $property => $meta) {
+            Setting::set($meta['key'], $this->{$property});
+        }
+
+        $this->agentSettingsSaved = true;
+        $this->dispatch('notify', type: 'success', message: 'Agent settings saved.');
+    }
+
+    public function resetAgentSettings(): void
+    {
+        foreach (self::AGENT_SETTING_KEYS as $property => $meta) {
+            $this->{$property} = $meta['default'];
+        }
+
+        $this->agentSettingsSaved = false;
+    }
+
+    protected function loadAgentSettings(): void
+    {
+        foreach (self::AGENT_SETTING_KEYS as $property => $meta) {
+            $raw = Setting::get($meta['key'], $meta['default']);
+
+            $this->{$property} = match ($meta['cast']) {
+                'bool' => filter_var($raw, FILTER_VALIDATE_BOOLEAN),
+                'int' => (int) $raw,
+                'float' => (float) $raw,
+                default => (string) $raw,
+            };
         }
     }
 

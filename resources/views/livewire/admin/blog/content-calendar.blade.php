@@ -43,6 +43,180 @@
         @endforeach
     </div>
 
+    {{-- AI Agent settings panel --}}
+    <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <button type="button" wire:click="toggleAgentSettings"
+                class="flex w-full items-center justify-between px-4 py-3 text-left">
+            <div class="flex items-center gap-3">
+                <span @class([
+                    'inline-flex h-8 w-8 items-center justify-center rounded-full',
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' => $agentEnabled,
+                    'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' => ! $agentEnabled,
+                ])>
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
+                    </svg>
+                </span>
+                <div>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">AI Content Agent</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        @if ($agentEnabled)
+                            <span class="text-emerald-600 dark:text-emerald-400">Active</span> · runs daily at {{ $agentRunTime }} Lagos · {{ $agentPostsPerDay }} posts/day
+                        @else
+                            <span class="text-gray-500 dark:text-gray-400">Disabled</span> · configure and enable to start auto-publishing
+                        @endif
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $showAgentSettings ? 'Hide' : 'Configure' }}</span>
+                <svg @class(['h-4 w-4 text-gray-400 transition-transform', 'rotate-180' => $showAgentSettings]) fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                </svg>
+            </div>
+        </button>
+
+        @if ($showAgentSettings)
+            <div class="border-t border-gray-200 p-5 dark:border-gray-700">
+                <form wire:submit.prevent="saveAgentSettings" class="space-y-6">
+                    {{-- Master toggle --}}
+                    <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                        <input type="checkbox" wire:model.live="agentEnabled"
+                               class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <div class="flex-1">
+                            <span class="block text-sm font-medium text-gray-900 dark:text-white">Enable AI Content Agent</span>
+                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">When on, the agent picks ideas, generates posts, runs SEO, and schedules them automatically.</span>
+                        </div>
+                    </label>
+
+                    {{-- Schedule & cadence --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Schedule &amp; Cadence</h3>
+                        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Posts per day</span>
+                                <input type="number" min="1" max="10" wire:model="agentPostsPerDay"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                @error('agentPostsPerDay') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Daily run time (Lagos)</span>
+                                <input type="time" wire:model="agentRunTime"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                @error('agentRunTime') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                            </label>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Window start</span>
+                                    <select wire:model="agentWindowStartHour"
+                                            class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                        @for ($h = 0; $h < 24; $h++)
+                                            <option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</option>
+                                        @endfor
+                                    </select>
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Window end</span>
+                                    <select wire:model="agentWindowEndHour"
+                                            class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                        @for ($h = 1; $h < 24; $h++)
+                                            <option value="{{ $h }}">{{ sprintf('%02d:00', $h) }}</option>
+                                        @endfor
+                                    </select>
+                                </label>
+                            </div>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Min gap between posts (hours)</span>
+                                <input type="number" min="0.25" max="12" step="0.25" wire:model="agentMinGapHours"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Max gap between posts (hours)</span>
+                                <input type="number" min="0.25" max="12" step="0.25" wire:model="agentMaxGapHours"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                @error('agentMaxGapHours') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            Posts are scheduled within the daily window with randomized gaps (between min/max) to feel human.
+                        </p>
+                    </div>
+
+                    {{-- Quality bar --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Quality Bar</h3>
+                        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Minimum SEO score</span>
+                                <input type="number" min="0" max="100" wire:model="agentMinSeoScore"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">Posts below this score get auto-improved.</span>
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Max improvement attempts</span>
+                                <input type="number" min="1" max="5" wire:model="agentMaxImproveAttempts"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">Each attempt re-runs SEO analysis + recommendations.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {{-- Editorial guidance --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Editorial Guidance</h3>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">The agent reads these every run. Update them anytime to steer voice, topics, and focus.</p>
+
+                        <label class="mt-3 block">
+                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">House style &amp; instructions</span>
+                            <textarea rows="4" wire:model="agentInstructions"
+                                      placeholder="e.g. Focus on African tech startups, fashion designers, and music. Use a confident, energetic voice. Prefer second-person. Cite recent events when relevant."
+                                      class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"></textarea>
+                            @error('agentInstructions') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                        </label>
+
+                        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Emphasize (one per line)</span>
+                                <textarea rows="4" wire:model="agentEmphasizeTopics"
+                                          placeholder="e.g.&#10;African tech startups&#10;Influencer culture&#10;Positive innovation"
+                                          class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"></textarea>
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Avoid (one per line)</span>
+                                <textarea rows="4" wire:model="agentAvoidTopics"
+                                          placeholder="e.g.&#10;Political conflicts&#10;Crime headlines&#10;Negative stereotypes"
+                                          class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"></textarea>
+                            </label>
+                        </div>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
+                        <button type="button" wire:click="resetAgentSettings"
+                                class="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            Reset to defaults
+                        </button>
+                        <div class="flex items-center gap-3">
+                            @if ($agentSettingsSaved)
+                                <span class="text-xs text-emerald-600 dark:text-emerald-400">Saved</span>
+                            @endif
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                                Save agent settings
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        @endif
+    </div>
+
     {{-- Toolbar: month nav + filters + legend --}}
     <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
