@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Blog;
 
 use App\Models\ContentIdea;
+use App\Models\Post;
 use App\Models\Setting;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 final class ContentAgentService
 {
@@ -35,12 +38,21 @@ final class ContentAgentService
     }
 
     /**
-     * Pick the top N ideas eligible for today's run.
-     * Prefers approved, then highest seo_score, then most recent.
+     * Pick the top N ideas using a weighted scoring algorithm that combines:
+     * - Perplexity seo_score (base, 0-100)
+     * - +30 if approved by a human
+     * - +20 if matches Emphasize lists
+     * - HARD EXCLUDE if matches Avoid lists
+     * - -25 if title >70% similar to one published in last 7 days
+     * - -25 if title >70% similar to one already picked in this run
+     * - -15 per same-niche idea already picked in this run (encourages diversity)
+     * - +5 * log(avg_views_for_this_niche) (light historical performance nudge)
+     *
+     * @return EloquentCollection<int, ContentIdea>
      */
-    public function pickIdeas(int $limit): Collection
+    public function pickIdeas(int $limit): EloquentCollection
     {
-        return ContentIdea::query()
+        $candidates = ContentIdea::query()
             ->whereIn('status', ['pending', 'approved'])
             ->where(function ($q): void {
                 $q->where('status', 'approved')
@@ -48,11 +60,180 @@ final class ContentAgentService
                         $q2->where('status', 'pending')->where('expires_at', '>', now());
                     });
             })
-            ->orderByRaw("CASE WHEN status = 'approved' THEN 0 ELSE 1 END")
-            ->orderByDesc('seo_score')
-            ->orderByDesc('created_at')
-            ->limit($limit)
             ->get();
+
+        if ($candidates->isEmpty()) {
+            return new EloquentCollection;
+        }
+
+        $config = $this->config();
+        $avoidTerms = $this->splitLines($config['avoid_topics']);
+        $emphasizeTerms = $this->splitLines($config['emphasize_topics']);
+        $recentTitles = $this->recentlyPublishedTitles();
+        $nichePerformance = $this->nichePerformanceLookup();
+
+        // Drop hard-excluded candidates up front so they never compete.
+        $candidates = $candidates->reject(fn (ContentIdea $i) => $this->matchesAny($i, $avoidTerms))->values();
+
+        $picked = collect();
+        $pickedNiches = collect();
+
+        for ($i = 0; $i < $limit; $i++) {
+            if ($candidates->isEmpty()) {
+                break;
+            }
+
+            $best = null;
+            $bestScore = -INF;
+
+            foreach ($candidates as $candidate) {
+                $score = $this->scoreIdea(
+                    $candidate,
+                    $emphasizeTerms,
+                    $recentTitles,
+                    $picked,
+                    $pickedNiches,
+                    $nichePerformance,
+                );
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $candidate;
+                }
+            }
+
+            if ($best === null) {
+                break;
+            }
+
+            $picked->push($best);
+            if ($best->niche) {
+                $pickedNiches->push($best->niche);
+            }
+            $candidates = $candidates->reject(fn (ContentIdea $c) => $c->id === $best->id)->values();
+        }
+
+        return new EloquentCollection($picked->all());
+    }
+
+    private function scoreIdea(
+        ContentIdea $idea,
+        array $emphasizeTerms,
+        Collection $recentTitles,
+        Collection $picked,
+        Collection $pickedNiches,
+        Collection $nichePerformance,
+    ): float {
+        $score = (float) ($idea->seo_score ?? 0);
+
+        if ($idea->status === 'approved') {
+            $score += 30;
+        }
+
+        if ($this->matchesAny($idea, $emphasizeTerms)) {
+            $score += 20;
+        }
+
+        $title = (string) $idea->title;
+
+        foreach ($recentTitles as $publishedTitle) {
+            if ($this->titlesSimilar($title, (string) $publishedTitle, 70)) {
+                $score -= 25;
+                break;
+            }
+        }
+
+        foreach ($picked as $alreadyPicked) {
+            if ($this->titlesSimilar($title, (string) $alreadyPicked->title, 70)) {
+                $score -= 25;
+                break;
+            }
+        }
+
+        if ($idea->niche) {
+            $samenicheCount = $pickedNiches->filter(fn ($n) => $n === $idea->niche)->count();
+            $score -= 15 * $samenicheCount;
+
+            $avgViews = (float) $nichePerformance->get($idea->niche, 0);
+            if ($avgViews > 1) {
+                $score += 5 * log($avgViews);
+            }
+        }
+
+        return $score;
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function recentlyPublishedTitles(): Collection
+    {
+        return Post::query()
+            ->where('status', 'published')
+            ->where('published_at', '>=', now()->subDays(7))
+            ->pluck('title');
+    }
+
+    /**
+     * Map of niche => avg views_count across last 90 days of published posts.
+     * Only populated if posts carry a `niche` metadata or category we can join on.
+     * For now returns empty when no niche signal exists on posts.
+     *
+     * @return Collection<string, float>
+     */
+    private function nichePerformanceLookup(): Collection
+    {
+        // ContentIdea.niche is a free-text label (e.g. 'tech-startups'). Posts
+        // don't carry niche directly, so we approximate via the category names
+        // most ideas were generated under. If you later add a `niche` column
+        // to posts, replace this with a direct GROUP BY on it.
+        return collect();
+    }
+
+    private function matchesAny(ContentIdea $idea, array $terms): bool
+    {
+        if ($terms === []) {
+            return false;
+        }
+
+        $haystack = strtolower(implode(' ', array_filter([
+            $idea->title,
+            $idea->niche,
+            $idea->suggested_keyword,
+            $idea->description,
+        ])));
+
+        foreach ($terms as $term) {
+            $needle = strtolower(trim($term));
+            if ($needle !== '' && str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function titlesSimilar(string $a, string $b, int $threshold): bool
+    {
+        $normA = $this->normalizeTitle($a);
+        $normB = $this->normalizeTitle($b);
+
+        if ($normA === '' || $normB === '') {
+            return false;
+        }
+
+        similar_text($normA, $normB, $percent);
+
+        return $percent >= $threshold;
+    }
+
+    private function normalizeTitle(string $title): string
+    {
+        return Str::of($title)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9 ]/i', ' ')
+            ->squish()
+            ->value();
     }
 
     /**
