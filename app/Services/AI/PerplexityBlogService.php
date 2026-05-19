@@ -90,15 +90,42 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
             $this->trackUsage($response, 'perplexity', $this->model, 'blog-generation', true, $durationMs);
 
-            $content = $response->json('choices.0.message.content');
+            $rawContent = $response->json('choices.0.message.content');
 
             // Perplexity may return content with markdown code blocks
-            $content = $this->extractJson($content);
+            $content = $this->extractJson($rawContent);
             $data = json_decode($content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                // Try to parse as structured content
-                return $this->parseUnstructuredResponse($response->json('choices.0.message.content'), $request);
+                Log::error('Perplexity returned unparseable JSON', [
+                    'topic' => $request->topic,
+                    'json_error' => json_last_error_msg(),
+                    'extracted_preview' => substr($content, 0, 500),
+                    'raw_preview' => substr((string) $rawContent, 0, 500),
+                ]);
+
+                throw new \RuntimeException(
+                    'Perplexity returned unparseable JSON: '.json_last_error_msg()
+                );
+            }
+
+            // Sanity check: a valid response must at least have a non-empty
+            // title and body. Otherwise downstream code creates a corrupted
+            // post with the JSON envelope as the body (the bug that produced
+            // posts #629-#631 on 2026-05-19).
+            $title = trim((string) ($data['title'] ?? ''));
+            $body = trim((string) ($data['body'] ?? ''));
+            if ($title === '' || $body === '') {
+                Log::error('Perplexity JSON parsed but missing title/body', [
+                    'topic' => $request->topic,
+                    'has_title' => $title !== '',
+                    'has_body' => $body !== '',
+                    'keys_returned' => array_keys($data),
+                ]);
+
+                throw new \RuntimeException(
+                    'Perplexity response missing required title or body field.'
+                );
             }
 
             return $this->normalizeResponse($data);
@@ -228,6 +255,8 @@ PROMPT;
         $typeSection = $this->buildPostTypeSection($request);
         $creatorSection = $request->additionalContext['creator_prompt'] ?? '';
         $editorialSection = $request->additionalContext['editorial_guidance'] ?? '';
+        $ideaContext = trim((string) ($request->additionalContext['idea_context'] ?? ''));
+        $ideaContextSection = $ideaContext !== '' ? "\nAdditional context about this topic:\n{$ideaContext}\n" : '';
 
         return <<<PROMPT
 Generate a comprehensive blog post with the following requirements:
@@ -236,7 +265,7 @@ Topic: {$request->topic}
 Target Length: approximately {$wordCount} words
 Tone: {$tone}
 Target Keyword (if any): {$request->targetKeyword}
-{$trendingSection}{$creatorSection}{$editorialSection}{$typeSection}
+{$ideaContextSection}{$trendingSection}{$creatorSection}{$editorialSection}{$typeSection}
 Use your online search capabilities to include the latest information and trends about this topic, particularly as they relate to Africa.
 
 SEO CHECKLIST — ensure the body content includes ALL of the following:
@@ -391,11 +420,55 @@ PROMPT;
             return trim($matches[1]);
         }
 
-        // Try to find JSON object
-        if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
-            return $matches[0];
+        // Find the outermost balanced JSON object by walking braces while
+        // respecting string boundaries and escape sequences. The previous
+        // greedy regex (`\{[\s\S]*\}`) could grab past the actual JSON when
+        // the model echoed example braces in the body content, producing
+        // un-parseable input that fell through to the unstructured fallback.
+        $start = strpos($content, '{');
+        if ($start === false) {
+            return $content;
         }
 
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        $length = strlen($content);
+
+        for ($i = $start; $i < $length; $i++) {
+            $char = $content[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\') {
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($char === '{') {
+                $depth++;
+            } elseif ($char === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($content, $start, $i - $start + 1);
+                }
+            }
+        }
+
+        // Unbalanced — return as-is so json_decode reports the actual error
+        // and the unstructured fallback handles it explicitly.
         return $content;
     }
 

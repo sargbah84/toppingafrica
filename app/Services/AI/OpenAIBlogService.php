@@ -199,6 +199,8 @@ PROMPT;
         $typeSection = $this->buildPostTypeSection($request);
         $creatorSection = $request->additionalContext['creator_prompt'] ?? '';
         $editorialSection = $request->additionalContext['editorial_guidance'] ?? '';
+        $ideaContext = trim((string) ($request->additionalContext['idea_context'] ?? ''));
+        $ideaContextSection = $ideaContext !== '' ? "\nAdditional context about this topic:\n{$ideaContext}\n" : '';
 
         return <<<PROMPT
 Generate a comprehensive blog post with the following requirements:
@@ -207,7 +209,7 @@ Topic: {$request->topic}
 Target Length: approximately {$wordCount} words
 Tone: {$tone}
 Target Keyword (if any): {$request->targetKeyword}
-{$trendingSection}{$creatorSection}{$editorialSection}{$typeSection}
+{$ideaContextSection}{$trendingSection}{$creatorSection}{$editorialSection}{$typeSection}
 SEO CHECKLIST — ensure the body content includes ALL of the following:
 - Target keyword in the first paragraph and in at least 2 H2/H3 headings
 - At least 4 subheadings (H2/H3)

@@ -106,14 +106,25 @@ class ProcessIdeaJob implements ShouldQueue
     {
         $guidance = $agent->buildEditorialGuidance();
 
+        // Topic is the high-level subject the AI writes about. Passing the
+        // description here concatenated with the title would (a) bloat the
+        // prompt and (b) become a hostile fallback title when the AI parser
+        // ever fails. Keep topic as just the idea title; the description
+        // and any extra context belong in additionalContext where the
+        // prompt builders can wrap it explicitly.
+        $additional = $guidance !== '' ? ['editorial_guidance' => $guidance] : [];
+        if (! empty($idea->description)) {
+            $additional['idea_context'] = trim((string) $idea->description);
+        }
+
         $request = new PostGenerationRequest(
-            topic: $idea->title."\n\nContext: ".$idea->description,
+            topic: trim((string) $idea->title),
             aiProvider: 'perplexity',
             length: $idea->suggested_length ?? 'medium',
             tone: $idea->suggested_tone ?? 'professional',
             targetKeyword: $idea->suggested_keyword,
             postType: $idea->suggested_post_type ?? 'article',
-            additionalContext: $guidance !== '' ? ['editorial_guidance' => $guidance] : [],
+            additionalContext: $additional,
         );
 
         $data = $generator->generate($request);
