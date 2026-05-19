@@ -9,6 +9,7 @@ use App\Models\ContentIdea;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\ContentAgentService;
+use App\Services\Blog\FeaturedImageService;
 use App\Services\Blog\PostGeneratorService;
 use App\Services\Blog\Seo\SeoIntelligenceService;
 use Illuminate\Bus\Queueable;
@@ -39,6 +40,7 @@ class ProcessIdeaJob implements ShouldQueue
         ContentAgentService $agent,
         PostGeneratorService $generator,
         SeoIntelligenceService $seo,
+        FeaturedImageService $featuredImage,
     ): void {
         $idea = ContentIdea::find($this->ideaId);
         if (! $idea) {
@@ -53,7 +55,8 @@ class ProcessIdeaJob implements ShouldQueue
         $idea->markAsGenerating($this->authorId);
 
         try {
-            $post = $this->generatePost($agent, $generator, $idea);
+            [$post, $imageQuery] = $this->generatePost($agent, $generator, $idea);
+            $this->attachFeaturedImage($featuredImage, $post, $imageQuery, $idea);
             $finalScore = $this->improveSeo($seo, $agent, $post);
             $this->schedulePost($post);
             $idea->markAsGenerated($post->id);
@@ -96,7 +99,10 @@ class ProcessIdeaJob implements ShouldQueue
         }
     }
 
-    private function generatePost(ContentAgentService $agent, PostGeneratorService $generator, ContentIdea $idea): Post
+    /**
+     * @return array{0: Post, 1: string} [post, ai_suggested_image_query]
+     */
+    private function generatePost(ContentAgentService $agent, PostGeneratorService $generator, ContentIdea $idea): array
     {
         $guidance = $agent->buildEditorialGuidance();
 
@@ -146,7 +152,22 @@ class ProcessIdeaJob implements ShouldQueue
             $post->tags()->sync($tagIds);
         }
 
-        return $post;
+        return [$post, (string) ($data->featuredImageQuery ?? '')];
+    }
+
+    private function attachFeaturedImage(FeaturedImageService $service, Post $post, string $aiQuery, ContentIdea $idea): void
+    {
+        $query = $aiQuery !== ''
+            ? $aiQuery
+            : trim(($idea->suggested_keyword ?? $post->focus_keyword ?? $post->title).' Africa');
+
+        $url = $service->attach($post->fresh(), $query);
+
+        Log::info('ProcessIdeaJob: featured image attempt', [
+            'post_id' => $post->id,
+            'query' => $query,
+            'attached' => $url !== null,
+        ]);
     }
 
     private function improveSeo(SeoIntelligenceService $seo, ContentAgentService $agent, Post $post): int

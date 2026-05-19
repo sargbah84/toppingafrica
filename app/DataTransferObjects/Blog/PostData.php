@@ -32,6 +32,7 @@ final readonly class PostData
         public string $postType = 'article',
         public array $typeData = [],
         public array $featuredCreatorSlugs = [],
+        public ?string $featuredImageQuery = null,
     ) {}
 
     public function toArray(): array

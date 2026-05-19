@@ -261,6 +261,7 @@ Return a JSON object with these exact keys (no markdown, just JSON):
     "categories": ["Category1", "Category2"],
     "internal_link_topics": ["Related topic 1", "Related topic 2", "Related topic 3"],
     "featured_creator_slugs": ["creator-slug-1", "creator-slug-2"],
+    "featured_image_query": "A short, specific image search query that would find a strong hero photo for this article. Be concrete (e.g. 'Burna Boy at AFCON 2026 trophy ceremony') rather than generic ('African music'). Always include the most specific named subject or event from the article. Avoid copyrighted character names; prefer real people, places, events, products.",
     "type_data": {}
 }
 
@@ -412,6 +413,7 @@ PROMPT;
             'categories' => [],
             'internal_link_topics' => [],
             'featured_creator_slugs' => [],
+            'featured_image_query' => '',
         ];
     }
 
@@ -431,6 +433,7 @@ PROMPT;
                 $data['featured_creator_slugs'] ?? [],
                 fn ($s) => is_string($s) && $s !== ''
             )),
+            'featured_image_query' => trim((string) ($data['featured_image_query'] ?? '')),
         ];
     }
 }
