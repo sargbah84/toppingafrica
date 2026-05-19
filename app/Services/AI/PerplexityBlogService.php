@@ -96,17 +96,28 @@ final class PerplexityBlogService implements BlogGeneratorInterface
             $content = $this->extractJson($rawContent);
             $data = json_decode($content, true);
 
+            // Perplexity routinely pretty-prints its JSON response with raw
+            // newlines inside body string values, which is invalid JSON.
+            // If the first decode fails, escape unescaped control chars
+            // inside string contexts and retry once.
             if (json_last_error() !== JSON_ERROR_NONE) {
-                Log::error('Perplexity returned unparseable JSON', [
-                    'topic' => $request->topic,
-                    'json_error' => json_last_error_msg(),
-                    'extracted_preview' => substr($content, 0, 500),
-                    'raw_preview' => substr((string) $rawContent, 0, 500),
-                ]);
+                $firstError = json_last_error_msg();
+                $repaired = $this->escapeControlCharsInsideStrings($content);
+                $data = json_decode($repaired, true);
 
-                throw new \RuntimeException(
-                    'Perplexity returned unparseable JSON: '.json_last_error_msg()
-                );
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::error('Perplexity returned unparseable JSON (after repair)', [
+                        'topic' => $request->topic,
+                        'json_error_initial' => $firstError,
+                        'json_error_after_repair' => json_last_error_msg(),
+                        'extracted_preview' => substr($content, 0, 500),
+                        'repaired_preview' => substr($repaired, 0, 500),
+                    ]);
+
+                    throw new \RuntimeException(
+                        'Perplexity returned unparseable JSON: '.json_last_error_msg()
+                    );
+                }
             }
 
             // Sanity check: a valid response must at least have a non-empty
@@ -120,7 +131,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
                     'topic' => $request->topic,
                     'has_title' => $title !== '',
                     'has_body' => $body !== '',
-                    'keys_returned' => array_keys($data),
+                    'keys_returned' => is_array($data) ? array_keys($data) : 'not_array',
                 ]);
 
                 throw new \RuntimeException(
@@ -470,6 +481,60 @@ PROMPT;
         // Unbalanced — return as-is so json_decode reports the actual error
         // and the unstructured fallback handles it explicitly.
         return $content;
+    }
+
+    /**
+     * Replace raw control characters (newline, carriage return, tab, etc.)
+     * inside JSON string contexts with their escape sequences so json_decode
+     * accepts pretty-printed responses. Characters outside strings — including
+     * the newlines between key/value pairs — are preserved.
+     */
+    private function escapeControlCharsInsideStrings(string $content): string
+    {
+        $out = '';
+        $inString = false;
+        $escape = false;
+        $length = strlen($content);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $content[$i];
+
+            if ($escape) {
+                $out .= $char;
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\') {
+                $out .= $char;
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $inString = ! $inString;
+                $out .= $char;
+                continue;
+            }
+
+            if ($inString) {
+                $out .= match ($char) {
+                    "\n" => '\\n',
+                    "\r" => '\\r',
+                    "\t" => '\\t',
+                    "\f" => '\\f',
+                    "\b" => '\\b',
+                    default => ord($char) < 0x20
+                        ? sprintf('\\u%04x', ord($char))
+                        : $char,
+                };
+                continue;
+            }
+
+            $out .= $char;
+        }
+
+        return $out;
     }
 
     private function parseUnstructuredResponse(string $content, PostGenerationRequest $request): array
