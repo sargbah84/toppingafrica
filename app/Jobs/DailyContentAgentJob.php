@@ -51,7 +51,9 @@ class DailyContentAgentJob implements ShouldQueue
         }
         Setting::set('content_agent_last_run_date', $today);
 
-        $target = max(1, (int) $config['posts_per_day']);
+        // Roll the count deterministically against today's Lagos date so the
+        // dry-run preview in the calendar UI matches what we'll actually produce.
+        $target = $agent->rollPostsCount($now);
 
         $ideas = $agent->pickIdeas($target);
 

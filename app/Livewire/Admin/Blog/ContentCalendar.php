@@ -50,7 +50,9 @@ class ContentCalendar extends Component
 
     public bool $agentEnabled = false;
 
-    public int $agentPostsPerDay = 4;
+    public int $agentPostsPerDayMin = 4;
+
+    public int $agentPostsPerDayMax = 4;
 
     public int $agentWindowStartHour = 7;
 
@@ -84,7 +86,8 @@ class ContentCalendar extends Component
 
     public const AGENT_SETTING_KEYS = [
         'agentEnabled' => ['key' => 'content_agent_enabled', 'default' => false, 'cast' => 'bool'],
-        'agentPostsPerDay' => ['key' => 'content_agent_posts_per_day', 'default' => 4, 'cast' => 'int'],
+        'agentPostsPerDayMin' => ['key' => 'content_agent_posts_per_day_min', 'default' => 4, 'cast' => 'int'],
+        'agentPostsPerDayMax' => ['key' => 'content_agent_posts_per_day_max', 'default' => 4, 'cast' => 'int'],
         'agentWindowStartHour' => ['key' => 'content_agent_window_start', 'default' => 7, 'cast' => 'int'],
         'agentWindowEndHour' => ['key' => 'content_agent_window_end', 'default' => 21, 'cast' => 'int'],
         'agentMinGapHours' => ['key' => 'content_agent_min_gap', 'default' => 1.5, 'cast' => 'float'],
@@ -175,19 +178,20 @@ class ContentCalendar extends Component
     {
         $agent = app(ContentAgentService::class);
         $config = $agent->config();
-        $count = max(1, (int) $config['posts_per_day']);
+
+        // Deterministic for both count AND slots, against tomorrow's Lagos
+        // date — so this preview is what tomorrow's actual run will produce.
+        $tomorrow = \Carbon\CarbonImmutable::now('Africa/Lagos')->addDay();
+        $count = $agent->rollPostsCount($tomorrow);
 
         $ideas = $agent->pickIdeas($count);
-        // Deterministic slots: same calendar day -> same preview, and tomorrow's
-        // actual agent run will use this exact sequence (because the orchestrator
-        // builds slots against tomorrow's date using the same seed).
-        $tomorrow = \Carbon\CarbonImmutable::now('Africa/Lagos')->addDay();
         $slots = $agent->buildSlots($ideas->count(), $tomorrow, deterministic: true);
 
         return [
             'config' => $config,
             'ideas' => $ideas,
             'slots' => $slots,
+            'rolled_count' => $count,
         ];
     }
 
@@ -204,7 +208,8 @@ class ContentCalendar extends Component
     public function saveAgentSettings(): void
     {
         $this->validate([
-            'agentPostsPerDay' => 'integer|min:1|max:10',
+            'agentPostsPerDayMin' => 'integer|min:1|max:10',
+            'agentPostsPerDayMax' => 'integer|min:1|max:10|gte:agentPostsPerDayMin',
             'agentWindowStartHour' => 'integer|min:0|max:23',
             'agentWindowEndHour' => 'integer|min:1|max:23|gt:agentWindowStartHour',
             'agentMinGapHours' => 'numeric|min:0.25|max:12',
@@ -236,8 +241,17 @@ class ContentCalendar extends Component
 
     protected function loadAgentSettings(): void
     {
+        // Back-compat: existing installs may only have the legacy single
+        // posts_per_day value. Upgrade transparently by using it as the
+        // default for both min and max until the admin saves the new fields.
+        $legacyPostsPerDay = Setting::get('content_agent_posts_per_day');
+        $rangeDefaults = $legacyPostsPerDay !== null
+            ? ['content_agent_posts_per_day_min' => $legacyPostsPerDay, 'content_agent_posts_per_day_max' => $legacyPostsPerDay]
+            : [];
+
         foreach (self::AGENT_SETTING_KEYS as $property => $meta) {
-            $raw = Setting::get($meta['key'], $meta['default']);
+            $default = $rangeDefaults[$meta['key']] ?? $meta['default'];
+            $raw = Setting::get($meta['key'], $default);
 
             $this->{$property} = match ($meta['cast']) {
                 'bool' => filter_var($raw, FILTER_VALIDATE_BOOLEAN),

@@ -62,7 +62,12 @@
                     @php $lastRun = $this->agentLastRun; @endphp
                     <p class="text-xs text-gray-500 dark:text-gray-400">
                         @if ($agentEnabled)
-                            <span class="text-emerald-600 dark:text-emerald-400">Active</span> · runs daily at {{ $agentRunTime }} Lagos · {{ $agentPostsPerDay }} posts/day
+                            <span class="text-emerald-600 dark:text-emerald-400">Active</span> · runs daily at {{ $agentRunTime }} Lagos ·
+                            @if ($agentPostsPerDayMin === $agentPostsPerDayMax)
+                                {{ $agentPostsPerDayMin }} {{ \Illuminate\Support\Str::plural('post', $agentPostsPerDayMin) }}/day
+                            @else
+                                {{ $agentPostsPerDayMin }}–{{ $agentPostsPerDayMax }} posts/day
+                            @endif
                         @else
                             <span class="text-gray-500 dark:text-gray-400">Disabled</span> · configure and enable to start auto-publishing
                         @endif
@@ -127,12 +132,20 @@
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Schedule &amp; Cadence</h3>
                         <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <label class="block">
-                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Posts per day</span>
-                                <input type="number" min="1" max="10" wire:model="agentPostsPerDay"
-                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                @error('agentPostsPerDay') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
-                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Min posts/day</span>
+                                    <input type="number" min="1" max="10" wire:model="agentPostsPerDayMin"
+                                           class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                    @error('agentPostsPerDayMin') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Max posts/day</span>
+                                    <input type="number" min="1" max="10" wire:model="agentPostsPerDayMax"
+                                           class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                    @error('agentPostsPerDayMax') <span class="mt-1 text-xs text-red-600">{{ $message }}</span> @enderror
+                                </label>
+                            </div>
 
                             <label class="block">
                                 <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Daily run time (Lagos)</span>
@@ -839,7 +852,13 @@
 
                         <div class="mt-5 rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/40 dark:text-gray-400">
                             <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                <div><span class="font-semibold">Posts/day:</span> {{ $preview['config']['posts_per_day'] }}</div>
+                                <div><span class="font-semibold">Posts/day:</span>
+                                    @if ($preview['config']['posts_per_day_min'] === $preview['config']['posts_per_day_max'])
+                                        {{ $preview['config']['posts_per_day_min'] }}
+                                    @else
+                                        {{ $preview['rolled_count'] ?? $preview['config']['posts_per_day_min'] }} of {{ $preview['config']['posts_per_day_min'] }}–{{ $preview['config']['posts_per_day_max'] }}
+                                    @endif
+                                </div>
                                 <div><span class="font-semibold">Window:</span> {{ sprintf('%02d:00', $preview['config']['window_start']) }} – {{ sprintf('%02d:00', $preview['config']['window_end']) }}</div>
                                 <div><span class="font-semibold">Gap:</span> {{ $preview['config']['min_gap'] }}–{{ $preview['config']['max_gap'] }}h</div>
                                 <div><span class="font-semibold">SEO min:</span> {{ $preview['config']['min_seo_score'] }}</div>

@@ -21,9 +21,21 @@ final class ContentAgentService
 
     public function config(): array
     {
+        // Back-compat: callers that previously set a single posts_per_day get
+        // upgraded transparently. Min and max both default to whatever the
+        // old key holds (or 4 if neither was set), so existing installs keep
+        // the same fixed-count behavior until the admin widens the range.
+        $legacyCount = (int) Setting::get('content_agent_posts_per_day', 4);
+        $min = (int) Setting::get('content_agent_posts_per_day_min', $legacyCount);
+        $max = (int) Setting::get('content_agent_posts_per_day_max', $legacyCount);
+        if ($max < $min) {
+            $max = $min;
+        }
+
         return [
             'enabled' => $this->isEnabled(),
-            'posts_per_day' => (int) Setting::get('content_agent_posts_per_day', 4),
+            'posts_per_day_min' => $min,
+            'posts_per_day_max' => $max,
             'window_start' => (int) Setting::get('content_agent_window_start', 7),
             'window_end' => (int) Setting::get('content_agent_window_end', 21),
             'min_gap' => (float) Setting::get('content_agent_min_gap', 1.5),
@@ -35,6 +47,31 @@ final class ContentAgentService
             'avoid_topics' => (string) Setting::get('content_agent_avoid_topics', ''),
             'emphasize_topics' => (string) Setting::get('content_agent_emphasize_topics', ''),
         ];
+    }
+
+    /**
+     * Choose how many posts the agent will produce on the given Lagos day.
+     * Deterministic — same date always yields the same count — so dry-run
+     * previews match what the actual run will do.
+     */
+    public function rollPostsCount(?CarbonImmutable $baseDay = null): int
+    {
+        $config = $this->config();
+        $min = max(1, $config['posts_per_day_min']);
+        $max = max($min, $config['posts_per_day_max']);
+
+        if ($min === $max) {
+            return $min;
+        }
+
+        $tz = 'Africa/Lagos';
+        $baseDay = ($baseDay ?? CarbonImmutable::now($tz))->setTimezone($tz);
+        // Use a distinct counter offset from buildSlots() so we don't draw
+        // the same value the slot-builder uses for its first jitter.
+        $seed = (int) $baseDay->format('Ymd');
+        $value = ($seed * 1664525 + 1013904223) & 0x7fffffff;
+
+        return $min + ($value % ($max - $min + 1));
     }
 
     /**
