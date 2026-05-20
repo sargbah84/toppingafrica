@@ -67,11 +67,21 @@
                             <span class="text-gray-500 dark:text-gray-400">Disabled</span> · configure and enable to start auto-publishing
                         @endif
                         @if ($lastRun['has_run'] ?? false)
+                            @php
+                                $dispatched = (int) ($lastRun['dispatched'] ?? 0);
+                                $failures = (int) ($lastRun['failures'] ?? 0);
+                                $produced = max(0, $dispatched - $failures);
+                            @endphp
                             <span class="mx-1">·</span>
                             <span>Last run {{ $lastRun['ran_at'] ? \Carbon\Carbon::parse($lastRun['ran_at'])->diffForHumans() : '—' }}:
-                                {{ $lastRun['dispatched'] ?? 0 }}/{{ $lastRun['ideas_picked'] ?? 0 }} dispatched
+                                {{ $produced }}/{{ $dispatched }} produced
                                 @if (($lastRun['status'] ?? null) === 'no_ideas')
                                     <span class="text-amber-600 dark:text-amber-400">· no ideas available</span>
+                                @endif
+                                @if ($failures > 0)
+                                    <span class="text-red-600 dark:text-red-400" title="{{ collect($lastRun['failed_titles'] ?? [])->implode("\n") }}">
+                                        · {{ $failures }} {{ \Illuminate\Support\Str::plural('failure', $failures) }}
+                                    </span>
                                 @endif
                             </span>
                         @endif

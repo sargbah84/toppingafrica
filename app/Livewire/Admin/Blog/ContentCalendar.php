@@ -144,9 +144,29 @@ class ContentCalendar extends Component
         $decoded = is_string($summary) ? json_decode($summary, true) : $summary;
         $decoded = is_array($decoded) ? $decoded : [];
 
+        // Count generation failures logged since the run kicked off.
+        // The orchestrator only dispatches jobs; the post-creation work
+        // happens asynchronously, so failures land in activity log after
+        // the run summary was already written.
+        $failures = 0;
+        $failedTitles = [];
+        if ($ranAt) {
+            $events = Activity::query()
+                ->where('log_name', 'content_agent')
+                ->where('event', 'generation_failed')
+                ->where('created_at', '>=', $ranAt)
+                ->latest()
+                ->limit(10)
+                ->get();
+            $failures = $events->count();
+            $failedTitles = $events->map(fn ($e) => (string) ($e->properties['idea_title'] ?? '—'))->all();
+        }
+
         return array_merge([
             'has_run' => true,
             'ran_at' => $ranAt,
+            'failures' => $failures,
+            'failed_titles' => $failedTitles,
         ], $decoded);
     }
 
