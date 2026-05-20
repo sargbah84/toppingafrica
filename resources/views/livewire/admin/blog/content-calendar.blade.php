@@ -254,8 +254,16 @@
                                 <span class="text-xs text-emerald-600 dark:text-emerald-400">Saved</span>
                             @endif
                             <button type="submit"
-                                    class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                                Save agent settings
+                                    wire:loading.attr="disabled"
+                                    wire:target="saveAgentSettings"
+                                    class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-75">
+                                <svg wire:loading wire:target="saveAgentSettings"
+                                     class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                                <span wire:loading.remove wire:target="saveAgentSettings">Save agent settings</span>
+                                <span wire:loading wire:target="saveAgentSettings">Saving...</span>
                             </button>
                         </div>
                     </div>
