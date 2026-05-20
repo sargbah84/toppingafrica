@@ -106,10 +106,13 @@ final class PerplexityBlogService implements BlogGeneratorInterface
                 $data = json_decode($repaired, true);
 
                 if (json_last_error() !== JSON_ERROR_NONE) {
+                    $dumpPath = $this->dumpRawResponse($rawContent, $content, $repaired);
+
                     Log::error('Perplexity returned unparseable JSON (after repair)', [
                         'topic' => $request->topic,
                         'json_error_initial' => $firstError,
                         'json_error_after_repair' => json_last_error_msg(),
+                        'raw_dump_path' => $dumpPath,
                         'extracted_preview' => substr($content, 0, 500),
                         'repaired_preview' => substr($repaired, 0, 500),
                     ]);
@@ -481,6 +484,29 @@ PROMPT;
         // Unbalanced — return as-is so json_decode reports the actual error
         // and the unstructured fallback handles it explicitly.
         return $content;
+    }
+
+    /**
+     * Dump a failing Perplexity response to a debug file so we can inspect
+     * the exact bytes causing the parse failure. Returns the relative path
+     * within storage/ for inclusion in error logs.
+     */
+    private function dumpRawResponse(string $raw, string $extracted, string $repaired): string
+    {
+        $dir = storage_path('logs/agent-failures');
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+
+        $filename = sprintf('%s/%s-%s.txt', $dir, date('Ymd-His'), bin2hex(random_bytes(3)));
+
+        $payload = "=== RAW Perplexity content ===\n".$raw
+            ."\n\n=== EXTRACTED (after extractJson) ===\n".$extracted
+            ."\n\n=== REPAIRED (after escapeControlCharsInsideStrings) ===\n".$repaired;
+
+        @file_put_contents($filename, $payload);
+
+        return str_replace(storage_path(), 'storage', $filename);
     }
 
     /**

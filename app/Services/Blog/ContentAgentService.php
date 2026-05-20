@@ -242,7 +242,7 @@ final class ContentAgentService
      *
      * @return CarbonImmutable[]
      */
-    public function buildSlots(int $count, ?CarbonImmutable $baseDay = null): array
+    public function buildSlots(int $count, ?CarbonImmutable $baseDay = null, bool $deterministic = false): array
     {
         if ($count <= 0) {
             return [];
@@ -258,11 +258,21 @@ final class ContentAgentService
         $windowStart = $baseDay->setTime($config['window_start'], 0);
         $windowEnd = $baseDay->setTime($config['window_end'], 0);
 
+        // When called from dry-run we want stable, repeatable output so the
+        // preview matches what tomorrow's actual run will produce. We use
+        // a date-seeded PRNG: same calendar day -> same slots, every click.
+        $rng = $deterministic
+            ? $this->seededRandom((int) $baseDay->format('Ymd'))
+            : null;
+        $rand = fn (int $min, int $max): int => $rng ? $rng($min, $max) : random_int($min, $max);
+
         // First slot: start anywhere in the first hour of the window (with jitter).
-        $cursor = $windowStart->addMinutes(random_int(0, 59));
+        $cursor = $windowStart->addMinutes($rand(0, 59));
 
         // If today's window has already started, advance to "now + 5 min" earliest.
-        $earliest = CarbonImmutable::now($tz)->addMinutes(5);
+        // Skipped for deterministic mode so a dry-run preview always reflects the
+        // FULL day's plan even if we're past noon.
+        $earliest = $deterministic ? $windowStart : CarbonImmutable::now($tz)->addMinutes(5);
         if ($cursor->lt($earliest)) {
             $cursor = $earliest;
         }
@@ -274,7 +284,7 @@ final class ContentAgentService
             }
 
             // Apply ±15min jitter per slot
-            $jittered = $cursor->addMinutes(random_int(-15, 15));
+            $jittered = $cursor->addMinutes($rand(-15, 15));
             if ($jittered->lt($earliest)) {
                 $jittered = $earliest;
             }
@@ -285,11 +295,31 @@ final class ContentAgentService
             $slots[] = $jittered;
 
             // Advance cursor by a random gap inside [min, max]
-            $gap = random_int($minGapMin, $maxGapMin);
+            $gap = $rand($minGapMin, $maxGapMin);
             $cursor = $cursor->addMinutes($gap);
         }
 
         return $slots;
+    }
+
+    /**
+     * Return a deterministic random-int generator seeded by the given integer.
+     * mt_srand is global state; we restore the previous seed via mt_rand after.
+     */
+    private function seededRandom(int $seed): callable
+    {
+        $counter = 0;
+
+        return function (int $min, int $max) use ($seed, &$counter): int {
+            // Linear congruential mix: same seed + same counter -> same value.
+            // Counter is captured by reference so successive calls within ONE
+            // buildSlots() invocation produce different (but deterministic) values,
+            // while two separate dry-runs on the same day produce the same sequence.
+            $counter++;
+            $value = ($seed * 1103515245 + 12345 + ($counter * 2654435761)) & 0x7fffffff;
+
+            return $min + ($value % ($max - $min + 1));
+        };
     }
 
     /**

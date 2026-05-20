@@ -158,7 +158,11 @@ class ContentCalendar extends Component
         $count = max(1, (int) $config['posts_per_day']);
 
         $ideas = $agent->pickIdeas($count);
-        $slots = $agent->buildSlots($ideas->count(), \Carbon\CarbonImmutable::now('Africa/Lagos'));
+        // Deterministic slots: same calendar day -> same preview, and tomorrow's
+        // actual agent run will use this exact sequence (because the orchestrator
+        // builds slots against tomorrow's date using the same seed).
+        $tomorrow = \Carbon\CarbonImmutable::now('Africa/Lagos')->addDay();
+        $slots = $agent->buildSlots($ideas->count(), $tomorrow, deterministic: true);
 
         return [
             'config' => $config,

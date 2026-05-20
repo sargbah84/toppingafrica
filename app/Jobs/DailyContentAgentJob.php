@@ -63,7 +63,10 @@ class DailyContentAgentJob implements ShouldQueue
         }
 
         $authorId = $this->resolveAuthorId();
-        $slots = $agent->buildSlots($ideas->count(), CarbonImmutable::now('Africa/Lagos'));
+        // Deterministic so dry-run preview in the calendar UI accurately
+        // predicts what this run will produce. Seed is the calendar date,
+        // so different days still produce different (but stable) timing.
+        $slots = $agent->buildSlots($ideas->count(), CarbonImmutable::now('Africa/Lagos'), deterministic: true);
 
         $dispatched = 0;
         foreach ($ideas->values() as $i => $idea) {
