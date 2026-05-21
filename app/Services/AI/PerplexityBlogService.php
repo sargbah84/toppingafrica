@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\DataTransferObjects\Blog\PostGenerationRequest;
+use App\Models\Category;
 use App\Services\AI\Concerns\TracksAiUsage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -219,7 +221,7 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
     private function getSystemPrompt(): string
     {
-        $categories = implode(', ', array_column(config('blog.default_categories', []), 'name'));
+        $categories = $this->availableCategoriesLabel();
 
         return <<<PROMPT
 You are an expert SEO content writer for Topping Africa, a leading African news, entertainment, business, technology, and culture magazine.
@@ -275,7 +277,7 @@ PROMPT;
     {
         $wordCount = $request->getWordCount();
         $tone = $request->getToneDescription();
-        $categories = implode(', ', array_column(config('blog.default_categories', []), 'name'));
+        $categories = $this->availableCategoriesLabel();
 
         $trendingSection = $this->buildTrendingKeywordsSection($request);
         $typeSection = $this->buildPostTypeSection($request);
@@ -444,6 +446,24 @@ Return a JSON object with these exact keys (no markdown):
 
 Make them compelling and drive clicks to the article.
 PROMPT;
+    }
+
+    /**
+     * Return a comma-separated list of the actual category names in the DB,
+     * so the AI picks names that round-trip through PostGeneratorService's
+     * slug-based matcher. Cached briefly; falls back to the config list if
+     * the table is empty for any reason.
+     */
+    private function availableCategoriesLabel(): string
+    {
+        return Cache::remember('blog.ai.category_label', 300, function (): string {
+            $names = Category::query()->orderBy('name')->pluck('name')->all();
+            if ($names === []) {
+                $names = array_column(config('blog.default_categories', []), 'name');
+            }
+
+            return implode(', ', $names);
+        });
     }
 
     private function extractJson(string $content): string
