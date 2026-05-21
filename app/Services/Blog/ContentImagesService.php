@@ -98,7 +98,13 @@ final class ContentImagesService
                 continue;
             }
 
-            $imgHtml = $this->renderFigure($media->getUrl(), $image['alt'] ?: $query, $image['photographer'] ?? null, $image['source']);
+            $imgHtml = $this->renderFigure(
+                $media->getUrl(),
+                $image['alt'] ?: $query,
+                $image['photographer'] ?? null,
+                $image['source'],
+                $image['context_url'] ?? null,
+            );
             $content = substr_replace($content, $imgHtml, $position, 0);
             $usedUrls[] = $image['url'];
             $inserted++;
@@ -206,6 +212,7 @@ final class ContentImagesService
                 'url' => $url,
                 'alt' => $result['title'] ?? $query,
                 'source' => 'google',
+                'context_url' => $result['context_url'] ?? null,
             ];
         }
 
@@ -293,7 +300,7 @@ final class ContentImagesService
         return $picked;
     }
 
-    private function renderFigure(string $url, string $alt, ?string $photographer, string $source): string
+    private function renderFigure(string $url, string $alt, ?string $photographer, string $source, ?string $contextUrl = null): string
     {
         $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
         $safeAlt = htmlspecialchars($alt, ENT_QUOTES, 'UTF-8');
@@ -301,11 +308,34 @@ final class ContentImagesService
         $html = "\n<figure class='content-image'>"
             ."<img src='{$safeUrl}' alt='{$safeAlt}' loading='lazy' style='max-width:100%;height:auto;' />";
 
-        if ($photographer && $source === 'pexels') {
-            $safePhotographer = htmlspecialchars($photographer, ENT_QUOTES, 'UTF-8');
-            $html .= "<figcaption>Photo by {$safePhotographer} on Pexels</figcaption>";
+        $caption = $this->buildCaption($source, $photographer, $contextUrl);
+        if ($caption !== '') {
+            $html .= "<figcaption style='font-size:0.75rem;color:#9ca3af;margin-top:0.25rem;'>{$caption}</figcaption>";
         }
 
         return $html."</figure>\n";
+    }
+
+    private function buildCaption(string $source, ?string $photographer, ?string $contextUrl): string
+    {
+        if ($source === 'pexels' && $photographer) {
+            $safePhotographer = htmlspecialchars($photographer, ENT_QUOTES, 'UTF-8');
+
+            return "Photo by {$safePhotographer} on Pexels";
+        }
+
+        if ($source === 'google' && $contextUrl) {
+            $host = parse_url($contextUrl, PHP_URL_HOST);
+            if (! is_string($host) || $host === '') {
+                return '';
+            }
+            $host = preg_replace('/^www\./i', '', $host);
+            $safeHost = htmlspecialchars($host, ENT_QUOTES, 'UTF-8');
+            $safeUrl = htmlspecialchars($contextUrl, ENT_QUOTES, 'UTF-8');
+
+            return "Source: <a href='{$safeUrl}' target='_blank' rel='noopener noreferrer nofollow' style='color:#6b7280;'>{$safeHost}</a>";
+        }
+
+        return '';
     }
 }
