@@ -245,8 +245,8 @@ READABILITY RULES:
 14. Aim for a Flesch Reading Ease score of 60-80 (easily understood by a general audience).
 
 LINKS & CTAs:
-15. Include 3-5 internal links to Topping Africa category pages or sections. Use this format: <a href="https://toppingafrica.com/category/CATEGORY-SLUG">Category Name</a>
-16. Include 2-3 external links to authoritative sources. Use this format: <a href="URL" target="_blank" rel="noopener noreferrer">Source Name</a>
+15. Include 3-5 internal links to Topping Africa category pages or sections. Use this format: <a href='https://toppingafrica.com/category/CATEGORY-SLUG'>Category Name</a>
+16. Include 2-3 external links to authoritative sources. Use this format: <a href='URL' target='_blank' rel='noopener noreferrer'>Source Name</a>
 17. Include at least 2 different CTA phrases throughout the article (e.g., "Explore more", "Discover", "Read more about", "Share your thoughts", "Subscribe", "Leave a comment below").
 18. Include a short "Explore More on Topping Africa" CTA section near the end of the post (before the conclusion), listing 2-3 relevant categories with brief descriptions and links.
 
@@ -300,9 +300,16 @@ SEO CHECKLIST — ensure the body content includes ALL of the following:
 - Bold (<strong>), italic (<em>), AND list (<ul>/<ol>) formatting all present
 - 25%+ of sentences start with transition words
 - 3-5 internal links to Topping Africa categories
-- 2-3 external links to authoritative sources (with target="_blank" rel="noopener noreferrer")
+- 2-3 external links to authoritative sources (with target='_blank' rel='noopener noreferrer')
 - 2+ CTA phrases (explore, discover, share, comment, read more, subscribe)
 - Short paragraphs (3-5 sentences) and short sentences (15-20 words avg)
+
+CRITICAL JSON RULES — violations break parsing:
+- Inside the "body" string, use SINGLE QUOTES for ALL HTML attributes, never double quotes.
+  CORRECT:  <a href='https://example.com' rel='noopener'>text</a>
+  WRONG:    <a href="https://example.com" rel="noopener">text</a>
+- Escape any literal double quote inside JSON strings as \" (e.g. "She said \"hello\"")
+- Do not wrap the response in markdown code fences. Return raw JSON only.
 
 Return a JSON object with these exact keys (no markdown, just JSON):
 {

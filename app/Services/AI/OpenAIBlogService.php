@@ -216,9 +216,16 @@ SEO CHECKLIST — ensure the body content includes ALL of the following:
 - Bold (<strong>), italic (<em>), AND list (<ul>/<ol>) formatting all present
 - 25%+ of sentences start with transition words
 - 3-5 internal links to Topping Africa categories
-- 2-3 external links to authoritative sources (with target="_blank" rel="noopener noreferrer")
+- 2-3 external links to authoritative sources (with target='_blank' rel='noopener noreferrer')
 - 2+ CTA phrases (explore, discover, share, comment, read more, subscribe)
 - Short paragraphs (3-5 sentences) and short sentences (15-20 words avg)
+
+CRITICAL JSON RULES — violations break parsing:
+- Inside the "body" string, use SINGLE QUOTES for ALL HTML attributes, never double quotes.
+  CORRECT:  <a href='https://example.com' rel='noopener'>text</a>
+  WRONG:    <a href="https://example.com" rel="noopener">text</a>
+- Escape any literal double quote inside JSON strings as \" (e.g. "She said \"hello\"")
+- Do not wrap the response in markdown code fences. Return raw JSON only.
 
 Return a JSON object with these exact keys:
 {
