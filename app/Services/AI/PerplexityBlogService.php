@@ -107,15 +107,27 @@ final class PerplexityBlogService implements BlogGeneratorInterface
 
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     $dumpPath = $this->dumpRawResponse($rawContent, $content, $repaired);
+                    $finishReason = $response->json('choices.0.finish_reason');
+                    $truncated = $this->looksTruncated($content) || $finishReason === 'length';
 
                     Log::error('Perplexity returned unparseable JSON (after repair)', [
                         'topic' => $request->topic,
+                        'finish_reason' => $finishReason,
+                        'looks_truncated' => $truncated,
+                        'response_bytes' => strlen($content),
                         'json_error_initial' => $firstError,
                         'json_error_after_repair' => json_last_error_msg(),
                         'raw_dump_path' => $dumpPath,
                         'extracted_preview' => substr($content, 0, 500),
                         'repaired_preview' => substr($repaired, 0, 500),
                     ]);
+
+                    if ($truncated) {
+                        throw new \RuntimeException(
+                            'Perplexity response was truncated (finish_reason='.($finishReason ?? 'unknown').
+                            '). Raise max_tokens in config/blog.php or shorten the requested length.'
+                        );
+                    }
 
                     throw new \RuntimeException(
                         'Perplexity returned unparseable JSON: '.json_last_error_msg()
@@ -484,6 +496,51 @@ PROMPT;
         // Unbalanced — return as-is so json_decode reports the actual error
         // and the unstructured fallback handles it explicitly.
         return $content;
+    }
+
+    /**
+     * Heuristic for "Perplexity stopped generating mid-JSON" — usually
+     * because the response hit max_tokens. Walks the JSON state machine
+     * once and returns true if it ends with unclosed braces or an
+     * unterminated string.
+     */
+    private function looksTruncated(string $content): bool
+    {
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        $length = strlen($content);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $content[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($char === '\\') {
+                $escape = true;
+                continue;
+            }
+
+            if ($char === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($char === '{') {
+                $depth++;
+            } elseif ($char === '}') {
+                $depth--;
+            }
+        }
+
+        return $depth !== 0 || $inString;
     }
 
     /**

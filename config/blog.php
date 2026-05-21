@@ -46,22 +46,27 @@ return [
 
     'ai' => [
         'providers' => [
+            // max_tokens budgets the response: blog body + meta fields + JSON
+            // overhead. A 1500-word body (~2000 tokens) plus tags/categories/
+            // structured fields lands around 5000-6000 tokens; previous 4000
+            // ceiling truncated responses mid-string and broke JSON parsing.
+            // Bumping to 8000 leaves comfortable headroom for 'long' lengths.
             'openai' => [
                 'enabled' => (bool) env('OPENAI_API_KEY'),
                 'api_key' => env('OPENAI_API_KEY', ''),
                 'model' => env('OPENAI_BLOG_MODEL', 'gpt-4o'),
-                'max_tokens' => 4000,
+                'max_tokens' => 8000,
             ],
             'perplexity' => [
                 'enabled' => (bool) env('PERPLEXITY_API_KEY'),
                 'api_key' => env('PERPLEXITY_API_KEY', ''),
                 'model' => env('PERPLEXITY_MODEL', 'sonar-pro'),
-                'max_tokens' => 4000,
+                'max_tokens' => 8000,
             ],
             'anthropic' => [
                 'enabled' => (bool) env('ANTHROPIC_API_KEY'),
                 'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
-                'max_tokens' => 4000,
+                'max_tokens' => 8000,
             ],
         ],
 
