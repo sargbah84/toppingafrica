@@ -9,6 +9,7 @@ use App\Models\ContentIdea;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\ContentAgentService;
+use App\Services\Blog\ContentImagesService;
 use App\Services\Blog\FeaturedImageService;
 use App\Services\Blog\PostGeneratorService;
 use App\Services\Blog\Seo\SeoIntelligenceService;
@@ -41,6 +42,7 @@ class ProcessIdeaJob implements ShouldQueue
         PostGeneratorService $generator,
         SeoIntelligenceService $seo,
         FeaturedImageService $featuredImage,
+        ContentImagesService $contentImages,
     ): void {
         $idea = ContentIdea::find($this->ideaId);
         if (! $idea) {
@@ -57,6 +59,7 @@ class ProcessIdeaJob implements ShouldQueue
         try {
             [$post, $imageQuery] = $this->generatePost($agent, $generator, $idea);
             $this->attachFeaturedImage($featuredImage, $post, $imageQuery, $idea);
+            $this->attachContentImages($contentImages, $post, $imageQuery);
             $finalScore = $this->improveSeo($seo, $agent, $post);
             $this->schedulePost($post);
             $idea->markAsGenerated($post->id);
@@ -179,6 +182,24 @@ class ProcessIdeaJob implements ShouldQueue
             'query' => $query,
             'attached' => $url !== null,
         ]);
+    }
+
+    private function attachContentImages(ContentImagesService $service, Post $post, string $aiQuery): void
+    {
+        try {
+            $inserted = $service->attach($post->fresh(), $aiQuery !== '' ? $aiQuery : null);
+            Log::info('ProcessIdeaJob: content images inserted', [
+                'post_id' => $post->id,
+                'inserted' => $inserted,
+                'post_type' => $post->post_type,
+            ]);
+        } catch (Throwable $e) {
+            // Body-image insertion failure shouldn't block scheduling.
+            Log::warning('ProcessIdeaJob: content images failed', [
+                'post_id' => $post->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function improveSeo(SeoIntelligenceService $seo, ContentAgentService $agent, Post $post): int
