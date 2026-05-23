@@ -10,6 +10,7 @@ use App\Services\ImageSearchService;
 use App\Services\MediaService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
 
 /**
@@ -33,6 +34,7 @@ final class ContentImagesService
     public function __construct(
         private readonly ImageSearchService $imageSearch,
         private readonly MediaService $mediaService,
+        private readonly LibraryImageMatcher $libraryMatcher,
     ) {}
 
     public function attach(Post $post, ?string $aiQuery = null): int
@@ -61,6 +63,7 @@ final class ContentImagesService
 
         $queries = $this->buildQueries($post, $aiQuery, count($positions));
         $usedUrls = [];
+        $usedMediaIds = [];
         $inserted = 0;
 
         // Walk positions in reverse so earlier offsets stay valid after splicing.
@@ -72,8 +75,26 @@ final class ContentImagesService
                 continue;
             }
 
-            $image = $this->findImage($query, $usedUrls);
+            $image = $this->findImage($query, $usedUrls, $usedMediaIds);
             if (! $image) {
+                continue;
+            }
+
+            // Library reuse: image is already a Media row, no download
+            // needed. We embed by URL just like external sources.
+            if ($image['source'] === 'library') {
+                $usedMediaIds[] = $image['media_id'];
+                $imgHtml = $this->renderFigure(
+                    $image['url'],
+                    $image['alt'] ?: $query,
+                    $image['photographer'] ?? null,
+                    'library',
+                    $image['context_url'] ?? null,
+                );
+                $content = substr_replace($content, $imgHtml, $position, 0);
+                $usedUrls[] = $image['url'];
+                $inserted++;
+
                 continue;
             }
 
@@ -95,6 +116,7 @@ final class ContentImagesService
                     'url' => $image['url'],
                     'error' => $e->getMessage(),
                 ]);
+
                 continue;
             }
 
@@ -180,11 +202,17 @@ final class ContentImagesService
     }
 
     /**
-     * @return array{url:string,alt:string,source:string,photographer?:string,photographer_url?:string}|null
+     * @return array{url:string,alt:string,source:string,photographer?:string,photographer_url?:string,context_url?:string|null,media_id?:int}|null
      */
-    private function findImage(string $query, array $usedUrls): ?array
+    private function findImage(string $query, array $usedUrls, array $usedMediaIds = []): ?array
     {
-        // Google first — more specific, real-world results.
+        // 1. High-confidence library hit — reuse our curated assets first.
+        $libraryHit = $this->libraryMatcher->findBest($query, $usedMediaIds);
+        if ($libraryHit && $libraryHit['score_normalized'] >= LibraryImageMatcher::HIGH_CONFIDENCE_THRESHOLD) {
+            return $this->libraryToImageRow($libraryHit, $query);
+        }
+
+        // 2. Google — walk every candidate, not just the first one.
         try {
             $google = $this->imageSearch->searchGoogle($query);
         } catch (Throwable $e) {
@@ -198,10 +226,7 @@ final class ContentImagesService
             }
             $width = (int) ($result['width'] ?? 0);
             $height = (int) ($result['height'] ?? 0);
-            if ($width > 0 && $width < 600) {
-                continue;
-            }
-            if ($height > 0 && $height < 400) {
+            if (($width > 0 && $width < 600) || ($height > 0 && $height < 400)) {
                 continue;
             }
             if (! $this->isReachableImage($url)) {
@@ -216,11 +241,11 @@ final class ContentImagesService
             ];
         }
 
-        // Pexels fallback — always reachable (their CDN guarantees image bytes).
+        // 3. Pexels — always reachable (their CDN guarantees image bytes).
         try {
-            $pexels = $this->imageSearch->searchPexels($query, 1, 5);
+            $pexels = $this->imageSearch->searchPexels($query, 1, 10);
         } catch (Throwable $e) {
-            return null;
+            $pexels = ['results' => []];
         }
 
         foreach ($pexels['results'] ?? [] as $result) {
@@ -238,27 +263,88 @@ final class ContentImagesService
             ];
         }
 
+        // 4. Low-confidence library fallback — at least visually relevant.
+        foreach ($this->libraryMatcher->findCandidates($query, 5, $usedMediaIds) as $candidate) {
+            return $this->libraryToImageRow($candidate, $query);
+        }
+
         return null;
     }
 
+    /**
+     * @param  array{media: Media, score: float, score_normalized: float, source: string}  $hit
+     * @return array{url:string,alt:string,source:string,context_url?:string|null,media_id:int,photographer?:string|null}
+     */
+    private function libraryToImageRow(array $hit, string $fallbackAlt): array
+    {
+        $media = $hit['media'];
+        $custom = is_array($media->custom_properties) ? $media->custom_properties : [];
+
+        return [
+            'url' => $media->getFullUrl(),
+            'alt' => (string) ($custom['alt_text'] ?? $fallbackAlt),
+            'source' => 'library',
+            'context_url' => $custom['source_url'] ?? null,
+            'media_id' => $media->id,
+            'photographer' => $custom['photographer'] ?? null,
+        ];
+    }
+
+    /**
+     * Confirms a URL serves an image. Tries HEAD first, then falls back to
+     * a ranged GET when the server rejects HEAD (405/501/403) or returns a
+     * non-image Content-Type — many image hosts behind a CDN like
+     * Cloudflare misbehave on HEAD but serve GET correctly. Without this
+     * softer fallback we lose ~half of Google's candidate images.
+     */
     private function isReachableImage(string $url): bool
     {
+        $headers = [
+            'Accept' => 'image/*',
+            'User-Agent' => 'Mozilla/5.0 (compatible; ToppingAfricaBot/1.0)',
+        ];
+
         try {
-            $head = Http::timeout(8)->withHeaders([
-                'Accept' => 'image/*',
-                'User-Agent' => 'Mozilla/5.0 (compatible; ToppingAfricaBot/1.0)',
-            ])->head($url);
+            $head = Http::timeout(8)->withHeaders($headers)->head($url);
+            if ($head->successful()) {
+                $contentType = strtolower((string) $head->header('Content-Type'));
+                if ($contentType !== '' && str_starts_with($contentType, 'image/')) {
+                    return true;
+                }
+            }
+            if (! in_array($head->status(), [405, 501, 403, 0], true) && $head->successful()) {
+                return false;
+            }
+        } catch (Throwable) {
+            // Fall through to GET.
+        }
+
+        try {
+            $get = Http::timeout(8)
+                ->withHeaders($headers + ['Range' => 'bytes=0-1023'])
+                ->get($url);
         } catch (Throwable) {
             return false;
         }
 
-        if (! $head->successful()) {
+        if (! $get->successful()) {
             return false;
         }
 
-        $contentType = strtolower((string) $head->header('Content-Type'));
+        $contentType = strtolower((string) $get->header('Content-Type'));
+        if ($contentType !== '' && str_starts_with($contentType, 'image/')) {
+            return true;
+        }
 
-        return $contentType !== '' && str_starts_with($contentType, 'image/');
+        $body = (string) $get->body();
+
+        return $body !== '' && (
+            str_starts_with($body, "\xFF\xD8\xFF")
+            || str_starts_with($body, "\x89PNG\r\n\x1a\n")
+            || str_starts_with($body, 'GIF87a')
+            || str_starts_with($body, 'GIF89a')
+            || (str_starts_with($body, 'RIFF') && str_contains(substr($body, 0, 16), 'WEBP'))
+        );
     }
 
     /**
@@ -322,6 +408,19 @@ final class ContentImagesService
             $safePhotographer = htmlspecialchars($photographer, ENT_QUOTES, 'UTF-8');
 
             return "Photo by {$safePhotographer} on Pexels";
+        }
+
+        // Library reuse: carry forward the original credit when we have one.
+        // Falls through to no caption when the image was uploaded directly.
+        if ($source === 'library') {
+            if ($photographer) {
+                $safePhotographer = htmlspecialchars($photographer, ENT_QUOTES, 'UTF-8');
+
+                return "Photo by {$safePhotographer}";
+            }
+
+            // Library images originally sourced from Google keep their context URL.
+            $source = 'google';
         }
 
         if ($source === 'google' && $contextUrl) {

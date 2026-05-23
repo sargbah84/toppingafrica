@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\DataTransferObjects\Blog\PostGenerationRequest;
 use App\Models\ContentIdea;
+use App\Models\Creator;
 use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\ContentAgentService;
@@ -164,6 +165,18 @@ class ProcessIdeaJob implements ShouldQueue
                 ->map(fn (string $name) => Tag::firstOrCreate(['slug' => Str::slug($name)], ['name' => $name])->id)
                 ->toArray();
             $post->tags()->sync($tagIds);
+        }
+
+        // Attach creators the AI flagged — gives the library matcher a
+        // direct signal for picking the right profile photo as featured.
+        if (! empty($data->featuredCreatorSlugs)) {
+            $creatorIds = Creator::query()
+                ->whereIn('slug', $data->featuredCreatorSlugs)
+                ->pluck('id')
+                ->all();
+            if ($creatorIds !== []) {
+                $post->creators()->sync($creatorIds);
+            }
         }
 
         return [$post, (string) ($data->featuredImageQuery ?? '')];

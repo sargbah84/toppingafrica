@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-final class ImageSearchService
+class ImageSearchService
 {
     /**
      * Search Pexels for stock photos.
@@ -82,7 +82,7 @@ final class ImageSearchService
         ]);
 
         if (! $response->successful()) {
-            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Image search request failed: ' . $response->status()];
+            return ['results' => [], 'total_results' => 0, 'start' => $start, 'error' => 'Image search request failed: '.$response->status()];
         }
 
         $data = $response->json();
@@ -114,7 +114,7 @@ final class ImageSearchService
         $response = Http::timeout(30)->get($url);
 
         if (! $response->successful()) {
-            throw new \RuntimeException('Failed to download image from: ' . $url);
+            throw new \RuntimeException('Failed to download image from: '.$url);
         }
 
         $contentType = $response->header('Content-Type') ?? 'image/jpeg';
@@ -127,12 +127,12 @@ final class ImageSearchService
         };
 
         if (! $filename) {
-            $filename = Str::random(20) . '.' . $extension;
+            $filename = Str::random(20).'.'.$extension;
         } elseif (! pathinfo($filename, PATHINFO_EXTENSION)) {
-            $filename .= '.' . $extension;
+            $filename .= '.'.$extension;
         }
 
-        $path = 'content/' . $filename;
+        $path = 'content/'.$filename;
 
         Storage::disk('s3')->put($path, $response->body(), 'public');
 

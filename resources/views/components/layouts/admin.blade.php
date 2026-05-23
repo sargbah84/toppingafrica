@@ -102,25 +102,45 @@
                                 <div class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                                     @php $recentActivities = \Spatie\Activitylog\Models\Activity::with('causer')->latest()->limit(8)->get(); @endphp
                                     @forelse ($recentActivities as $activity)
-                                        <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <div class="flex items-start gap-2">
-                                                @php
-                                                    $dotColor = match ($activity->event) {
-                                                        'created' => 'bg-green-500',
-                                                        'updated' => 'bg-blue-500',
-                                                        'deleted' => 'bg-red-500',
-                                                        default => 'bg-gray-400',
-                                                    };
-                                                @endphp
-                                                <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $dotColor }}"></span>
-                                                <div class="min-w-0 flex-1">
-                                                    <p class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $activity->description }}</p>
-                                                    <p class="text-xs text-gray-400 mt-0.5">
-                                                        {{ $activity->causer?->name ?? 'System' }} &middot; {{ $activity->created_at->diffForHumans() }}
-                                                    </p>
+                                        @php
+                                            $dotColor = match ($activity->event) {
+                                                'created' => 'bg-green-500',
+                                                'updated' => 'bg-blue-500',
+                                                'deleted' => 'bg-red-500',
+                                                'image_attachment_failed' => 'bg-amber-500',
+                                                default => 'bg-gray-400',
+                                            };
+                                            $linkUrl = null;
+                                            if ($activity->event === 'image_attachment_failed' && $activity->subject_id) {
+                                                $linkUrl = route('admin.blog.posts.edit', $activity->subject_id);
+                                            }
+                                            $isUrgent = $activity->event === 'image_attachment_failed';
+                                        @endphp
+                                        @if ($linkUrl)
+                                            <a href="{{ $linkUrl }}" class="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ $isUrgent ? 'bg-amber-50/50 dark:bg-amber-900/10' : '' }}">
+                                                <div class="flex items-start gap-2">
+                                                    <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $dotColor }}"></span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="text-sm {{ $isUrgent ? 'text-amber-700 dark:text-amber-300 font-medium' : 'text-gray-700 dark:text-gray-300' }} truncate">{{ $activity->description }}</p>
+                                                        <p class="text-xs text-gray-400 mt-0.5">
+                                                            {{ $activity->causer?->name ?? 'System' }} &middot; {{ $activity->created_at->diffForHumans() }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        @else
+                                            <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ $isUrgent ? 'bg-amber-50/50 dark:bg-amber-900/10' : '' }}">
+                                                <div class="flex items-start gap-2">
+                                                    <span class="mt-1.5 flex-shrink-0 w-2 h-2 rounded-full {{ $dotColor }}"></span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="text-sm {{ $isUrgent ? 'text-amber-700 dark:text-amber-300 font-medium' : 'text-gray-700 dark:text-gray-300' }} truncate">{{ $activity->description }}</p>
+                                                        <p class="text-xs text-gray-400 mt-0.5">
+                                                            {{ $activity->causer?->name ?? 'System' }} &middot; {{ $activity->created_at->diffForHumans() }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        @endif
                                     @empty
                                         <div class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No recent activity</div>
                                     @endforelse

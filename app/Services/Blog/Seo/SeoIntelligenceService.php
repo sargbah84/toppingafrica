@@ -59,9 +59,13 @@ final class SeoIntelligenceService
         );
         $readability = $this->readabilityAnalyzer->analyze($combinedContent, $postType);
         $userEngagement = $this->userEngagementAnalyzer->analyze($combinedContent, $post->id, $postType);
+        // featured_image column is empty for posts whose images come from the
+        // Spatie media library (the agent-generated path). Pass the resolved
+        // accessor URL so the analyzer doesn't penalize them for missing
+        // what they actually have.
         $onPageElements = $this->onPageElementsAnalyzer->analyze(
             $combinedContent,
-            $post->featured_image,
+            $post->featured_image_url,
             $post->excerpt,
             $postType,
         );
