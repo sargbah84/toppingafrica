@@ -1,8 +1,8 @@
 @php
     $page = $page ?? null;
-    $pageTitle = $page?->meta_title ?: ($page?->title ?? 'African Content Creators');
-    $pageDescription = $page?->meta_description ?: 'Discover rising and trending African content creators across comedy, fashion, food, music, beauty and more.';
-    $heroTitle = $page?->title ?? 'African Content Creators';
+    $pageTitle = $page?->meta_title ?: ($page?->title ?? 'African Creators');
+    $pageDescription = $page?->meta_description ?: 'Discover rising and trending African creators — influencers, musicians, actors, designers, chefs and more.';
+    $heroTitle = $page?->title ?? 'African Creators';
 @endphp
 
 <x-layouts.blog

@@ -18,9 +18,13 @@ class GenerateCreators extends Component
 {
     public string $niche = '';
     public string $country = '';
+    public bool $dryRun = false;
     public bool $generating = false;
     public int $generatedCount = 0;
     public string $statusMessage = '';
+
+    /** @var array<int, array<string, mixed>> */
+    public array $previewCreators = [];
 
     protected array $categories = [
         'Comedy', 'Fashion', 'Food', 'Music', 'Lifestyle',
@@ -45,7 +49,8 @@ class GenerateCreators extends Component
 
         $this->generating = true;
         $this->generatedCount = 0;
-        $this->statusMessage = 'Discovering creators...';
+        $this->previewCreators = [];
+        $this->statusMessage = $this->dryRun ? 'Discovering creators (dry run)...' : 'Discovering creators...';
 
         $creators = $perplexity->discoverCreators($this->niche, $this->country);
 
@@ -56,24 +61,50 @@ class GenerateCreators extends Component
             return;
         }
 
-        $this->statusMessage = 'Generating bios and finding images...';
+        $this->statusMessage = $this->dryRun
+            ? 'Generating bios and finding images (preview — nothing will be saved)...'
+            : 'Generating bios and finding images...';
 
         foreach ($creators as $creatorData) {
             $name = $creatorData['name'] ?? null;
 
-            if (! $name || Creator::where('name', $name)->exists()) {
+            if (! $name) {
+                continue;
+            }
+
+            $alreadyExists = Creator::where('name', $name)->exists();
+
+            if ($alreadyExists && ! $this->dryRun) {
                 continue;
             }
 
             $bio = $claude->generateBio($creatorData);
             $image = $wikimedia->searchCreatorImage($name);
 
+            $contactEmail = \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null);
+
+            if ($this->dryRun) {
+                $this->previewCreators[] = [
+                    'name' => $name,
+                    'bio' => $bio,
+                    'country' => $creatorData['country'] ?? $this->country,
+                    'category' => $creatorData['category'] ?? $this->niche,
+                    'contact_email' => $contactEmail,
+                    'profile_image_url' => $image['image_url'] ?? null,
+                    'socials' => $this->buildSocialPreview($creatorData),
+                    'duplicate' => $alreadyExists,
+                ];
+                $this->generatedCount++;
+
+                continue;
+            }
+
             $creator = Creator::create([
                 'name' => $name,
                 'bio' => $bio,
                 'country' => $creatorData['country'] ?? $this->country,
                 'category' => $creatorData['category'] ?? $this->niche,
-                'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null),
+                'contact_email' => $contactEmail,
                 'status' => 'pending',
                 'profile_image_url' => $image['image_url'] ?? null,
                 'profile_image_attribution' => $image['attribution'] ?? null,
@@ -84,8 +115,27 @@ class GenerateCreators extends Component
             $this->generatedCount++;
         }
 
-        $this->statusMessage = "{$this->generatedCount} creators added to the pending queue.";
+        $this->statusMessage = $this->dryRun
+            ? "Dry run complete — {$this->generatedCount} creators would be added (nothing saved)."
+            : "{$this->generatedCount} creators added to the pending queue.";
         $this->generating = false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<int, array{platform: string, handle: ?string, url: ?string}>
+     */
+    private function buildSocialPreview(array $data): array
+    {
+        $links = [
+            ['platform' => 'instagram', 'handle' => $data['instagram_handle'] ?? null, 'url' => null],
+            ['platform' => 'tiktok', 'handle' => $data['tiktok_handle'] ?? null, 'url' => null],
+            ['platform' => 'youtube', 'handle' => null, 'url' => $data['youtube_channel_url'] ?? null],
+            ['platform' => 'twitter', 'handle' => $data['twitter_handle'] ?? null, 'url' => null],
+            ['platform' => 'website', 'handle' => null, 'url' => $data['website_url'] ?? null],
+        ];
+
+        return array_values(array_filter($links, fn ($l) => $l['handle'] || $l['url']));
     }
 
     private function createSocialLinks(Creator $creator, array $data): void

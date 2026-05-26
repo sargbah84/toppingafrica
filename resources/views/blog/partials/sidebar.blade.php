@@ -8,7 +8,7 @@
     @if($topCreators->isNotEmpty())
         <div class="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm">
             <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
-                Top Content Creators This Week
+                Top Creators This Week
             </h3>
             <ul class="space-y-3">
                 @foreach($topCreators as $index => $creator)

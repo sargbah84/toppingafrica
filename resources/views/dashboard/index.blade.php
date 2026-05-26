@@ -115,7 +115,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="font-bold text-gray-900 dark:text-white">Are you a content creator?</h3>
+                                <h3 class="font-bold text-gray-900 dark:text-white">Are you a creator?</h3>
                                 <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Submit your profile to be featured on Topping Africa and reach a wider audience.</p>
                                 @if($isVerified)
                                     <a href="{{ route('creators.submit') }}"

@@ -17,7 +17,7 @@ class ClaudeBioService
 
     public function generateBio(array $creatorData): string
     {
-        $fallback = $creatorData['bio_summary'] ?? 'An African content creator.';
+        $fallback = $creatorData['bio_summary'] ?? 'An African creator.';
         $startedAt = microtime(true);
 
         try {
@@ -32,7 +32,7 @@ class ClaudeBioService
             $context = json_encode($creatorData, JSON_UNESCAPED_UNICODE);
 
             $prompt = <<<PROMPT
-Based on the following creator data, write a clean, engaging 2-3 sentence bio suitable for a public profile page on an African content creator directory.
+Based on the following creator data, write a clean, engaging 2-3 sentence bio suitable for a public profile page on an African creator directory (which features influencers, musicians, actors, designers, chefs and other creative talent).
 
 Creator data:
 {$context}
@@ -127,7 +127,7 @@ PROMPT;
             $ctx = json_encode($context, JSON_UNESCAPED_UNICODE);
 
             $prompt = <<<PROMPT
-Rewrite the following creator bio to be clean, engaging, and suitable for a public profile page on an African content creator directory.
+Rewrite the following creator bio to be clean, engaging, and suitable for a public profile page on an African creator directory (which features influencers, musicians, actors, designers, chefs and other creative talent).
 
 Existing bio (preserve the facts — a human editor has corrected these):
 {$existingBio}

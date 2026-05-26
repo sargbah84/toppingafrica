@@ -36,7 +36,7 @@ class PerplexityService
             $query = trim($query);
 
             $prompt = <<<PROMPT
-Find up to {$count} real African content creators matching the name or social media handle: "{$query}". Return the best matches — if only one clearly matches, return only that one. Do NOT invent people.
+Find up to {$count} real African creators (broadly defined — influencers, musicians, actors, fashion designers, chefs, athletes, artists, social-media creators, etc.) matching the name or handle: "{$query}". Return the best matches — if only one clearly matches, return only that one. Do NOT invent people.
 
 Respond ONLY with valid JSON. No markdown, no preamble, no explanation. Return a JSON array of objects with these exact keys:
 - name (string, full name)
@@ -66,7 +66,7 @@ PROMPT;
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are a research assistant that identifies African content creators by name or handle. Always respond with valid JSON only. Never invent people — return an empty array if no credible match.',
+                        'content' => 'You are a research assistant that identifies African creators (influencers, musicians, actors, designers, chefs, athletes, artists, social-media creators, etc.) by name or handle. Always respond with valid JSON only. Never invent people — return an empty array if no credible match.',
                     ],
                     [
                         'role' => 'user',
@@ -146,9 +146,9 @@ PROMPT;
             }
 
             $prompt = <<<PROMPT
-Find {$count} rising African content creators from {$country} who specialize in {$niche} content. Focus on creators who are active on social media and gaining popularity.
+Find {$count} rising African creators from {$country} who specialize in {$niche}. "Creators" here is broad — it includes influencers, musicians, actors, fashion designers, chefs, athletes, artists, and social-media creators. Focus on people who have a meaningful public presence (whether through social media, traditional media, or both) and who are gaining popularity.
 
-CRITICAL: For each creator, you MUST find and include at least 2-3 social media handles. These creators are active on social media — finding their handles is essential. Use real, verified handles only.
+CRITICAL: For each creator, find and include any social media handles they have (aim for 2-3 when possible). Most modern African creators — even outside the social-media-native crowd — maintain at least one or two public accounts. Use real, verified handles only; leave a field null if you can't verify it.
 
 Respond ONLY with valid JSON. No markdown, no preamble, no explanation. Return a JSON array of objects with these exact keys:
 - name (string, full name)
@@ -165,7 +165,7 @@ Respond ONLY with valid JSON. No markdown, no preamble, no explanation. Return a
 - estimated_follower_count (integer or null, a rough estimate of the creator's follower count on their LARGEST platform. Use a single integer like 250000 for 250K, 1500000 for 1.5M. Round to 2 significant figures — this is a rough estimate, not a precise number. Return null ONLY if you genuinely have no idea of their rough size)
 - follower_platform (string or null, the platform that the estimated_follower_count refers to — one of: "instagram", "tiktok", "youtube", "twitter", "facebook". Must be set whenever estimated_follower_count is set)
 
-REMEMBER: These are SOCIAL MEDIA creators — almost all of them will have Instagram and/or TikTok handles. Only return null if you genuinely cannot find a handle. Make every effort to populate the social media fields.
+REMEMBER: Even outside pure social-media-native creators, most active African creators (musicians, actors, designers, chefs, athletes) maintain Instagram, TikTok, or X accounts. Only return null when you genuinely cannot verify a handle. Make every effort to populate the social media fields.
 
 For estimated_follower_count: pick the platform where the creator is biggest and give your best rough estimate. Typical ranges: nano (1K-10K), micro (10K-100K), mid (100K-500K), large (500K-1M), mega (1M+). A rough ballpark is far better than null.
 
@@ -180,7 +180,7 @@ PROMPT;
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are a research assistant that discovers African content creators. Always respond with valid JSON only.',
+                        'content' => 'You are a research assistant that discovers African creators (broadly defined — influencers, musicians, actors, designers, chefs, athletes, artists, social-media creators, etc.). Always respond with valid JSON only.',
                     ],
                     [
                         'role' => 'user',

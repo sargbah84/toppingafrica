@@ -27,8 +27,8 @@ return new class extends Migration {
                 'template' => 'creators',
                 'title' => 'Creators',
                 'slug' => 'creators',
-                'meta_title' => 'African Content Creators',
-                'meta_description' => 'Discover rising and trending African content creators across comedy, fashion, food, music and more.',
+                'meta_title' => 'African Creators',
+                'meta_description' => 'Discover rising and trending African creators — influencers, musicians, actors, designers, chefs and more.',
             ],
         ];
 
