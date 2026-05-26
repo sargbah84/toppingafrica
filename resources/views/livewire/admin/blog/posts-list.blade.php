@@ -125,6 +125,8 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Author</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categories</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SEO</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creators</th>
                         <th class="px-4 py-3 text-left">
                             <button wire:click="sortBy('views_count')" class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300">
                                 Views
@@ -204,6 +206,32 @@
                                     {{ ucfirst($post->status) }}
                                 </span>
                             </td>
+                            <td class="px-4 py-3">
+                                @php
+                                    $seoScore = $post->latestSeoAnalysis?->overall_score;
+                                    if ($seoScore === null) {
+                                        $seoColor = 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400';
+                                    } elseif ($seoScore >= 80) {
+                                        $seoColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                                    } elseif ($seoScore >= 60) {
+                                        $seoColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                                    } else {
+                                        $seoColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+                                    }
+                                @endphp
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $seoColor }}">
+                                    {{ $seoScore !== null ? $seoScore : '—' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                @if (($post->creators_count ?? 0) > 0)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                        {{ $post->creators_count }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400 dark:text-gray-500">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                 {{ number_format($post->views_count ?? 0) }}
                             </td>
@@ -250,7 +278,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-12 text-center">
+                            <td colspan="10" class="px-4 py-12 text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12H9.75m3 0H9.75m0 0v-3.375" />
                                 </svg>

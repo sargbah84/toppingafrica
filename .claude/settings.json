@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l app/Services/Blog/ContentImagesService.php)",
+      "Bash(scp c:/laragon/www/toppingafrica/app/Services/Blog/ContentImagesService.php post:/tmp/ContentImagesService.php)",
+      "Bash(scp c:/tmp/smoke-635.php post:/tmp/smoke-635.php)",
+      "Bash(scp c:/tmp/verify-635.php post:/tmp/verify-635.php)",
+      "Bash(scp c:/tmp/backfill-images.php post:/tmp/backfill-images.php)",
+      "Bash(scp c:/tmp/backfill-634.php post:/tmp/backfill-634.php)",
+      "Bash(scp c:/tmp/final-check.php post:/tmp/final-check.php)",
+      "Bash(git commit -m ' *)",
+      "Bash(php c:/tmp/caption-test.php)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} | Size: %{size_download}\\\\n\" \"https://toppingafrica.s3.amazonaws.com/2369/OLAWALE.jpg\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} | Size: %{size_download}\\\\n\" \"https://toppingafrica.s3.amazonaws.com/2378/image.jpeg\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} | Size: %{size_download}\\\\n\" \"https://toppingafrica.s3.amazonaws.com/2384/pexels-photo-8385167.jpeg\")",
+      "Bash(curl -s \"https://toppingafrica.com/top-10-rising-african-content-creators-to-watch-in-2026\")",
+      "Bash(curl -s \"https://toppingafrica.com/\")",
+      "Bash(curl -s \"https://toppingafrica.com/blog\")",
+      "Bash(python3)",
+      "Bash(python)",
+      "Bash(curl -s \"https://toppingafrica.com/blog\" -o \"/c/tmp/blog.html\")",
+      "Bash(php -r 'require '\\\\''vendor/autoload.php'\\\\''; $app = require '\\\\''bootstrap/app.php'\\\\''; $app->make\\('\\\\''Illuminate\\\\Contracts\\\\Console\\\\Kernel'\\\\''\\)->bootstrap\\(\\); var_dump\\(get_class\\($app->make\\('\\\\''App\\\\Services\\\\Blog\\\\FeaturedImageService'\\\\''\\)\\)\\);')",
+      "Bash(./vendor/bin/phpunit --filter=LibraryImageMatcherTest --colors=never)",
+      "Bash(./vendor/bin/phpunit --filter=FeaturedImageServiceTest --colors=never)",
+      "Bash(composer test *)",
+      "Bash(./vendor/bin/phpunit --colors=never)",
+      "Bash(./vendor/bin/phpunit --filter='AuthenticationTest|ProfileTest|RegistrationTest' --colors=never)",
+      "Bash(./vendor/bin/pint --test app/Services/Blog/LibraryImageMatcher.php app/Services/Blog/FeaturedImageService.php app/Services/Blog/ContentImagesService.php app/Services/Blog/Seo/SeoIntelligenceService.php app/Services/ImageSearchService.php app/Notifications/AgentImageAttachmentFailed.php app/Jobs/ProcessIdeaJob.php tests/Unit/LibraryImageMatcherTest.php tests/Feature/FeaturedImageServiceTest.php)",
+      "Bash(./vendor/bin/pint app/Services/Blog/LibraryImageMatcher.php app/Services/Blog/FeaturedImageService.php app/Services/Blog/ContentImagesService.php app/Services/Blog/Seo/SeoIntelligenceService.php app/Services/ImageSearchService.php app/Notifications/AgentImageAttachmentFailed.php app/Jobs/ProcessIdeaJob.php tests/Unit/LibraryImageMatcherTest.php tests/Feature/FeaturedImageServiceTest.php)",
+      "Bash(./vendor/bin/phpunit --filter='LibraryImageMatcherTest|FeaturedImageServiceTest' --colors=never)",
+      "Bash(git config *)"
+    ]
+  }
+}

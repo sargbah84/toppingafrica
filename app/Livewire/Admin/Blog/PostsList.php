@@ -165,10 +165,11 @@ class PostsList extends Component
     protected function buildQuery(): Builder
     {
         $query = Post::query()
-            ->with(['author', 'categories'])
+            ->with(['author', 'categories', 'latestSeoAnalysis'])
             ->withCount([
                 'views',
                 'reactions',
+                'creators',
                 'comments' => fn ($q) => $q->where('status', 'approved'),
             ]);
 
