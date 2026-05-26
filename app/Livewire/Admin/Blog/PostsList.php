@@ -117,6 +117,35 @@ class PostsList extends Component
         $this->reset('selectedPosts', 'selectAll', 'bulkAction');
     }
 
+    /**
+     * Returns the creators tagged on a given post, for the on-demand modal.
+     *
+     * @return array<int, array{id: int, name: string, slug: string, country: ?string, category: ?string, profile_image_url: ?string, initials: string, avatar_color: string, profile_url: string}>
+     */
+    public function loadCreators(int $postId): array
+    {
+        $post = Post::with(['creators' => fn ($q) => $q->select(
+            'creators.id',
+            'creators.name',
+            'creators.slug',
+            'creators.country',
+            'creators.category',
+            'creators.profile_image_url',
+        )])->findOrFail($postId);
+
+        return $post->creators->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'slug' => $c->slug,
+            'country' => $c->country,
+            'category' => $c->category,
+            'profile_image_url' => $c->profile_image_url,
+            'initials' => $c->initials,
+            'avatar_color' => $c->avatar_color ?? '#6366f1',
+            'profile_url' => route('creators.show', $c->slug),
+        ])->all();
+    }
+
     public function deletePost(int $postId): void
     {
         $post = Post::findOrFail($postId);

@@ -225,9 +225,106 @@
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                                 @if (($post->creators_count ?? 0) > 0)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
-                                        {{ $post->creators_count }}
-                                    </span>
+                                    <div
+                                        x-data="{
+                                            open: false,
+                                            loading: false,
+                                            loaded: false,
+                                            creators: [],
+                                            async show() {
+                                                this.open = true;
+                                                if (this.loaded) return;
+                                                this.loading = true;
+                                                try {
+                                                    this.creators = await $wire.loadCreators({{ $post->id }});
+                                                    this.loaded = true;
+                                                } finally {
+                                                    this.loading = false;
+                                                }
+                                            }
+                                        }"
+                                        class="relative inline-block"
+                                    >
+                                        <button
+                                            type="button"
+                                            @click="show()"
+                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+                                            title="View tagged creators"
+                                        >
+                                            {{ $post->creators_count }}
+                                        </button>
+
+                                        {{-- Creators modal --}}
+                                        <template x-teleport="body">
+                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" x-transition.opacity>
+                                                <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80" @click="open = false"></div>
+                                                <div class="flex min-h-full items-center justify-center p-4">
+                                                    <div
+                                                        @click.outside="open = false"
+                                                        @keydown.escape.window="open = false"
+                                                        class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg"
+                                                        x-transition
+                                                    >
+                                                        <div class="flex items-start justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                                                            <div>
+                                                                <h3 class="text-base font-semibold text-gray-900 dark:text-white">Tagged Creators</h3>
+                                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ Str::limit($post->title, 70) }}</p>
+                                                            </div>
+                                                            <button type="button" @click="open = false" class="p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+
+                                                        {{-- Loading skeleton (first open only) --}}
+                                                        <div x-show="loading" class="px-5 py-4 space-y-3">
+                                                            @for ($i = 0; $i < min($post->creators_count, 4); $i++)
+                                                                <div class="flex items-center gap-3 animate-pulse">
+                                                                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0"></div>
+                                                                    <div class="flex-1 space-y-2">
+                                                                        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                                                                        <div class="h-2.5 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                                                                    </div>
+                                                                </div>
+                                                            @endfor
+                                                        </div>
+
+                                                        {{-- Creator list --}}
+                                                        <ul x-show="!loading" class="divide-y divide-gray-100 dark:divide-gray-700 max-h-96 overflow-y-auto">
+                                                            <template x-for="creator in creators" :key="creator.id">
+                                                                <li class="flex items-center gap-3 px-5 py-3">
+                                                                    <template x-if="creator.profile_image_url">
+                                                                        <img :src="creator.profile_image_url" :alt="creator.name" class="w-10 h-10 rounded-full object-cover flex-shrink-0" loading="lazy">
+                                                                    </template>
+                                                                    <template x-if="!creator.profile_image_url">
+                                                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" :style="`background-color: ${creator.avatar_color}`">
+                                                                            <span x-text="creator.initials"></span>
+                                                                        </div>
+                                                                    </template>
+                                                                    <div class="flex-1 min-w-0">
+                                                                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate" x-text="creator.name"></p>
+                                                                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                                            <span x-text="creator.category"></span><template x-if="creator.country"><span> · <span x-text="creator.country"></span></span></template>
+                                                                        </p>
+                                                                    </div>
+                                                                    <a :href="creator.profile_url" target="_blank" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap">
+                                                                        View profile &rarr;
+                                                                    </a>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
+
+                                                        <div class="px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                                                            <button type="button" @click="open = false" class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md">
+                                                                Close
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 @else
                                     <span class="text-gray-400 dark:text-gray-500">—</span>
                                 @endif
