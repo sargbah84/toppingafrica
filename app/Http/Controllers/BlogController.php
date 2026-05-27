@@ -253,7 +253,7 @@ class BlogController extends Controller
             ->map(fn ($p) => [
                 'title' => $p->title,
                 'excerpt' => \Illuminate\Support\Str::limit(strip_tags((string) $p->excerpt), 90),
-                'author' => $p->author?->name,
+                'author' => $p->author?->display_name,
                 'image' => $p->featured_image_thumbnail,
                 'url' => url('/' . $p->slug),
             ]);

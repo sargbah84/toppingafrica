@@ -31,7 +31,7 @@
                     </h2>
                     <div class="flex items-center gap-2 text-xs text-gray-300">
                         @if($post->author)
-                            <span>By <span class="text-white font-medium">{{ $post->author->name }}</span></span>
+                            <span>By <span class="text-white font-medium">{{ $post->author->display_name }}</span></span>
                         @endif
                         <span>{{ ($post->published_at ?? $post->created_at)->format('M d, Y') }}</span>
                     </div>
@@ -257,7 +257,7 @@
                         @endif
                     </div>
                     @if($mainTv->author)
-                        <p class="text-xs text-gray-400 mb-1">By {{ $mainTv->author->name }}</p>
+                        <p class="text-xs text-gray-400 mb-1">By {{ $mainTv->author->display_name }}</p>
                     @endif
                     <h3 class="text-xl font-bold leading-snug text-white mb-2">
                         <a href="{{ route('blog.show', $mainTv->slug) }}" class="hover:text-primary transition-colors line-clamp-2">
@@ -357,7 +357,7 @@
                                 @endif
                                 @if($post->author)
                                     <span class="text-gray-400">&#8226;</span>
-                                    <span class="text-gray-500 dark:text-gray-400">By {{ $post->author->name }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">By {{ $post->author->display_name }}</span>
                                 @endif
                             </div>
                             <h3 class="text-base md:text-lg font-bold leading-snug text-gray-900 dark:text-white mb-1">

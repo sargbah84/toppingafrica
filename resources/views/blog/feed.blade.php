@@ -17,7 +17,7 @@
             <pubDate>{{ $post->published_at->toRssString() }}</pubDate>
             <guid isPermaLink="true">{{ route('blog.show', $post->slug) }}</guid>
             @if($post->author)
-            <author>{{ $post->author->email }} ({{ $post->author->name }})</author>
+            <author>{{ $post->author->email }} ({{ $post->author->display_name }})</author>
             @endif
             @foreach($post->categories as $category)
             <category><![CDATA[{{ $category->name }}]]></category>

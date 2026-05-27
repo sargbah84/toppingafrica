@@ -4,7 +4,7 @@
     ogType="article"
     :ogImage="$post->featured_image_url"
     :ogImageAlt="$post->title"
-    :author="$post->author?->name"
+    :author="$post->author?->display_name"
     :publishedTime="($post->published_at ?? $post->created_at)->toIso8601String()"
     :modifiedTime="$post->updated_at->toIso8601String()"
     :section="$post->categories->isNotEmpty() ? $post->categories->first()->name : null"
@@ -35,10 +35,10 @@
                 {{-- Author & Meta --}}
                 <div class="flex items-center gap-4">
                     @if($post->author)
-                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
+                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->display_name }}"
                              class="w-10 h-10 rounded-full object-cover">
                         <div>
-                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $post->author->name }}</span>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ $post->author->display_name }}</span>
                             <div class="flex items-center gap-2 text-xs text-muted dark:text-gray-400">
                                 <span>{{ ($post->published_at ?? $post->created_at)->format('M d, Y') }}</span>
                                 <span>&middot;</span>
@@ -142,10 +142,10 @@
                 {{-- Author Box --}}
                 @if($post->author)
                     <div class="mt-10 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-start gap-5">
-                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->name }}"
+                        <img src="{{ $post->author->avatar_url }}" alt="{{ $post->author->display_name }}"
                              class="w-16 h-16 rounded-full object-cover flex-shrink-0">
                         <div>
-                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->name }}</h4>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-1">{{ $post->author->display_name }}</h4>
                             <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ $post->author->bio ?? 'Contributing writer at ' . \App\Models\Setting::get('site_name', config('app.name')) . '.' }}</p>
                         </div>
                     </div>

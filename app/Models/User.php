@@ -80,6 +80,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=000000&color=ffffff';
     }
 
+    /**
+     * Public-facing byline. Staff and super admins are anonymised to "Staff";
+     * everyone else (contributors, editors, creators, regular users) shows their real name.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if ($this->is_staff || $this->is_super_admin) {
+            return 'Staff';
+        }
+
+        return $this->name;
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
