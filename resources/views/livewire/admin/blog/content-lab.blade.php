@@ -1,3 +1,15 @@
+@php
+    // Per-type pill color for the post-type badge. Keep ordering stable so
+    // existing types don't shift colors when new ones are added.
+    $typeBadgeClasses = [
+        'listicle' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+        'quiz' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+        'trivia' => 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+        'spotlight' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+        'article' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+    ];
+    $typeLabels = ['spotlight' => 'Spotlight'];
+@endphp
 <div>
     <x-slot name="header">Content Lab</x-slot>
 
@@ -175,9 +187,14 @@
                         {{-- Type --}}
                         <td class="px-4 py-3 whitespace-nowrap">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                {{ $idea->suggested_post_type === 'listicle' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' : ($idea->suggested_post_type === 'quiz' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' : ($idea->suggested_post_type === 'trivia' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400')) }}">
-                                {{ ucfirst($idea->suggested_post_type) }}
+                                {{ $typeBadgeClasses[$idea->suggested_post_type] ?? $typeBadgeClasses['article'] }}">
+                                {{ $typeLabels[$idea->suggested_post_type] ?? ucfirst($idea->suggested_post_type) }}
                             </span>
+                            @if($idea->suggested_post_type === 'spotlight' && $idea->suggested_creator_slug)
+                                <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400" title="Spotlighted creator">
+                                    @ {{ $idea->suggested_creator_slug }}
+                                </span>
+                            @endif
                             @if($idea->source === 'trends')
                                 <span class="block mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                                     Trending
@@ -349,9 +366,14 @@
                                     {{ $niches[$detailIdea->niche] ?? $detailIdea->niche }}
                                 </span>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                    {{ $detailIdea->suggested_post_type === 'listicle' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' : ($detailIdea->suggested_post_type === 'quiz' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' : ($detailIdea->suggested_post_type === 'trivia' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400')) }}">
-                                    {{ ucfirst($detailIdea->suggested_post_type) }}
+                                    {{ $typeBadgeClasses[$detailIdea->suggested_post_type] ?? $typeBadgeClasses['article'] }}">
+                                    {{ $typeLabels[$detailIdea->suggested_post_type] ?? ucfirst($detailIdea->suggested_post_type) }}
                                 </span>
+                                @if($detailIdea->suggested_post_type === 'spotlight' && $detailIdea->suggested_creator_slug)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300" title="Spotlighted creator">
+                                        @ {{ $detailIdea->suggested_creator_slug }}
+                                    </span>
+                                @endif
                                 @if($detailIdea->source === 'trends')
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">Trending</span>
                                 @endif

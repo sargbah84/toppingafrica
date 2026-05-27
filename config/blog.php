@@ -61,7 +61,7 @@ return [
         'enabled' => true,
         'min_seo_score' => 85,
         'weekly_cap' => 3,
-        'eligible_post_types' => ['article', 'listicle', 'video', 'gallery', 'quiz', 'trivia'],
+        'eligible_post_types' => ['article', 'listicle', 'video', 'gallery', 'quiz', 'trivia', 'spotlight'],
         // News & Updates, Features & Opinions, Spotlight, Africa-news-style lanes
         'priority_category_ids' => [24, 25, 26, 13, 23, 17],
     ],
@@ -81,6 +81,7 @@ return [
         'quiz' => ['name' => 'Quiz', 'icon' => 'help-circle'],
         'trivia' => ['name' => 'Trivia', 'icon' => 'lightbulb'],
         'listicle' => ['name' => 'Listicle', 'icon' => 'list-ordered'],
+        'spotlight' => ['name' => 'Creator Spotlight', 'icon' => 'star'],
         'poll' => ['name' => 'Poll', 'icon' => 'bar-chart-2'],
     ],
 

@@ -25,6 +25,7 @@ class ContentIdea extends Model
         'suggested_tone',
         'suggested_length',
         'suggested_post_type',
+        'suggested_creator_slug',
         'status',
         'dismissal_reason',
         'generated_post_id',

@@ -7,8 +7,10 @@ namespace App\Jobs;
 use App\Livewire\Admin\Blog\ContentLab;
 use App\Models\AiUsageLog;
 use App\Models\ContentIdea;
+use App\Models\Creator;
 use App\Models\Setting;
 use App\Models\Trend;
+use App\Services\Blog\CreatorContextService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -54,8 +56,17 @@ class ResearchContentIdeasJob implements ShouldQueue
         $totalCreated = 0;
         $lastError = null;
 
+        // Spotlights should feel special — surface ONE per day across all niches
+        // (≈ 7/week), not one per niche per day. Rotate via day-of-year so the
+        // chosen niche shifts daily and every niche eventually gets a turn.
+        $nicheKeys = array_keys($niches);
+        $spotlightNiche = $nicheKeys
+            ? $nicheKeys[((int) now()->dayOfYear) % count($nicheKeys)]
+            : null;
+
         foreach ($niches as $nicheKey => $nicheLabel) {
-            $result = $this->researchNiche($nicheKey, $nicheLabel, $apiKey);
+            $includeSpotlight = $nicheKey === $spotlightNiche;
+            $result = $this->researchNiche($nicheKey, $nicheLabel, $apiKey, $includeSpotlight);
 
             if ($result['error']) {
                 $lastError = $result['error'];
@@ -95,7 +106,7 @@ class ResearchContentIdeasJob implements ShouldQueue
     /**
      * @return array{data: array, error: ?string}
      */
-    private function researchNiche(string $nicheKey, string $nicheLabel, string $apiKey): array
+    private function researchNiche(string $nicheKey, string $nicheLabel, string $apiKey, bool $includeSpotlight = false): array
     {
         try {
             $today = now()->format('F j, Y');
@@ -108,6 +119,31 @@ class ResearchContentIdeasJob implements ShouldQueue
 
             $feedbackBlock = $this->buildFeedbackBlock($nicheKey);
 
+            // Only inject the creator roster + spotlight ask when this niche is
+            // today's spotlight pick. Keeping it scarce protects how special a
+            // spotlight feels on the site; the rotation in handle() ensures
+            // every niche gets a turn over the week.
+            $rosterBlock = '';
+            $spotlightInstruction = '';
+            $formatList = 'article, listicle, quiz, or trivia';
+            $formatEnum = 'article|listicle|quiz|trivia';
+            $spotlightSchemaLine = '';
+            $spotlightFormatHint = '';
+
+            if ($includeSpotlight) {
+                $rosterService = app(CreatorContextService::class);
+                $roster = $rosterService->getResearchRoster(60);
+
+                if ($roster) {
+                    $rosterBlock = $rosterService->buildRosterPromptSection($roster);
+                    $spotlightInstruction = "\nEXACTLY ONE of the {$count} suggestions must be type \"spotlight\" — a profile article featuring ONE creator from the roster above. Pick the creator whose work, country, or category best fits the {$nicheLabel} niche, and put their slug in `suggested_creator_slug`. Spotlight titles read like: \"Inside [Creator Name]'s rise as [angle]\" or \"How [Creator Name] is reshaping [field] in [Country]\". The remaining suggestions should be regular articles, listicles, quizzes, or trivia.\n";
+                    $formatList = 'article, listicle, spotlight, quiz, or trivia';
+                    $formatEnum = 'article|listicle|spotlight|quiz|trivia';
+                    $spotlightFormatHint = "\n- If \"spotlight\": which creator slug (from the roster) the article should profile";
+                    $spotlightSchemaLine = ",\n    \"suggested_creator_slug\": \"creator-slug-from-roster (only when suggested_post_type is spotlight, otherwise omit or null)\"";
+                }
+            }
+
             $prompt = <<<PROMPT
 Today is {$today}. Research {$count} high-potential blog article topics in the niche of: {$nicheLabel}.
 
@@ -116,13 +152,13 @@ These articles will be published on Topping Africa, a leading African news and c
 - Underserved by existing content (content gaps where a well-written article could rank)
 - Highly relevant to African audiences
 - Positive, constructive, or informative (avoid violence, disasters, political conflicts)
-{$contextBlock}{$feedbackBlock}
+{$contextBlock}{$feedbackBlock}{$rosterBlock}{$spotlightInstruction}
 For each topic, assess:
 - Current search interest level (high/medium/low)
 - Content competition level (high/medium/low) — how many quality articles already exist
 - Relevance to African audiences (1-10 scale)
 - A primary keyword to target for SEO
-- The best post format: article, listicle, quiz, or trivia
+- The best post format: {$formatList}{$spotlightFormatHint}
 
 Return a JSON array only — no markdown, no preamble:
 [{
@@ -133,7 +169,7 @@ Return a JSON array only — no markdown, no preamble:
     "suggested_keyword": "primary seo keyword",
     "relevance_to_africa": 8,
     "source_url": "https://example.com/reference",
-    "suggested_post_type": "article|listicle|quiz|trivia"
+    "suggested_post_type": "{$formatEnum}"{$spotlightSchemaLine}
 }]
 PROMPT;
 
@@ -214,9 +250,27 @@ PROMPT;
             }
 
             $postType = $idea['suggested_post_type'] ?? 'article';
-            $allowedTypes = ['article', 'listicle', 'quiz', 'trivia'];
+            $allowedTypes = ['article', 'listicle', 'spotlight', 'quiz', 'trivia'];
             if (! in_array($postType, $allowedTypes, true)) {
                 $postType = 'article';
+            }
+
+            // For spotlights, the slug MUST resolve to a published creator —
+            // we won't manufacture a profile for someone Perplexity invented.
+            // If the lookup fails we demote the idea back to a plain article
+            // so it isn't lost (and isn't misleading downstream).
+            $creatorSlug = null;
+            if ($postType === 'spotlight') {
+                $rawSlug = trim((string) ($idea['suggested_creator_slug'] ?? ''));
+                if ($rawSlug !== '' && Creator::where('slug', $rawSlug)->where('status', 'published')->exists()) {
+                    $creatorSlug = $rawSlug;
+                } else {
+                    Log::warning('ResearchContentIdeasJob: spotlight idea had unresolvable creator slug', [
+                        'title' => $title,
+                        'slug' => $rawSlug,
+                    ]);
+                    $postType = 'article';
+                }
             }
 
             $score = $this->scoreTopic($idea);
@@ -237,6 +291,7 @@ PROMPT;
                     'suggested_tone' => 'professional',
                     'suggested_length' => 'long',
                     'suggested_post_type' => $postType,
+                    'suggested_creator_slug' => $creatorSlug,
                     'status' => 'pending',
                     'expires_at' => $expiresAt,
                     'researched_at' => now(),
@@ -406,6 +461,7 @@ PROMPT;
                 $reason = $idea->dismissal_reason
                     ? ' (reason: '.($reasonLabels[$idea->dismissal_reason] ?? $idea->dismissal_reason).')'
                     : '';
+
                 return "- {$idea->title}{$reason}";
             })->implode("\n");
 

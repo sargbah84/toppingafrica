@@ -36,7 +36,11 @@
       "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/RepullCreatorJob.php\")",
       "Bash(scp c:/tmp/probe_hero.php post:/tmp/probe_hero.php)",
       "Bash(scp c:/tmp/probe_hero2.php post:/tmp/probe_hero2.php)",
-      "Bash(scp c:/tmp/probe_hero3.php post:/tmp/probe_hero3.php)"
+      "Bash(scp c:/tmp/probe_hero3.php post:/tmp/probe_hero3.php)",
+      "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\toppingafrica\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(./vendor/bin/pint app/Jobs/ResearchContentIdeasJob.php app/Jobs/GenerateContentIdeaPostJob.php app/Services/Blog/CreatorContextService.php app/Models/ContentIdea.php config/blog.php database/migrations/2026_05_27_162728_add_suggested_creator_slug_to_content_ideas_table.php)",
+      "Bash(./vendor/bin/pint app/Jobs/ResearchContentIdeasJob.php)"
     ]
   }
 }
