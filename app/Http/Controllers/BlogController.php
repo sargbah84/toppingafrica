@@ -86,15 +86,18 @@ class BlogController extends Controller
             ->take(4)
             ->get();
 
-        // Movies + TV posts for "Explore What's On TV": top 5 by views in the
-        // past 7 days, tiebreaking by newest published first.
+        // Movies + TV posts for "Explore What's On TV": 1 main card on the
+        // left plus 6 stacked small cards on the right, ranked by views in
+        // the past 7 days with newest-published as the tiebreak. The right
+        // column needs 6 to visually match the taller left card (image +
+        // excerpt). Loosen by views; final order is recency-biased.
         $tvPosts = Post::published()
             ->whereHas('categories', fn ($q) => $q->where('categories.id', 4))
             ->with('author', 'categories')
             ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
             ->orderByDesc('weekly_views_count')
             ->latest('published_at')
-            ->take(5)
+            ->take(7)
             ->get();
 
         // Latest Stories (skip featured ones)
