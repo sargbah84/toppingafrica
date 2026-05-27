@@ -13,9 +13,9 @@
                 <a href="{{ route('blog.show', $post->slug) }}">
                     @if($post->featured_image_url)
                         <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
-                             class="w-full aspect-[16/9] object-cover transition-transform duration-700 group-hover:scale-105">
+                             class="w-full aspect-[4/3] object-cover object-top transition-transform duration-700 group-hover:scale-105">
                     @else
-                        <div class="w-full aspect-[16/9] bg-gray-200 dark:bg-gray-800"></div>
+                        <div class="w-full aspect-[4/3] bg-gray-200 dark:bg-gray-800"></div>
                     @endif
                 </a>
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
@@ -57,10 +57,10 @@
                     <a href="{{ route('blog.show', $post->slug) }}">
                         @if($post->featured_image_url)
                             <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
-                                 class="w-full aspect-[16/9] object-cover transition-transform duration-500 group-hover:scale-105"
+                                 class="w-full aspect-[4/3] object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                  loading="lazy">
                         @else
-                            <div class="w-full aspect-[16/9] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                            <div class="w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                 <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V5.25a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v14.25a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>
                             </div>
                         @endif
@@ -239,10 +239,10 @@
                         <a href="{{ route('blog.show', $mainTv->slug) }}">
                             @if($mainTv->featured_image_url)
                                 <img src="{{ $mainTv->featured_image_url }}" alt="{{ $mainTv->title }}"
-                                     class="w-full aspect-[16/9] object-cover transition-transform duration-500 group-hover:scale-105"
+                                     class="w-full aspect-[4/3] object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                      loading="lazy">
                             @else
-                                <div class="w-full aspect-[16/9] bg-gray-800 flex items-center justify-center">
+                                <div class="w-full aspect-[4/3] bg-gray-800 flex items-center justify-center">
                                     <svg class="w-12 h-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V5.25a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v14.25a1.5 1.5 0 0 0 1.5 1.5Z"/></svg>
                                 </div>
                             @endif
@@ -278,7 +278,7 @@
                             <a href="{{ route('blog.show', $post->slug) }}">
                                 @if($post->featured_image_url)
                                     <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
-                                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                         class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                          loading="lazy">
                                 @else
                                     <div class="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -392,7 +392,7 @@
                             <a href="{{ route('blog.show', $post->slug) }}">
                                 @if($post->featured_image_url)
                                     <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
-                                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                         class="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                          loading="lazy">
                                 @else
                                     <div class="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">

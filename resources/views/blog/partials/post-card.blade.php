@@ -2,8 +2,8 @@
      Pass $aspectAuto = true to let images flow at natural height (e.g. for masonry layouts). --}}
 @php
     $imageClasses = (isset($aspectAuto) && $aspectAuto)
-        ? 'w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105'
-        : 'w-full aspect-[4/3] object-cover transition-transform duration-500 group-hover:scale-105';
+        ? 'w-full h-auto object-cover object-top transition-transform duration-500 group-hover:scale-105'
+        : 'w-full aspect-[4/3] object-cover object-top transition-transform duration-500 group-hover:scale-105';
     $placeholderClasses = (isset($aspectAuto) && $aspectAuto)
         ? 'w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center'
         : 'w-full aspect-[4/3] bg-gray-100 dark:bg-gray-800 flex items-center justify-center';
