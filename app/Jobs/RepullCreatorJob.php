@@ -6,9 +6,9 @@ namespace App\Jobs;
 
 use App\Models\Creator;
 use App\Services\ClaudeBioService;
+use App\Services\CreatorAvatarService;
 use App\Services\CreatorSocialLinkBuilder;
 use App\Services\PerplexityService;
-use App\Services\WikimediaService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,12 +18,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Re-pull a single creator's AI-generated data (bio, social links, image,
+ * Re-pull a single creator's AI-generated data (bio, social links, avatar,
  * follower estimate). Mirrors ManageCreators::repullCreator() but runs in
  * the queue so bulk operations don't block the admin request thread.
  *
- * This is intentionally a full re-pull (not followers-only) to keep one
- * canonical "refresh from AI" code path.
+ * Avatar lookup goes through CreatorAvatarService (Serper primary, Wikimedia
+ * fallback, with the picked image downloaded to S3 for link-rot safety).
  */
 class RepullCreatorJob implements ShouldQueue
 {
@@ -37,7 +37,7 @@ class RepullCreatorJob implements ShouldQueue
     public function handle(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         $creator = Creator::find($this->creatorId);
@@ -67,7 +67,7 @@ class RepullCreatorJob implements ShouldQueue
             $match['name'] = $creator->name;
 
             $bio = $claude->generateBio($match);
-            $image = $wikimedia->searchCreatorImage($creator->name);
+            $image = $avatar->fetch($creator->name, $creator->country);
 
             $newFollowerCount = DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
             $newFollowerPlatform = DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);

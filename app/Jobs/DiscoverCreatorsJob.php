@@ -6,9 +6,9 @@ namespace App\Jobs;
 
 use App\Models\Creator;
 use App\Services\ClaudeBioService;
+use App\Services\CreatorAvatarService;
 use App\Services\CreatorSocialLinkBuilder;
 use App\Services\PerplexityService;
-use App\Services\WikimediaService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -101,7 +101,7 @@ class DiscoverCreatorsJob implements ShouldQueue
     public function handle(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         if ($this->batch()?->cancelled()) {
@@ -130,7 +130,7 @@ class DiscoverCreatorsJob implements ShouldQueue
 
             try {
                 $bio = $claude->generateBio($creatorData);
-                $image = $wikimedia->searchCreatorImage($name);
+                $image = $avatar->fetch($name, $creatorData['country'] ?? $this->country);
 
                 $creator = Creator::create([
                     'name' => $name,

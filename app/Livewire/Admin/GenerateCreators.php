@@ -7,8 +7,8 @@ namespace App\Livewire\Admin;
 use App\Models\Creator;
 use App\Models\CreatorSocialLink;
 use App\Services\ClaudeBioService;
+use App\Services\CreatorAvatarService;
 use App\Services\PerplexityService;
-use App\Services\WikimediaService;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -43,7 +43,7 @@ class GenerateCreators extends Component
     public function generate(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
     ): void {
         $this->validate();
 
@@ -79,7 +79,7 @@ class GenerateCreators extends Component
             }
 
             $bio = $claude->generateBio($creatorData);
-            $image = $wikimedia->searchCreatorImage($name);
+            $image = $avatar->fetch($name, $creatorData['country'] ?? $this->country);
 
             $contactEmail = \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null);
 

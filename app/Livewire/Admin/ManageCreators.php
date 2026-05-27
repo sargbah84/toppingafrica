@@ -9,9 +9,9 @@ use App\Jobs\RepullCreatorJob;
 use App\Mail\CreatorClaimInvite;
 use App\Models\Creator;
 use App\Services\ClaudeBioService;
+use App\Services\CreatorAvatarService;
 use App\Services\CreatorSocialLinkBuilder;
 use App\Services\PerplexityService;
-use App\Services\WikimediaService;
 use Illuminate\Bus\Batch;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Bus;
@@ -56,6 +56,14 @@ class ManageCreators extends Component
     public ?string $editPhotoName = null;
     public string $editBadge = ''; // '', 'rising', 'trending', 'featured'
     public array $editSocialLinks = [];
+
+    // Google Images (Serper) picker state — inline within the edit modal so
+    // staff can grab a fresh avatar without leaving the form.
+    public bool $showAvatarPicker = false;
+    public string $avatarSearchQuery = '';
+    public array $avatarCandidates = [];
+    public bool $avatarSearching = false;
+    public string $avatarPickerError = '';
 
     // Read-only display of AI-estimated follower data (not editable in the modal,
     // but refreshed when the admin clicks "Re-pull AI Data" inside the modal).
@@ -228,7 +236,7 @@ class ManageCreators extends Component
         $this->manualSocialLinks = array_values($this->manualSocialLinks);
     }
 
-    public function saveManualCreator(WikimediaService $wikimedia): void
+    public function saveManualCreator(CreatorAvatarService $avatar): void
     {
         $this->validate([
             'manualName' => 'required|string|max:255',
@@ -259,7 +267,7 @@ class ManageCreators extends Component
             return;
         }
 
-        $image = $wikimedia->searchCreatorImage($name);
+        $image = $avatar->fetch($name, trim($this->manualCountry));
 
         $creator = Creator::create([
             'name' => $name,
@@ -348,7 +356,7 @@ class ManageCreators extends Component
 
     public function saveSelectedCandidates(
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         if (empty($this->addSelected)) {
@@ -376,7 +384,7 @@ class ManageCreators extends Component
 
             $raw = $candidate['raw'];
             $bio = $claude->generateBio($raw);
-            $image = $wikimedia->searchCreatorImage($name);
+            $image = $avatar->fetch($name, $candidate['country'] ?? ($raw['country'] ?? null));
 
             $creator = Creator::create([
                 'name' => $name,
@@ -441,7 +449,7 @@ class ManageCreators extends Component
     public function generate(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         $this->validate([
@@ -460,7 +468,7 @@ class ManageCreators extends Component
             return;
         }
 
-        $this->runSynchronously($perplexity, $claude, $wikimedia, $linkBuilder);
+        $this->runSynchronously($perplexity, $claude, $avatar, $linkBuilder);
     }
 
     private function dispatchBatch(): void
@@ -489,7 +497,7 @@ class ManageCreators extends Component
     private function runSynchronously(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         $this->generating = true;
@@ -532,7 +540,7 @@ class ManageCreators extends Component
                 }
 
                 $bio = $claude->generateBio($creatorData);
-                $image = $wikimedia->searchCreatorImage($name);
+                $image = $avatar->fetch($name, $creatorData['country'] ?? $combo['country']);
 
                 $creator = Creator::create([
                     'name' => $name,
@@ -800,6 +808,11 @@ class ManageCreators extends Component
         $this->editPhotoData = null;
         $this->editPhotoName = null;
 
+        $this->showAvatarPicker = false;
+        $this->avatarCandidates = [];
+        $this->avatarSearchQuery = '';
+        $this->avatarPickerError = '';
+
         $this->editBadge = match (true) {
             $creator->is_featured => 'featured',
             $creator->is_trending => 'trending',
@@ -982,7 +995,7 @@ class ManageCreators extends Component
     public function repullIntoForm(
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
     ): void {
         if (! $this->editingCreatorId) {
             return;
@@ -1003,7 +1016,7 @@ class ManageCreators extends Component
         $match['name'] = $this->editName;
 
         $bio = $claude->generateBio($match);
-        $image = $wikimedia->searchCreatorImage($this->editName);
+        $image = $avatar->fetch($this->editName, $this->editCountry);
 
         // Update form fields (not saved until admin clicks Save Changes)
         $this->editBio = $bio;
@@ -1096,7 +1109,7 @@ class ManageCreators extends Component
         int $id,
         PerplexityService $perplexity,
         ClaudeBioService $claude,
-        WikimediaService $wikimedia,
+        CreatorAvatarService $avatar,
         CreatorSocialLinkBuilder $linkBuilder,
     ): void {
         $creator = Creator::findOrFail($id);
@@ -1119,7 +1132,7 @@ class ManageCreators extends Component
         $match['name'] = $creator->name;
 
         $bio = $claude->generateBio($match);
-        $image = $wikimedia->searchCreatorImage($creator->name);
+        $image = $avatar->fetch($creator->name, $creator->country);
 
         $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
         $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
@@ -1141,6 +1154,93 @@ class ManageCreators extends Component
         $linkBuilder->build($creator, $match);
 
         session()->flash('success', "{$creator->name} re-pulled from AI.");
+    }
+
+    // ── Avatar picker (Google Images via Serper) ─────────────────
+
+    /**
+     * Open the picker for the creator currently being edited. Seeds the query
+     * with name + country so the first search is usually the right one.
+     */
+    public function openAvatarPicker(): void
+    {
+        if (! $this->editingCreatorId) {
+            return;
+        }
+
+        $this->showAvatarPicker = true;
+        $this->avatarCandidates = [];
+        $this->avatarPickerError = '';
+        $this->avatarSearchQuery = trim($this->editName . ' ' . $this->editCountry);
+    }
+
+    public function closeAvatarPicker(): void
+    {
+        $this->showAvatarPicker = false;
+        $this->avatarCandidates = [];
+        $this->avatarSearchQuery = '';
+        $this->avatarPickerError = '';
+    }
+
+    public function searchAvatarFromGoogle(CreatorAvatarService $avatar): void
+    {
+        $query = trim($this->avatarSearchQuery);
+
+        if ($query === '') {
+            $this->avatarPickerError = 'Enter a search query first.';
+
+            return;
+        }
+
+        $this->avatarSearching = true;
+        $this->avatarPickerError = '';
+
+        try {
+            $this->avatarCandidates = $avatar->searchCandidates($query, 12);
+
+            if (empty($this->avatarCandidates)) {
+                $this->avatarPickerError = 'No results from Google Images. Try a different query.';
+            }
+        } finally {
+            $this->avatarSearching = false;
+        }
+    }
+
+    /**
+     * Download the staff-picked image to S3 and save it as the creator's avatar
+     * immediately (no need to click Save Changes — image storage isn't part
+     * of the form-field set, and the existing photo-upload flow also persists
+     * outside of saveEdit()).
+     */
+    public function pickAvatarCandidate(int $index, CreatorAvatarService $avatar): void
+    {
+        if (! $this->editingCreatorId || ! isset($this->avatarCandidates[$index])) {
+            return;
+        }
+
+        $candidate = $this->avatarCandidates[$index];
+        $creator = Creator::find($this->editingCreatorId);
+
+        if (! $creator) {
+            return;
+        }
+
+        $stored = $avatar->storePicked($candidate['url'], $creator->name);
+
+        if (! $stored) {
+            $this->avatarPickerError = 'Failed to download that image. Try a different one.';
+
+            return;
+        }
+
+        $creator->update([
+            'profile_image_url' => $stored,
+            'profile_image_attribution' => 'Google Images (' . parse_url($candidate['url'], PHP_URL_HOST) . ')',
+            'profile_image_license' => null,
+        ]);
+
+        $this->closeAvatarPicker();
+        session()->flash('success', "Avatar updated for {$creator->name}.");
     }
 
     public function delete(int $id): void

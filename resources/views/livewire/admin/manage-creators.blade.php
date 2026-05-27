@@ -325,6 +325,67 @@
                         @error('editBio') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- Search Google Images (Serper) for an avatar --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Find avatar on Google Images</label>
+                            @if($showAvatarPicker)
+                                <button type="button" wire:click="closeAvatarPicker"
+                                        class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                    Cancel
+                                </button>
+                            @endif
+                        </div>
+
+                        @if(! $showAvatarPicker)
+                            <button type="button" wire:click="openAvatarPicker"
+                                    class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                                Search Google Images
+                            </button>
+                            <p class="mt-1 text-xs text-gray-400">Looks up a fresh portrait via Serper and downloads it to S3 when you pick one.</p>
+                        @else
+                            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900/40">
+                                <div class="flex items-center gap-2">
+                                    <input wire:model="avatarSearchQuery" type="text"
+                                           wire:keydown.enter.prevent="searchAvatarFromGoogle"
+                                           placeholder="e.g. Burna Boy Nigeria portrait"
+                                           class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <button type="button" wire:click="searchAvatarFromGoogle"
+                                            wire:loading.attr="disabled" wire:target="searchAvatarFromGoogle"
+                                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                                        <span wire:loading.remove wire:target="searchAvatarFromGoogle">Search</span>
+                                        <span wire:loading wire:target="searchAvatarFromGoogle">Searching...</span>
+                                    </button>
+                                </div>
+
+                                @if($avatarPickerError)
+                                    <p class="mt-2 text-xs text-red-600 dark:text-red-400">{{ $avatarPickerError }}</p>
+                                @endif
+
+                                @if(! empty($avatarCandidates))
+                                    <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Click an image to set it as the avatar. It will be downloaded to S3 immediately.</p>
+                                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                                        @foreach($avatarCandidates as $i => $cand)
+                                            <button type="button"
+                                                    wire:click="pickAvatarCandidate({{ $i }})"
+                                                    wire:loading.attr="disabled" wire:target="pickAvatarCandidate"
+                                                    class="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-400 hover:ring-2 hover:ring-indigo-200 dark:hover:ring-indigo-900 transition group disabled:opacity-50 disabled:cursor-wait">
+                                                <img src="{{ $cand['thumb'] }}" alt="{{ $cand['title'] }}" class="w-full h-full object-cover" loading="lazy" referrerpolicy="no-referrer">
+                                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                    <div wire:loading wire:target="pickAvatarCandidate" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                        Downloading to S3...
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+
                     {{-- Profile Photo Upload (base64 — Livewire temp uploads are unreliable on Laragon) --}}
                     <div x-data="{
                         preview: null,

@@ -28,7 +28,12 @@
       "Bash(./vendor/bin/pint --test app/Services/Blog/LibraryImageMatcher.php app/Services/Blog/FeaturedImageService.php app/Services/Blog/ContentImagesService.php app/Services/Blog/Seo/SeoIntelligenceService.php app/Services/ImageSearchService.php app/Notifications/AgentImageAttachmentFailed.php app/Jobs/ProcessIdeaJob.php tests/Unit/LibraryImageMatcherTest.php tests/Feature/FeaturedImageServiceTest.php)",
       "Bash(./vendor/bin/pint app/Services/Blog/LibraryImageMatcher.php app/Services/Blog/FeaturedImageService.php app/Services/Blog/ContentImagesService.php app/Services/Blog/Seo/SeoIntelligenceService.php app/Services/ImageSearchService.php app/Notifications/AgentImageAttachmentFailed.php app/Jobs/ProcessIdeaJob.php tests/Unit/LibraryImageMatcherTest.php tests/Feature/FeaturedImageServiceTest.php)",
       "Bash(./vendor/bin/phpunit --filter='LibraryImageMatcherTest|FeaturedImageServiceTest' --colors=never)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Services/CreatorAvatarService.php\")",
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Livewire/Admin/ManageCreators.php\")",
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Livewire/Admin/GenerateCreators.php\")",
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/DiscoverCreatorsJob.php\")",
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/RepullCreatorJob.php\")"
     ]
   }
 }
