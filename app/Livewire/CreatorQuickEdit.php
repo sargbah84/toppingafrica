@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Models\Creator;
+use App\Services\CreatorAvatarService;
 use Livewire\Component;
 
 class CreatorQuickEdit extends Component
@@ -22,6 +23,14 @@ class CreatorQuickEdit extends Component
 
     // Social links editing
     public array $editSocialLinks = [];
+
+    // Google Images picker (Serper) — mirrors the admin avatar picker. Picking
+    // attaches immediately and persists outside save(), matching the admin flow.
+    public bool $showAvatarPicker = false;
+    public string $avatarSearchQuery = '';
+    public array $avatarCandidates = [];
+    public bool $avatarSearching = false;
+    public string $avatarPickerError = '';
 
     protected array $categories = [
         'Comedy', 'Fashion', 'Food', 'Music', 'Lifestyle',
@@ -51,6 +60,7 @@ class CreatorQuickEdit extends Component
         $this->editCountry = $this->creator->country ?? '';
         $this->photoData = null;
         $this->photoName = null;
+        $this->resetAvatarPicker();
 
         $this->editSocialLinks = $this->creator->socialLinks
             ->map(fn ($link) => [
@@ -70,6 +80,97 @@ class CreatorQuickEdit extends Component
         $this->editing = false;
         $this->photoData = null;
         $this->photoName = null;
+        $this->resetAvatarPicker();
+    }
+
+    public function openAvatarPicker(): void
+    {
+        abort_unless($this->creator->canBeEditedBy(auth()->user()), 403);
+
+        $this->showAvatarPicker = true;
+        $this->avatarCandidates = [];
+        $this->avatarPickerError = '';
+        $this->avatarSearchQuery = trim($this->editName . ' ' . $this->editCountry);
+    }
+
+    public function closeAvatarPicker(): void
+    {
+        $this->resetAvatarPicker();
+    }
+
+    public function searchAvatarFromGoogle(CreatorAvatarService $avatar): void
+    {
+        abort_unless($this->creator->canBeEditedBy(auth()->user()), 403);
+
+        $query = trim($this->avatarSearchQuery);
+
+        if ($query === '') {
+            $this->avatarPickerError = 'Enter a search query first.';
+            return;
+        }
+
+        $this->avatarSearching = true;
+        $this->avatarPickerError = '';
+
+        try {
+            $this->avatarCandidates = $avatar->searchCandidates($query, 12);
+
+            if (empty($this->avatarCandidates)) {
+                $this->avatarPickerError = 'No results from Google Images. Try a different query.';
+            }
+        } finally {
+            $this->avatarSearching = false;
+        }
+    }
+
+    /**
+     * Download the picked image to S3 and save it as the creator's avatar
+     * immediately. Matches the admin flow: profile image isn't a form field,
+     * so it persists outside save().
+     */
+    public function pickAvatarCandidate(int $index, CreatorAvatarService $avatar): void
+    {
+        abort_unless($this->creator->canBeEditedBy(auth()->user()), 403);
+
+        if (! isset($this->avatarCandidates[$index])) {
+            return;
+        }
+
+        $candidate = $this->avatarCandidates[$index];
+
+        try {
+            $avatar->attachPickedUrl($this->creator, $candidate['url']);
+        } catch (\Throwable $e) {
+            $this->avatarPickerError = 'Failed to download: ' . $e->getMessage();
+            \Log::error('CreatorQuickEdit: avatar picker download failed', [
+                'creator_id' => $this->creator->id,
+                'url' => $candidate['url'],
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        $this->creator->update([
+            'profile_image_attribution' => 'Google Images (' . parse_url($candidate['url'], PHP_URL_HOST) . ')',
+            'profile_image_license' => null,
+        ]);
+
+        // Drop any pending local upload — the picked image wins.
+        $this->photoData = null;
+        $this->photoName = null;
+
+        $this->creator->refresh();
+        $this->resetAvatarPicker();
+        $this->dispatch('creator-updated');
+    }
+
+    protected function resetAvatarPicker(): void
+    {
+        $this->showAvatarPicker = false;
+        $this->avatarSearchQuery = '';
+        $this->avatarCandidates = [];
+        $this->avatarSearching = false;
+        $this->avatarPickerError = '';
     }
 
     public function addSocialLink(): void

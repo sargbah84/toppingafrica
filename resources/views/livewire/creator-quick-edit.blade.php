@@ -86,6 +86,61 @@
                                 <p class="text-xs mt-1">JPG, PNG, WebP. Max 5MB.</p>
                             </div>
                         </div>
+
+                        {{-- Google Images picker (Serper) --}}
+                        <div class="mt-4">
+                            @if(! $showAvatarPicker)
+                                <button type="button" wire:click="openAvatarPicker"
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 rounded-full hover:bg-primary/20 transition">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    </svg>
+                                    Search Google Images
+                                </button>
+                                <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Find a portrait online and save it as your profile photo.</p>
+                            @else
+                                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3">
+                                    <div class="flex items-center gap-2">
+                                        <input wire:model="avatarSearchQuery" type="text"
+                                               wire:keydown.enter.prevent="searchAvatarFromGoogle"
+                                               placeholder="e.g. {{ $editName }} {{ $editCountry }} portrait"
+                                               class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm text-sm focus:border-primary focus:ring-primary">
+                                        <button type="button" wire:click="searchAvatarFromGoogle"
+                                                wire:loading.attr="disabled" wire:target="searchAvatarFromGoogle"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:bg-primary-hover disabled:opacity-50 transition">
+                                            <span wire:loading.remove wire:target="searchAvatarFromGoogle">Search</span>
+                                            <span wire:loading wire:target="searchAvatarFromGoogle">Searching...</span>
+                                        </button>
+                                        <button type="button" wire:click="closeAvatarPicker"
+                                                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+
+                                    @if($avatarPickerError)
+                                        <p class="mt-2 text-xs text-red-600 dark:text-red-400">{{ $avatarPickerError }}</p>
+                                    @endif
+
+                                    @if(! empty($avatarCandidates))
+                                        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Click an image to set it as your profile photo.</p>
+                                        <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+                                            @foreach($avatarCandidates as $i => $cand)
+                                                <button type="button"
+                                                        wire:click="pickAvatarCandidate({{ $i }})"
+                                                        wire:loading.attr="disabled" wire:target="pickAvatarCandidate"
+                                                        class="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-primary hover:ring-2 hover:ring-primary/20 transition group disabled:opacity-50 disabled:cursor-wait">
+                                                    <img src="{{ $cand['thumb'] }}" alt="{{ $cand['title'] }}" class="w-full h-full object-cover" loading="lazy" referrerpolicy="no-referrer">
+                                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition"></div>
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                        <div wire:loading wire:target="pickAvatarCandidate" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                            Saving image...
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Name --}}
