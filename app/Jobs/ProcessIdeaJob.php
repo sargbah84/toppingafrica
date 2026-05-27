@@ -62,6 +62,7 @@ class ProcessIdeaJob implements ShouldQueue
             $this->attachFeaturedImage($featuredImage, $post, $imageQuery, $idea);
             $this->attachContentImages($contentImages, $post, $imageQuery);
             $finalScore = $this->improveSeo($seo, $agent, $post);
+            $this->maybeFeature($post->fresh(), $finalScore);
             $this->schedulePost($post);
             $idea->markAsGenerated($post->id);
 
@@ -250,6 +251,97 @@ class ProcessIdeaJob implements ShouldQueue
         }
 
         return $latestScore;
+    }
+
+    /**
+     * Auto-flag the post as featured when ALL rubric criteria hold:
+     *   - feature flag enabled in config
+     *   - final SEO score meets the minimum
+     *   - post_type is in the eligible list
+     *   - weekly featured cap not yet reached
+     *   - the post is either attached to a creator with a real profile
+     *     (bio + image) OR lands in at least one priority category
+     *
+     * Bias is strict. The hero query has a recency-window fallback so
+     * under-featuring is safe; over-featuring would defeat the editorial
+     * signal entirely.
+     */
+    private function maybeFeature(Post $post, int $seoScore): void
+    {
+        $rubric = config('blog.auto_feature');
+
+        if (! ($rubric['enabled'] ?? false)) {
+            return;
+        }
+
+        if ($seoScore < (int) ($rubric['min_seo_score'] ?? 85)) {
+            return;
+        }
+
+        if (! in_array($post->post_type, $rubric['eligible_post_types'] ?? [], true)) {
+            return;
+        }
+
+        $postCategoryIds = $post->categories->pluck('id')->all();
+        $priorityIds = $rubric['priority_category_ids'] ?? [];
+        $hasPriorityCategory = ! empty(array_intersect($priorityIds, $postCategoryIds));
+
+        // Creator-with-real-profile signal: post must be attached to at least
+        // one creator who has BOTH a non-empty bio and a profile image. These
+        // are the posts most likely to drive engagement back to a real page.
+        $hasProfiledCreator = $post->creators()
+            ->whereNotNull('bio')->where('bio', '!=', '')
+            ->whereNotNull('profile_image_url')->where('profile_image_url', '!=', '')
+            ->exists();
+
+        if (! $hasPriorityCategory && ! $hasProfiledCreator) {
+            return;
+        }
+
+        // Count featured posts whose live-on-site moment falls in the past 7
+        // days. Prefer published_at (already-live posts); for scheduled-but-
+        // not-yet-published items, fall back to scheduled_at so we don't
+        // queue up several featured pieces to go live in the same week.
+        $weeklyCap = (int) ($rubric['weekly_cap'] ?? 3);
+        $featuredThisWeek = Post::where('is_featured', true)
+            ->where(function ($q) {
+                $q->where('published_at', '>=', now()->subWeek())
+                  ->orWhere(function ($q2) {
+                      $q2->whereNull('published_at')
+                         ->where('scheduled_at', '>=', now()->subWeek());
+                  });
+            })
+            ->count();
+        if ($featuredThisWeek >= $weeklyCap) {
+            Log::info('ProcessIdeaJob: auto-feature skipped (weekly cap reached)', [
+                'post_id' => $post->id,
+                'cap' => $weeklyCap,
+                'this_week' => $featuredThisWeek,
+            ]);
+            return;
+        }
+
+        $post->update(['is_featured' => true]);
+
+        $reason = $hasProfiledCreator
+            ? ($hasPriorityCategory ? 'profiled_creator+priority_category' : 'profiled_creator')
+            : 'priority_category';
+
+        activity('content_agent')
+            ->event('post_auto_featured')
+            ->performedOn($post)
+            ->withProperties([
+                'seo_score' => $seoScore,
+                'post_type' => $post->post_type,
+                'category_ids' => $postCategoryIds,
+                'reason' => $reason,
+            ])
+            ->log("Auto-featured post #{$post->id} ({$reason}, SEO: {$seoScore})");
+
+        Log::info('ProcessIdeaJob: auto-featured', [
+            'post_id' => $post->id,
+            'seo_score' => $seoScore,
+        ]);
     }
 
     private function schedulePost(Post $post): void

@@ -33,7 +33,10 @@
       "Bash(php -l \"c:/laragon/www/toppingafrica/app/Livewire/Admin/ManageCreators.php\")",
       "Bash(php -l \"c:/laragon/www/toppingafrica/app/Livewire/Admin/GenerateCreators.php\")",
       "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/DiscoverCreatorsJob.php\")",
-      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/RepullCreatorJob.php\")"
+      "Bash(php -l \"c:/laragon/www/toppingafrica/app/Jobs/RepullCreatorJob.php\")",
+      "Bash(scp c:/tmp/probe_hero.php post:/tmp/probe_hero.php)",
+      "Bash(scp c:/tmp/probe_hero2.php post:/tmp/probe_hero2.php)",
+      "Bash(scp c:/tmp/probe_hero3.php post:/tmp/probe_hero3.php)"
     ]
   }
 }

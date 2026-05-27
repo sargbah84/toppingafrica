@@ -20,6 +20,52 @@ return [
 
     'related_posts_count' => 3,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Hero Section (homepage)
+    |--------------------------------------------------------------------------
+    |
+    | The homepage hero pulls `is_featured = true` posts published within
+    | `hero_recency_days`. If there aren't enough featured posts in that
+    | window the remaining slots are topped up with the newest published
+    | posts so the hero never goes stale.
+    |
+    */
+
+    'hero' => [
+        'slots' => 3,
+        'recency_days' => 30,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-feature Rubric (used by ProcessIdeaJob)
+    |--------------------------------------------------------------------------
+    |
+    | The AI content pipeline auto-flags `is_featured = true` only when ALL
+    | of the following are true:
+    |   - its final SEO score is at least `min_seo_score`
+    |   - its `post_type` is in `eligible_post_types`
+    |   - fewer than `weekly_cap` posts have been featured in the past 7 days
+    |   - AND it meets one of:
+    |       * attached to a creator that has both a bio and a profile image
+    |       * lands in one of `priority_category_ids`
+    |
+    | Tune these without redeploying. Bias is strict — better to under-feature
+    | than flood the hero. The recency-window fallback in BlogController
+    | covers any dry spells.
+    |
+    */
+
+    'auto_feature' => [
+        'enabled' => true,
+        'min_seo_score' => 85,
+        'weekly_cap' => 3,
+        'eligible_post_types' => ['article', 'listicle', 'video', 'gallery', 'quiz', 'trivia'],
+        // News & Updates, Features & Opinions, Spotlight, Africa-news-style lanes
+        'priority_category_ids' => [24, 25, 26, 13, 23, 17],
+    ],
+
     'excerpt_length' => 160,
 
     /*

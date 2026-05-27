@@ -19,16 +19,48 @@ class BlogController extends Controller
 {
     public function index(): View
     {
-        // Hero: top 3 featured posts by views from the past 7 days.
-        // Ties (including 0-view weeks) fall back to newest published first.
+        // Hero fill chain (each tier tops up unfilled slots from the previous):
+        //   1. Featured posts published within the recency window
+        //   2. Recent posts attached to a creator with a real profile (bio + image)
+        //   3. Newest published posts (always fills any remainder)
+        // Keeps the hero fresh and creator-led even when nothing is flagged
+        // as featured.
+        $slots = (int) config('blog.hero.slots', 3);
+        $recencyDays = (int) config('blog.hero.recency_days', 30);
+
         $heroPost = Post::published()
             ->featured()
+            ->where('published_at', '>=', now()->subDays($recencyDays))
             ->with('author', 'categories')
-            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
-            ->orderByDesc('weekly_views_count')
             ->latest('published_at')
-            ->take(3)
+            ->take($slots)
             ->get();
+
+        if ($heroPost->count() < $slots) {
+            $creatorBacked = Post::published()
+                ->whereNotIn('id', $heroPost->pluck('id'))
+                ->where('published_at', '>=', now()->subDays($recencyDays))
+                ->whereHas('creators', fn ($q) => $q
+                    ->whereNotNull('bio')->where('bio', '!=', '')
+                    ->whereNotNull('profile_image_url')->where('profile_image_url', '!=', ''))
+                ->with('author', 'categories')
+                ->latest('published_at')
+                ->take($slots - $heroPost->count())
+                ->get();
+
+            $heroPost = $heroPost->concat($creatorBacked);
+        }
+
+        if ($heroPost->count() < $slots) {
+            $fillers = Post::published()
+                ->whereNotIn('id', $heroPost->pluck('id'))
+                ->with('author', 'categories')
+                ->latest('published_at')
+                ->take($slots - $heroPost->count())
+                ->get();
+
+            $heroPost = $heroPost->concat($fillers);
+        }
 
         // Most Popular + Trending: ranked by views from the past 7 days.
         // Pull 5 in one query, then split: top 2 → Most Popular, next 3 → Trending.
