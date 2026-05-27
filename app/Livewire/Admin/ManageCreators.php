@@ -267,19 +267,24 @@ class ManageCreators extends Component
             return;
         }
 
-        $image = $avatar->fetch($name, trim($this->manualCountry));
+        $country = trim($this->manualCountry);
 
         $creator = Creator::create([
             'name' => $name,
             'bio' => trim($this->manualBio),
-            'country' => trim($this->manualCountry),
+            'country' => $country,
             'category' => $this->manualCategory,
             'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($this->manualContactEmail ?: null),
             'status' => 'pending',
-            'profile_image_url' => $image['image_url'] ?? null,
-            'profile_image_attribution' => $image['attribution'] ?? null,
-            'profile_image_license' => $image['license'] ?? null,
         ]);
+
+        $imageMeta = $avatar->fetchAndAttach($creator, $country);
+        if ($imageMeta !== null) {
+            $creator->update([
+                'profile_image_attribution' => $imageMeta['attribution'],
+                'profile_image_license' => $imageMeta['license'],
+            ]);
+        }
 
         foreach ($this->manualSocialLinks as $linkData) {
             if (empty($linkData['url'])) {
@@ -384,21 +389,26 @@ class ManageCreators extends Component
 
             $raw = $candidate['raw'];
             $bio = $claude->generateBio($raw);
-            $image = $avatar->fetch($name, $candidate['country'] ?? ($raw['country'] ?? null));
+            $country = $candidate['country'] ?? ($raw['country'] ?? '');
 
             $creator = Creator::create([
                 'name' => $name,
                 'bio' => $bio,
-                'country' => $candidate['country'] ?? ($raw['country'] ?? ''),
+                'country' => $country,
                 'category' => $candidate['category'] ?? ($raw['category'] ?? ''),
                 'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($raw['contact_email'] ?? null),
                 'status' => 'pending',
-                'profile_image_url' => $image['image_url'] ?? null,
-                'profile_image_attribution' => $image['attribution'] ?? null,
-                'profile_image_license' => $image['license'] ?? null,
                 'follower_count' => $candidate['follower_count'],
                 'follower_platform' => $candidate['follower_platform'],
             ]);
+
+            $imageMeta = $avatar->fetchAndAttach($creator, $country);
+            if ($imageMeta !== null) {
+                $creator->update([
+                    'profile_image_attribution' => $imageMeta['attribution'],
+                    'profile_image_license' => $imageMeta['license'],
+                ]);
+            }
 
             $linkBuilder->build($creator, $raw);
             $saved++;
@@ -540,21 +550,26 @@ class ManageCreators extends Component
                 }
 
                 $bio = $claude->generateBio($creatorData);
-                $image = $avatar->fetch($name, $creatorData['country'] ?? $combo['country']);
+                $country = $creatorData['country'] ?? $combo['country'];
 
                 $creator = Creator::create([
                     'name' => $name,
                     'bio' => $bio,
-                    'country' => $creatorData['country'] ?? $combo['country'],
+                    'country' => $country,
                     'category' => $creatorData['category'] ?? $combo['niche'],
                     'contact_email' => \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null),
                     'status' => 'pending',
-                    'profile_image_url' => $image['image_url'] ?? null,
-                    'profile_image_attribution' => $image['attribution'] ?? null,
-                    'profile_image_license' => $image['license'] ?? null,
                     'follower_count' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($creatorData['estimated_follower_count'] ?? null),
                     'follower_platform' => \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($creatorData['follower_platform'] ?? null),
                 ]);
+
+                $imageMeta = $avatar->fetchAndAttach($creator, $country);
+                if ($imageMeta !== null) {
+                    $creator->update([
+                        'profile_image_attribution' => $imageMeta['attribution'],
+                        'profile_image_license' => $imageMeta['license'],
+                    ]);
+                }
 
                 $linkBuilder->build($creator, $creatorData);
                 $this->generatedCount++;
@@ -1016,7 +1031,6 @@ class ManageCreators extends Component
         $match['name'] = $this->editName;
 
         $bio = $claude->generateBio($match);
-        $image = $avatar->fetch($this->editName, $this->editCountry);
 
         // Update form fields (not saved until admin clicks Save Changes)
         $this->editBio = $bio;
@@ -1080,25 +1094,24 @@ class ManageCreators extends Component
         // wait for a Save Changes click that wouldn't touch them anyway).
         $creator = Creator::find($this->editingCreatorId);
         if ($creator) {
-            $updates = [];
-            if (! empty($image['image_url'])) {
-                $updates['profile_image_url'] = $image['image_url'];
-                $updates['profile_image_attribution'] = $image['attribution'] ?? null;
-                $updates['profile_image_license'] = $image['license'] ?? null;
+            $imageMeta = $avatar->fetchAndAttach($creator, $this->editCountry);
+            if ($imageMeta !== null) {
+                $creator->update([
+                    'profile_image_attribution' => $imageMeta['attribution'],
+                    'profile_image_license' => $imageMeta['license'],
+                ]);
             }
 
             $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
             $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
 
             if ($newFollowerCount !== null) {
-                $updates['follower_count'] = $newFollowerCount;
-                $updates['follower_platform'] = $newFollowerPlatform;
+                $creator->update([
+                    'follower_count' => $newFollowerCount,
+                    'follower_platform' => $newFollowerPlatform,
+                ]);
                 $this->editFollowerCount = $newFollowerCount;
                 $this->editFollowerPlatform = $newFollowerPlatform;
-            }
-
-            if (! empty($updates)) {
-                $creator->update($updates);
             }
         }
 
@@ -1132,7 +1145,6 @@ class ManageCreators extends Component
         $match['name'] = $creator->name;
 
         $bio = $claude->generateBio($match);
-        $image = $avatar->fetch($creator->name, $creator->country);
 
         $newFollowerCount = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
         $newFollowerPlatform = \App\Jobs\DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
@@ -1143,12 +1155,19 @@ class ManageCreators extends Component
             // Only overwrite on a confident new value — an invalid AI result
             // must not wipe previously-good data (same pattern as follower fields).
             'contact_email' => $newContactEmail ?? $creator->contact_email,
-            'profile_image_url' => $image['image_url'] ?? $creator->getRawOriginal('profile_image_url'),
-            'profile_image_attribution' => $image['attribution'] ?? $creator->profile_image_attribution,
-            'profile_image_license' => $image['license'] ?? $creator->profile_image_license,
             'follower_count' => $newFollowerCount ?? $creator->follower_count,
             'follower_platform' => $newFollowerPlatform ?? $creator->follower_platform,
         ]);
+
+        // Attach a fresh avatar via Spatie (Serper → Wikimedia fallback). If
+        // both sources fail we leave the existing media collection untouched.
+        $imageMeta = $avatar->fetchAndAttach($creator, $creator->country);
+        if ($imageMeta !== null) {
+            $creator->update([
+                'profile_image_attribution' => $imageMeta['attribution'],
+                'profile_image_license' => $imageMeta['license'],
+            ]);
+        }
 
         // Re-build social links (updateOrCreate prevents duplicates)
         $linkBuilder->build($creator, $match);
@@ -1225,16 +1244,24 @@ class ManageCreators extends Component
             return;
         }
 
-        $stored = $avatar->storePicked($candidate['url'], $creator->name);
-
-        if (! $stored) {
-            $this->avatarPickerError = 'Failed to download that image. Try a different one.';
+        try {
+            $avatar->attachPickedUrl($creator, $candidate['url']);
+        } catch (\Throwable $e) {
+            // Surface the real reason so staff aren't stuck guessing on prod
+            // (where LOG_LEVEL=error means Log::warning is silently dropped).
+            $this->avatarPickerError = 'Failed to download: ' . $e->getMessage();
+            \Log::error('Avatar picker download failed', [
+                'creator_id' => $creator->id,
+                'url' => $candidate['url'],
+                'error' => $e->getMessage(),
+            ]);
 
             return;
         }
 
+        // The Spatie attachment already populated the profile_image collection;
+        // persist the attribution/license alongside it so the credit is preserved.
         $creator->update([
-            'profile_image_url' => $stored,
             'profile_image_attribution' => 'Google Images (' . parse_url($candidate['url'], PHP_URL_HOST) . ')',
             'profile_image_license' => null,
         ]);

@@ -79,18 +79,20 @@ class GenerateCreators extends Component
             }
 
             $bio = $claude->generateBio($creatorData);
-            $image = $avatar->fetch($name, $creatorData['country'] ?? $this->country);
-
             $contactEmail = \App\Jobs\DiscoverCreatorsJob::normalizeContactEmail($creatorData['contact_email'] ?? null);
+            $country = $creatorData['country'] ?? $this->country;
 
             if ($this->dryRun) {
                 $this->previewCreators[] = [
                     'name' => $name,
                     'bio' => $bio,
-                    'country' => $creatorData['country'] ?? $this->country,
+                    'country' => $country,
                     'category' => $creatorData['category'] ?? $this->niche,
                     'contact_email' => $contactEmail,
-                    'profile_image_url' => $image['image_url'] ?? null,
+                    // Dry run skips the avatar fetch (it requires a saved
+                    // Creator to attach via Spatie). The auto-fetch will run
+                    // when staff uncheck Dry Run and re-submit.
+                    'profile_image_url' => null,
                     'socials' => $this->buildSocialPreview($creatorData),
                     'duplicate' => $alreadyExists,
                 ];
@@ -102,14 +104,19 @@ class GenerateCreators extends Component
             $creator = Creator::create([
                 'name' => $name,
                 'bio' => $bio,
-                'country' => $creatorData['country'] ?? $this->country,
+                'country' => $country,
                 'category' => $creatorData['category'] ?? $this->niche,
                 'contact_email' => $contactEmail,
                 'status' => 'pending',
-                'profile_image_url' => $image['image_url'] ?? null,
-                'profile_image_attribution' => $image['attribution'] ?? null,
-                'profile_image_license' => $image['license'] ?? null,
             ]);
+
+            $imageMeta = $avatar->fetchAndAttach($creator, $country);
+            if ($imageMeta !== null) {
+                $creator->update([
+                    'profile_image_attribution' => $imageMeta['attribution'],
+                    'profile_image_license' => $imageMeta['license'],
+                ]);
+            }
 
             $this->createSocialLinks($creator, $creatorData);
             $this->generatedCount++;

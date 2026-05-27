@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Creator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -14,10 +14,13 @@ use Illuminate\Support\Str;
  *   1. Google Images via Serper.dev (preferred — best coverage for African creators).
  *   2. Wikimedia Commons (fallback — CC-licensed but thin coverage).
  *
- * The picked image is downloaded once and stored on S3, so the URL we save on
- * the Creator row points at our bucket — not at a Google-hosted thumbnail that
- * will rotate or 404 within weeks. Returns null when both sources are empty,
- * which keeps the existing initials-fallback flow on the frontend intact.
+ * Attachment goes through Spatie MediaLibrary's `profile_image` collection on
+ * the Creator model, matching the manual-upload pipeline. This keeps a single
+ * storage path on prod (Spatie → S3 via the collection's disk) and a single
+ * URL accessor (Creator::profile_image_url already prefers Spatie media).
+ *
+ * Returns null when both sources fail so the frontend's initials fallback
+ * kicks in.
  */
 class CreatorAvatarService
 {
@@ -26,26 +29,25 @@ class CreatorAvatarService
     ) {}
 
     /**
-     * @return array{image_url: string, attribution: ?string, license: ?string}|null
+     * Fetch and attach an avatar to the given creator. Tries Serper first,
+     * Wikimedia second. Returns metadata for the caller to persist (attribution,
+     * license) or null if nothing was attached.
+     *
+     * @return array{attribution: ?string, license: ?string}|null
      */
-    public function fetch(string $creatorName, ?string $country = null): ?array
+    public function fetchAndAttach(Creator $creator, ?string $country = null): ?array
     {
-        $serper = $this->fromSerper($creatorName, $country);
+        $country = $country ?? $creator->country;
 
-        if ($serper) {
-            return $serper;
+        $serperResult = $this->trySerper($creator, $country);
+        if ($serperResult !== null) {
+            return $serperResult;
         }
 
-        // Wikimedia returns image_url + attribution + license keys already;
-        // re-shape only if needed so callers see a stable contract.
-        $wiki = $this->wikimedia->searchCreatorImage($creatorName);
-
+        $wiki = $this->wikimedia->searchCreatorImage($creator->name);
         if (! empty($wiki['image_url'])) {
-            $stored = $this->downloadToS3($wiki['image_url'], $creatorName);
-
-            if ($stored) {
+            if ($this->attachFromUrl($creator, $wiki['image_url'])) {
                 return [
-                    'image_url' => $stored,
                     'attribution' => $wiki['attribution'] ?? null,
                     'license' => $wiki['license'] ?? null,
                 ];
@@ -57,7 +59,7 @@ class CreatorAvatarService
 
     /**
      * Run a live Serper search and return the top N results as raw items
-     * (NOT downloaded). Used by the edit-modal picker so staff can choose.
+     * (NOT attached). Used by the edit-modal picker so staff can choose.
      *
      * @return array<int, array{url: string, thumb: string, title: string, width: int, height: int}>
      */
@@ -79,7 +81,7 @@ class CreatorAvatarService
             ]);
 
             if (! $response->successful()) {
-                Log::warning('CreatorAvatarService: Serper search failed', [
+                Log::error('CreatorAvatarService: Serper search failed', [
                     'status' => $response->status(),
                     'query' => $query,
                 ]);
@@ -112,30 +114,26 @@ class CreatorAvatarService
     }
 
     /**
-     * Download a user-picked image URL into S3 and return the permanent URL.
-     * Used when staff pick a result from the manual Serper picker.
+     * Attach a staff-picked URL to the creator's profile_image collection.
+     * Throws on failure so the caller can surface the precise reason in the
+     * picker UI (instead of swallowing it as null).
      */
-    public function storePicked(string $sourceUrl, string $creatorName): ?string
+    public function attachPickedUrl(Creator $creator, string $sourceUrl): void
     {
-        return $this->downloadToS3($sourceUrl, $creatorName);
+        $this->attachFromUrl($creator, $sourceUrl, throwOnFailure: true);
     }
 
     /**
-     * @return array{image_url: string, attribution: ?string, license: ?string}|null
+     * @return array{attribution: ?string, license: ?string}|null
      */
-    private function fromSerper(string $creatorName, ?string $country): ?array
+    private function trySerper(Creator $creator, ?string $country): ?array
     {
-        $query = trim($creatorName . ' ' . ($country ?? '') . ' portrait');
+        $query = trim($creator->name . ' ' . ($country ?? '') . ' portrait');
         $candidates = $this->searchCandidates($query, 5);
 
         foreach ($candidates as $candidate) {
-            $stored = $this->downloadToS3($candidate['url'], $creatorName);
-
-            if ($stored) {
+            if ($this->attachFromUrl($creator, $candidate['url'])) {
                 return [
-                    'image_url' => $stored,
-                    // Serper results don't include explicit licensing — we
-                    // tag the source for traceability but leave license null.
                     'attribution' => 'Google Images (' . parse_url($candidate['url'], PHP_URL_HOST) . ')',
                     'license' => null,
                 ];
@@ -146,26 +144,59 @@ class CreatorAvatarService
     }
 
     /**
-     * Download an external image to S3. Returns the permanent URL, or null on
-     * any failure (so the caller can fall through to the next source).
+     * Download an external image into a temp file and attach it to the
+     * creator's `profile_image` Spatie media collection. Spatie handles the
+     * actual S3 write (per the collection's configured disk), matching the
+     * manual-upload pipeline in ManageCreators::savePhotoFromBase64().
+     *
+     * Returns true on success, false on any failure (caller decides whether
+     * to try the next candidate or surface the error).
      */
-    private function downloadToS3(string $url, string $creatorName): ?string
+    private function attachFromUrl(Creator $creator, string $url, bool $throwOnFailure = false): bool
     {
+        $tmpPath = null;
+
         try {
-            $response = Http::timeout(30)->get($url);
+            $response = Http::withHeaders([
+                // Bare Guzzle UA gets 403'd by Instagram CDN, Cloudflare-fronted
+                // sites and several news hosts that Google indexes. A real
+                // browser-like UA gets through almost everywhere.
+                'User-Agent' => 'Mozilla/5.0 (compatible; ToppingAfricaBot/1.0; +https://toppingafrica.com)',
+                'Accept' => 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5',
+            ])->timeout(30)->withOptions([
+                'allow_redirects' => true,
+            ])->get($url);
 
             if (! $response->successful()) {
-                return null;
+                $msg = "HTTP {$response->status()} from {$url}";
+                if ($throwOnFailure) {
+                    throw new \RuntimeException($msg);
+                }
+                Log::error('CreatorAvatarService: download non-2xx', ['url' => $url, 'status' => $response->status()]);
+                return false;
             }
 
             $body = $response->body();
 
-            // Sanity guard against HTML error pages disguised as images.
+            // Sanity guard: an HTML error page disguised as image/jpeg won't
+            // crash Spatie but will give us a useless avatar.
             if (strlen($body) < 1024) {
-                return null;
+                $msg = "Image too small ({$this->bytes(strlen($body))}) — likely an error page from {$url}";
+                if ($throwOnFailure) {
+                    throw new \RuntimeException($msg);
+                }
+                return false;
             }
 
-            $contentType = $response->header('Content-Type') ?? 'image/jpeg';
+            $contentType = strtolower($response->header('Content-Type') ?? 'image/jpeg');
+            if (! str_starts_with($contentType, 'image/')) {
+                $msg = "Non-image content-type ({$contentType}) from {$url}";
+                if ($throwOnFailure) {
+                    throw new \RuntimeException($msg);
+                }
+                return false;
+            }
+
             $extension = match (true) {
                 str_contains($contentType, 'png') => 'png',
                 str_contains($contentType, 'gif') => 'gif',
@@ -174,22 +205,38 @@ class CreatorAvatarService
                 default => 'jpg',
             };
 
-            $slug = Str::slug($creatorName) ?: 'creator';
-            $path = 'creators/' . $slug . '-' . Str::random(8) . '.' . $extension;
+            $slug = Str::slug($creator->name) ?: 'creator';
+            $tmpPath = tempnam(sys_get_temp_dir(), 'creator_avatar_') . '.' . $extension;
+            file_put_contents($tmpPath, $body);
 
-            Storage::disk('s3')->put($path, $body, 'public');
+            // Mirror the base64 upload flow: clear, then add. Spatie writes to
+            // the collection's disk (S3 in prod) and the model's accessor
+            // returns the resulting URL automatically.
+            $creator->clearMediaCollection('profile_image');
+            $creator->addMedia($tmpPath)
+                ->usingFileName($slug . '.' . $extension)
+                ->toMediaCollection('profile_image');
 
-            $bucket = config('filesystems.disks.s3.bucket');
-
-            return "https://{$bucket}.s3.amazonaws.com/{$path}";
+            return true;
         } catch (\Throwable $e) {
-            Log::warning('CreatorAvatarService: download failed', [
+            if ($throwOnFailure) {
+                throw $e;
+            }
+            Log::error('CreatorAvatarService: attach failed', [
                 'url' => $url,
-                'creator' => $creatorName,
+                'creator' => $creator->name,
                 'error' => $e->getMessage(),
             ]);
-
-            return null;
+            return false;
+        } finally {
+            if ($tmpPath && file_exists($tmpPath)) {
+                @unlink($tmpPath);
+            }
         }
+    }
+
+    private function bytes(int $n): string
+    {
+        return $n < 1024 ? "{$n}B" : round($n / 1024, 1) . 'KB';
     }
 }

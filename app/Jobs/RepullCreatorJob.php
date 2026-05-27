@@ -67,7 +67,6 @@ class RepullCreatorJob implements ShouldQueue
             $match['name'] = $creator->name;
 
             $bio = $claude->generateBio($match);
-            $image = $avatar->fetch($creator->name, $creator->country);
 
             $newFollowerCount = DiscoverCreatorsJob::normalizeFollowerCount($match['estimated_follower_count'] ?? null);
             $newFollowerPlatform = DiscoverCreatorsJob::normalizeFollowerPlatform($match['follower_platform'] ?? null);
@@ -78,12 +77,19 @@ class RepullCreatorJob implements ShouldQueue
                 // Only overwrite on a confident new value — invalid/garbage AI
                 // output must not wipe previously-good fields.
                 'contact_email' => $newContactEmail ?? $creator->contact_email,
-                'profile_image_url' => $image['image_url'] ?? $creator->getRawOriginal('profile_image_url'),
-                'profile_image_attribution' => $image['attribution'] ?? $creator->profile_image_attribution,
-                'profile_image_license' => $image['license'] ?? $creator->profile_image_license,
                 'follower_count' => $newFollowerCount ?? $creator->follower_count,
                 'follower_platform' => $newFollowerPlatform ?? $creator->follower_platform,
             ]);
+
+            // Avatar goes through Spatie's profile_image collection. If both
+            // Serper and Wikimedia return nothing, the existing media stays.
+            $imageMeta = $avatar->fetchAndAttach($creator, $creator->country);
+            if ($imageMeta !== null) {
+                $creator->update([
+                    'profile_image_attribution' => $imageMeta['attribution'],
+                    'profile_image_license' => $imageMeta['license'],
+                ]);
+            }
 
             $linkBuilder->build($creator, $match);
         } catch (\Throwable $e) {

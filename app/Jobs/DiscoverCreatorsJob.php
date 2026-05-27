@@ -130,21 +130,26 @@ class DiscoverCreatorsJob implements ShouldQueue
 
             try {
                 $bio = $claude->generateBio($creatorData);
-                $image = $avatar->fetch($name, $creatorData['country'] ?? $this->country);
+                $country = $creatorData['country'] ?? $this->country;
 
                 $creator = Creator::create([
                     'name' => $name,
                     'bio' => $bio,
-                    'country' => $creatorData['country'] ?? $this->country,
+                    'country' => $country,
                     'category' => $creatorData['category'] ?? $this->niche,
                     'contact_email' => self::normalizeContactEmail($creatorData['contact_email'] ?? null),
                     'status' => 'pending',
-                    'profile_image_url' => $image['image_url'] ?? null,
-                    'profile_image_attribution' => $image['attribution'] ?? null,
-                    'profile_image_license' => $image['license'] ?? null,
                     'follower_count' => self::normalizeFollowerCount($creatorData['estimated_follower_count'] ?? null),
                     'follower_platform' => self::normalizeFollowerPlatform($creatorData['follower_platform'] ?? null),
                 ]);
+
+                $imageMeta = $avatar->fetchAndAttach($creator, $country);
+                if ($imageMeta !== null) {
+                    $creator->update([
+                        'profile_image_attribution' => $imageMeta['attribution'],
+                        'profile_image_license' => $imageMeta['license'],
+                    ]);
+                }
 
                 $linkBuilder->build($creator, $creatorData);
             } catch (\Throwable $e) {
