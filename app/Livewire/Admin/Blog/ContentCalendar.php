@@ -11,7 +11,6 @@ use App\Models\Post;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Blog\ContentAgentService;
-use Spatie\Activitylog\Models\Activity;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -21,6 +20,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Spatie\Activitylog\Models\Activity;
 
 #[Layout('components.layouts.admin')]
 class ContentCalendar extends Component
@@ -74,6 +74,10 @@ class ContentCalendar extends Component
 
     public string $agentEmphasizeTopics = '';
 
+    public int $agentSpotlightWeeklyCap = 3;
+
+    public int $agentSpotlightScoreBoost = 25;
+
     public bool $agentSettingsSaved = false;
 
     public bool $showDryRun = false;
@@ -98,6 +102,8 @@ class ContentCalendar extends Component
         'agentInstructions' => ['key' => 'content_agent_instructions', 'default' => '', 'cast' => 'string'],
         'agentAvoidTopics' => ['key' => 'content_agent_avoid_topics', 'default' => '', 'cast' => 'string'],
         'agentEmphasizeTopics' => ['key' => 'content_agent_emphasize_topics', 'default' => '', 'cast' => 'string'],
+        'agentSpotlightWeeklyCap' => ['key' => 'content_agent_spotlight_weekly_cap', 'default' => 3, 'cast' => 'int'],
+        'agentSpotlightScoreBoost' => ['key' => 'content_agent_spotlight_score_boost', 'default' => 25, 'cast' => 'int'],
     ];
 
     public function mount(): void
@@ -181,7 +187,7 @@ class ContentCalendar extends Component
 
         // Deterministic for both count AND slots, against tomorrow's Lagos
         // date — so this preview is what tomorrow's actual run will produce.
-        $tomorrow = \Carbon\CarbonImmutable::now('Africa/Lagos')->addDay();
+        $tomorrow = CarbonImmutable::now('Africa/Lagos')->addDay();
         $count = $agent->rollPostsCount($tomorrow);
 
         $ideas = $agent->pickIdeas($count);
@@ -192,11 +198,14 @@ class ContentCalendar extends Component
             'ideas' => $ideas,
             'slots' => $slots,
             'rolled_count' => $count,
+            'spotlight_quota_remaining' => $agent->spotlightQuotaRemaining(
+                (int) $config['spotlight_weekly_cap'],
+            ),
         ];
     }
 
     #[Computed]
-    public function agentActivity(): \Illuminate\Database\Eloquent\Collection
+    public function agentActivity(): EloquentCollection
     {
         return Activity::query()
             ->where('log_name', 'content_agent')
@@ -220,6 +229,8 @@ class ContentCalendar extends Component
             'agentInstructions' => 'string|max:5000',
             'agentAvoidTopics' => 'string|max:2000',
             'agentEmphasizeTopics' => 'string|max:2000',
+            'agentSpotlightWeeklyCap' => 'integer|min:0|max:14',
+            'agentSpotlightScoreBoost' => 'integer|min:0|max:50',
         ]);
 
         foreach (self::AGENT_SETTING_KEYS as $property => $meta) {

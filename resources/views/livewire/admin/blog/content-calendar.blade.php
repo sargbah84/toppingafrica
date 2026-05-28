@@ -213,6 +213,29 @@
                         </div>
                     </div>
 
+                    {{-- Spotlights --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Creator Spotlights</h3>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Spotlights feel special when they're rare. The agent counts spotlights published in the last 7 days and only boosts new ones into the daily batch while under the cap.
+                        </p>
+                        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Max per 7 days</span>
+                                <input type="number" min="0" max="14" wire:model="agentSpotlightWeeklyCap"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">Set to 0 to disable spotlight auto-selection.</span>
+                            </label>
+
+                            <label class="block">
+                                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Score boost while under cap</span>
+                                <input type="number" min="0" max="50" wire:model="agentSpotlightScoreBoost"
+                                       class="mt-1 block w-full rounded-md border-gray-300 bg-white text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">How aggressively to favor spotlights vs. news articles. Reference: approved ideas get +30.</span>
+                            </label>
+                        </div>
+                    </div>
+
                     {{-- Editorial guidance --}}
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Editorial Guidance</h3>
@@ -859,7 +882,7 @@
                         @endif
 
                         <div class="mt-5 rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/40 dark:text-gray-400">
-                            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
                                 <div><span class="font-semibold">Posts/day:</span>
                                     @if ($preview['config']['posts_per_day_min'] === $preview['config']['posts_per_day_max'])
                                         {{ $preview['config']['posts_per_day_min'] }}
@@ -870,6 +893,10 @@
                                 <div><span class="font-semibold">Window:</span> {{ sprintf('%02d:00', $preview['config']['window_start']) }} – {{ sprintf('%02d:00', $preview['config']['window_end']) }}</div>
                                 <div><span class="font-semibold">Gap:</span> {{ $preview['config']['min_gap'] }}–{{ $preview['config']['max_gap'] }}h</div>
                                 <div><span class="font-semibold">SEO min:</span> {{ $preview['config']['min_seo_score'] }}</div>
+                                <div title="Remaining spotlight slots in the rolling 7-day cap">
+                                    <span class="font-semibold">Spotlights:</span>
+                                    {{ $preview['spotlight_quota_remaining'] ?? 0 }} of {{ $preview['config']['spotlight_weekly_cap'] }} left
+                                </div>
                             </div>
                         </div>
                     </div>

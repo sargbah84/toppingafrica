@@ -46,6 +46,13 @@ final class ContentAgentService
             'instructions' => (string) Setting::get('content_agent_instructions', ''),
             'avoid_topics' => (string) Setting::get('content_agent_avoid_topics', ''),
             'emphasize_topics' => (string) Setting::get('content_agent_emphasize_topics', ''),
+            // Spotlight cadence: a rolling 7-day cap on how many auto-published
+            // posts may be type=spotlight. Boost is the score bump applied to
+            // spotlight candidates while we're under the cap so they actually
+            // win selection vs. higher-scoring news pieces. Both are tunable
+            // from the Content Calendar settings panel.
+            'spotlight_weekly_cap' => (int) Setting::get('content_agent_spotlight_weekly_cap', 3),
+            'spotlight_score_boost' => (int) Setting::get('content_agent_spotlight_score_boost', 25),
         ];
     }
 
@@ -69,7 +76,7 @@ final class ContentAgentService
         // Use a distinct counter offset from buildSlots() so we don't draw
         // the same value the slot-builder uses for its first jitter.
         $seed = (int) $baseDay->format('Ymd');
-        $value = ($seed * 1664525 + 1013904223) & 0x7fffffff;
+        $value = ($seed * 1664525 + 1013904223) & 0x7FFFFFFF;
 
         return $min + ($value % ($max - $min + 1));
     }
@@ -79,6 +86,9 @@ final class ContentAgentService
      * - Perplexity seo_score (base, 0-100)
      * - +30 if approved by a human
      * - +20 if matches Emphasize lists
+     * - +spotlight_score_boost (default 25) for type=spotlight while we're
+     *   still under the rolling 7-day spotlight cap (otherwise spotlights
+     *   compete on raw merit, so the cap is a ceiling not a floor)
      * - HARD EXCLUDE if matches Avoid lists
      * - -25 if title >70% similar to one published in last 7 days
      * - -25 if title >70% similar to one already picked in this run
@@ -112,6 +122,13 @@ final class ContentAgentService
         // Drop hard-excluded candidates up front so they never compete.
         $candidates = $candidates->reject(fn (ContentIdea $i) => $this->matchesAny($i, $avoidTerms))->values();
 
+        // Spotlight cadence: how many more spotlights may auto-publish in the
+        // rolling 7-day window. Decremented each time we pick one in this run.
+        $spotlightRemaining = $this->spotlightQuotaRemaining(
+            (int) $config['spotlight_weekly_cap'],
+        );
+        $spotlightBoost = (int) $config['spotlight_score_boost'];
+
         $picked = collect();
         $pickedNiches = collect();
 
@@ -124,6 +141,13 @@ final class ContentAgentService
             $bestScore = -INF;
 
             foreach ($candidates as $candidate) {
+                // Boost only applies while we still have spotlight headroom.
+                // Once the weekly cap is hit, spotlights revert to competing
+                // on raw merit so the quota isn't a hard floor either.
+                $boost = ($candidate->suggested_post_type === 'spotlight' && $spotlightRemaining > 0)
+                    ? $spotlightBoost
+                    : 0;
+
                 $score = $this->scoreIdea(
                     $candidate,
                     $emphasizeTerms,
@@ -131,7 +155,7 @@ final class ContentAgentService
                     $picked,
                     $pickedNiches,
                     $nichePerformance,
-                );
+                ) + $boost;
 
                 if ($score > $bestScore) {
                     $bestScore = $score;
@@ -147,10 +171,32 @@ final class ContentAgentService
             if ($best->niche) {
                 $pickedNiches->push($best->niche);
             }
+            if ($best->suggested_post_type === 'spotlight' && $spotlightRemaining > 0) {
+                $spotlightRemaining--;
+            }
             $candidates = $candidates->reject(fn (ContentIdea $c) => $c->id === $best->id)->values();
         }
 
         return new EloquentCollection($picked->all());
+    }
+
+    /**
+     * Headroom remaining under the rolling 7-day spotlight cap. Counts every
+     * spotlight post the agent has produced — drafts, scheduled, and published
+     * alike — so the cap reflects total commitment, not just live posts.
+     */
+    public function spotlightQuotaRemaining(int $weeklyCap): int
+    {
+        if ($weeklyCap <= 0) {
+            return 0;
+        }
+
+        $consumed = Post::query()
+            ->where('post_type', 'spotlight')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        return max(0, $weeklyCap - $consumed);
     }
 
     private function scoreIdea(
@@ -353,7 +399,7 @@ final class ContentAgentService
             // buildSlots() invocation produce different (but deterministic) values,
             // while two separate dry-runs on the same day produce the same sequence.
             $counter++;
-            $value = ($seed * 1103515245 + 12345 + ($counter * 2654435761)) & 0x7fffffff;
+            $value = ($seed * 1103515245 + 12345 + ($counter * 2654435761)) & 0x7FFFFFFF;
 
             return $min + ($value % ($max - $min + 1));
         };
