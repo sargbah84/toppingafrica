@@ -146,6 +146,19 @@ class PostReactionsTest extends TestCase
         $this->assertDatabaseCount('reactions', 0);
     }
 
+    public function test_guest_render_survives_partial_counts(): void
+    {
+        // Regression: replayed/stale Livewire snapshots from bots hitting
+        // /livewire/update could hydrate $counts without every reaction key,
+        // crashing the guest branch of the view with "Undefined array key".
+        $post = Post::factory()->published()->create();
+
+        Livewire::test(PostReactions::class, ['post' => $post])
+            ->set('counts', ['love' => 1]) // missing 'fire' and others
+            ->assertStatus(200)
+            ->assertSee('React:');
+    }
+
     public function test_reaction_bar_appears_on_blog_post(): void
     {
         $post = Post::factory()->published()->create();

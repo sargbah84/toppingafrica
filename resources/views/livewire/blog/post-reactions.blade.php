@@ -57,7 +57,7 @@
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-150"
                    title="Log in to react">
                     <span class="text-base leading-none">{{ $meta['emoji'] }}</span>
-                    @if($counts[$type] > 0)
+                    @if(($counts[$type] ?? 0) > 0)
                         <span class="text-xs font-semibold tabular-nums text-gray-500 dark:text-gray-400">{{ $counts[$type] }}</span>
                     @endif
                 </a>
