@@ -18,8 +18,8 @@
 
     <x-seo-meta
         :title="($title ?? \App\Models\Setting::get('site_name', config('app.name'))) . ' - ' . \App\Models\Setting::get('site_name', config('app.name'))"
-        :description="$metaDescription ?? \App\Models\Setting::get('site_description', 'News, Entertainment, Business & Culture')"
-        :keywords="$keywords ?? null"
+        :description="$metaDescription ?? \App\Models\Setting::get('site_description', 'Discover creators across Africa and African creators around the world — the people shaping culture, tech and entertainment — alongside the latest in African business, development and innovation.')"
+        :keywords="$keywords ?? (\App\Models\Setting::get('site_keywords') ?: null)"
         :canonical="$canonical ?? null"
         :ogType="$ogType ?? 'website'"
         :ogImage="$ogImage ?? null"

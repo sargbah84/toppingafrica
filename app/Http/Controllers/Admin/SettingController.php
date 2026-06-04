@@ -24,6 +24,7 @@ class SettingController extends Controller
     private const SETTING_KEYS = [
         'site_name',
         'site_description',
+        'site_keywords',
         'site_tagline',
         'site_logo',
         'site_favicon',
@@ -124,6 +125,7 @@ class SettingController extends Controller
         $validated = $request->validate([
             'site_name'           => ['nullable', 'string', 'max:255'],
             'site_description'    => ['nullable', 'string', 'max:500'],
+            'site_keywords'       => ['nullable', 'string', 'max:500'],
             'site_tagline'        => ['nullable', 'string', 'max:255'],
             'site_logo'           => ['nullable', 'string', 'max:500'],
             'site_favicon'        => ['nullable', 'string', 'max:500'],

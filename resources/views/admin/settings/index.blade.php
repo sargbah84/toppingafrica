@@ -83,6 +83,11 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Site Description</label>
                     <textarea name="site_description" rows="3" placeholder="A brief description of your site for SEO and social sharing" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ $settings['site_description'] ?? '' }}</textarea>
                 </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">SEO Keywords</label>
+                    <textarea name="site_keywords" rows="2" placeholder="African creators, content creators Africa, African influencers, African business, ..." class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ $settings['site_keywords'] ?? '' }}</textarea>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comma-separated keywords used in the homepage <code>&lt;meta name="keywords"&gt;</code> tag.</p>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contact Email</label>
                     <input type="email" name="contact_email" value="{{ $settings['contact_email'] ?? '' }}" placeholder="hello@example.com" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">

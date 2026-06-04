@@ -11,7 +11,7 @@ return [
         'legal_name' => env('APP_NAME', 'My Blog'),
         'url' => env('APP_URL', 'https://example.com'),
         'logo' => env('APP_URL', 'https://example.com') . '/images/logo.png',
-        'description' => env('APP_NAME', 'My Blog') . ' - News, Entertainment, Business & Culture.',
+        'description' => env('APP_NAME', 'My Blog') . ' - Discover creators across Africa and African creators around the world, plus the latest in African business, development, innovation and culture.',
         'founding_date' => '2024',
         'contact_email' => env('CONTACT_EMAIL', 'hello@example.com'),
         'social_profiles' => [
