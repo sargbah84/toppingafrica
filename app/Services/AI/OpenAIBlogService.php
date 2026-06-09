@@ -241,9 +241,12 @@ Return a JSON object with these exact keys:
     "categories": ["Category1", "Category2", "Category3"],
     "internal_link_topics": ["Related topic 1", "Related topic 2", "Related topic 3"],
     "featured_creator_slugs": ["creator-slug-1", "creator-slug-2"],
+    "mentioned_creators": [{"name": "Full Name", "category": "music|tech|film|sports|fashion|other", "country": "Country if known"}],
     "featured_image_query": "A short, specific image search query that would find a strong hero photo for this article. Be concrete (e.g. 'Burna Boy at AFCON 2026 trophy ceremony') rather than generic ('African music'). Always include the most specific named subject or event from the article. Avoid copyrighted character names; prefer real people, places, events, products.",
     "type_data": {}
 }
+
+For "mentioned_creators": list ONLY real, named African creators/public figures (musicians, content creators, founders, athletes, actors) you reference BY FULL NAME in the article body who are NOT already listed in the creator profiles provided above. Use their real proper name (e.g. "Khaby Lame", not "khaby" or "the creator"). Do NOT invent people, and do NOT include generic roles, brands, places, or common words. Return [] if none.
 
 Available categories to choose from: {$categories}
 PROMPT;
@@ -398,7 +401,48 @@ PROMPT;
                 $data['featured_creator_slugs'] ?? [],
                 fn ($s) => is_string($s) && $s !== ''
             )),
+            'mentioned_creators' => self::normalizeMentionedCreators($data['mentioned_creators'] ?? []),
             'featured_image_query' => trim((string) ($data['featured_image_query'] ?? '')),
         ];
+    }
+
+    /**
+     * Normalize the AI's `mentioned_creators` into a clean list of
+     * ['name' => ..., 'category' => ?, 'country' => ?] rows. Validation of
+     * whether a name is a *real* creator (vs. junk) happens downstream in
+     * CreatorDiscoveryService — here we only enforce shape.
+     *
+     * @param  mixed  $raw
+     * @return array<int, array{name: string, category: ?string, country: ?string}>
+     */
+    private static function normalizeMentionedCreators($raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $row) {
+            // Accept either a bare name string or a {name, ...} object.
+            if (is_string($row)) {
+                $row = ['name' => $row];
+            }
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $out[] = [
+                'name' => $name,
+                'category' => isset($row['category']) ? trim((string) $row['category']) ?: null : null,
+                'country' => isset($row['country']) ? trim((string) $row['country']) ?: null : null,
+            ];
+        }
+
+        return $out;
     }
 }

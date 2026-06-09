@@ -198,6 +198,48 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Creator Discovery
+    |--------------------------------------------------------------------------
+    |
+    | When the AI generates a post it returns `mentioned_creators` — real
+    | people referenced by name who aren't yet in our creators table. We
+    | auto-create the ones that pass a strict name guard (as `pending`, so
+    | they stay out of public listings until an editor reviews) and enrich
+    | them in the background. The guard exists because auto-creation runs on
+    | every post; a weak guard would flood the table with junk names.
+    |
+    */
+
+    'creator_discovery' => [
+        'enabled' => (bool) env('CREATOR_DISCOVERY_ENABLED', true),
+
+        // Cap creators auto-created per post so one runaway article can't
+        // spawn dozens of pending records.
+        'max_per_post' => (int) env('CREATOR_DISCOVERY_MAX_PER_POST', 5),
+
+        // Names shorter than this are rejected outright (catches initials and
+        // common short words like "ruth", "tina").
+        'min_name_length' => 4,
+
+        // Lowercased denylist of common nouns / stop-words / known-junk names
+        // that must never become creators even if the AI emits them. Extend
+        // this as junk surfaces in the pending queue.
+        'denylist' => [
+            // generic roles / words
+            'creator', 'creators', 'influencer', 'influencers', 'artist',
+            'artists', 'musician', 'singer', 'rapper', 'actor', 'actress',
+            'founder', 'ceo', 'star', 'celebrity', 'team', 'group', 'brand',
+            'company', 'startup', 'channel', 'page', 'account', 'fans',
+            // places / common topical nouns
+            'africa', 'african', 'nigeria', 'ghana', 'kenya', 'tech',
+            'music', 'film', 'fashion', 'sports', 'news', 'video', 'photo',
+            // known-junk common-noun names already in our data
+            'last', 'sale', 'ruth', 'tina', 'sophia',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Social Sharing
     |--------------------------------------------------------------------------
     */

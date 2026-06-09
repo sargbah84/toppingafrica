@@ -11,6 +11,7 @@ use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\ContentAgentService;
 use App\Services\Blog\ContentImagesService;
+use App\Services\Blog\CreatorDiscoveryService;
 use App\Services\Blog\FeaturedImageService;
 use App\Services\Blog\PostGeneratorService;
 use App\Services\Blog\Seo\SeoIntelligenceService;
@@ -44,6 +45,7 @@ class ProcessIdeaJob implements ShouldQueue
         SeoIntelligenceService $seo,
         FeaturedImageService $featuredImage,
         ContentImagesService $contentImages,
+        CreatorDiscoveryService $creatorDiscovery,
     ): void {
         $idea = ContentIdea::find($this->ideaId);
         if (! $idea) {
@@ -58,7 +60,7 @@ class ProcessIdeaJob implements ShouldQueue
         $idea->markAsGenerating($this->authorId);
 
         try {
-            [$post, $imageQuery] = $this->generatePost($agent, $generator, $idea);
+            [$post, $imageQuery] = $this->generatePost($agent, $generator, $creatorDiscovery, $idea);
             $this->attachFeaturedImage($featuredImage, $post, $imageQuery, $idea);
             $this->attachContentImages($contentImages, $post, $imageQuery);
             $finalScore = $this->improveSeo($seo, $agent, $post);
@@ -107,7 +109,7 @@ class ProcessIdeaJob implements ShouldQueue
     /**
      * @return array{0: Post, 1: string} [post, ai_suggested_image_query]
      */
-    private function generatePost(ContentAgentService $agent, PostGeneratorService $generator, ContentIdea $idea): array
+    private function generatePost(ContentAgentService $agent, PostGeneratorService $generator, CreatorDiscoveryService $creatorDiscovery, ContentIdea $idea): array
     {
         $guidance = $agent->buildEditorialGuidance();
 
@@ -168,16 +170,25 @@ class ProcessIdeaJob implements ShouldQueue
             $post->tags()->sync($tagIds);
         }
 
-        // Attach creators the AI flagged — gives the library matcher a
-        // direct signal for picking the right profile photo as featured.
+        // Attach creators the AI flagged among our EXISTING profiles — gives
+        // the library matcher a direct signal for picking the right profile
+        // photo as featured.
+        $creatorIds = [];
         if (! empty($data->featuredCreatorSlugs)) {
             $creatorIds = Creator::query()
                 ->whereIn('slug', $data->featuredCreatorSlugs)
                 ->pluck('id')
                 ->all();
-            if ($creatorIds !== []) {
-                $post->creators()->sync($creatorIds);
-            }
+        }
+
+        // Creator discovery: people the AI referenced by name who weren't yet
+        // in our table get created (as 'pending', enriched in the background)
+        // and attached too. Merge with the flagged IDs and sync once.
+        $discoveredIds = $creatorDiscovery->discover($data->mentionedCreators, $post->content ?? '');
+        $creatorIds = array_values(array_unique([...$creatorIds, ...$discoveredIds]));
+
+        if ($creatorIds !== []) {
+            $post->creators()->sync($creatorIds);
         }
 
         return [$post, (string) ($data->featuredImageQuery ?? '')];
@@ -306,10 +317,10 @@ class ProcessIdeaJob implements ShouldQueue
         $featuredThisWeek = Post::where('is_featured', true)
             ->where(function ($q) {
                 $q->where('published_at', '>=', now()->subWeek())
-                  ->orWhere(function ($q2) {
-                      $q2->whereNull('published_at')
-                         ->where('scheduled_at', '>=', now()->subWeek());
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->whereNull('published_at')
+                            ->where('scheduled_at', '>=', now()->subWeek());
+                    });
             })
             ->count();
         if ($featuredThisWeek >= $weeklyCap) {
@@ -318,6 +329,7 @@ class ProcessIdeaJob implements ShouldQueue
                 'cap' => $weeklyCap,
                 'this_week' => $featuredThisWeek,
             ]);
+
             return;
         }
 

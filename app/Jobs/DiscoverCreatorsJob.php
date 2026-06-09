@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\Creator;
-use App\Services\ClaudeBioService;
-use App\Services\CreatorAvatarService;
-use App\Services\CreatorSocialLinkBuilder;
+use App\Services\Blog\CreatorDiscoveryService;
+use App\Services\CreatorEnricher;
 use App\Services\PerplexityService;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -23,6 +22,7 @@ class DiscoverCreatorsJob implements ShouldQueue
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 300;
+
     public int $tries = 2;
 
     public function __construct(
@@ -100,9 +100,8 @@ class DiscoverCreatorsJob implements ShouldQueue
 
     public function handle(
         PerplexityService $perplexity,
-        ClaudeBioService $claude,
-        CreatorAvatarService $avatar,
-        CreatorSocialLinkBuilder $linkBuilder,
+        CreatorEnricher $enricher,
+        CreatorDiscoveryService $discovery,
     ): void {
         if ($this->batch()?->cancelled()) {
             return;
@@ -115,26 +114,35 @@ class DiscoverCreatorsJob implements ShouldQueue
         }
 
         foreach ($creators as $creatorData) {
-            $name = $creatorData['name'] ?? null;
+            $name = trim((string) ($creatorData['name'] ?? ''));
 
-            if (! $name) {
+            if ($name === '') {
                 continue;
             }
 
-            // Duplicate detection: check by exact name and by slug
+            // Same strict name guard as post-discovery, so bulk discovery
+            // stops minting common-noun creators (last, sale, ruth, ...).
+            // No body to cross-check against here, so single-word names lean
+            // on length + denylist only.
+            if (! $discovery->isValidName($name, $name)) {
+                Log::error('DiscoverCreatorsJob: rejected junk creator name', ['name' => $name]);
+
+                continue;
+            }
+
+            // Duplicate detection on the normalized slug — variant-proof
+            // against the same person showing up as "Burna Boy" / "burna boy".
             $slug = Str::slug($name);
 
-            if (Creator::where('name', $name)->orWhere('slug', $slug)->exists()) {
+            if (Creator::where('slug', $slug)->exists()) {
                 continue;
             }
 
             try {
-                $bio = $claude->generateBio($creatorData);
                 $country = $creatorData['country'] ?? $this->country;
 
                 $creator = Creator::create([
                     'name' => $name,
-                    'bio' => $bio,
                     'country' => $country,
                     'category' => $creatorData['category'] ?? $this->niche,
                     'contact_email' => self::normalizeContactEmail($creatorData['contact_email'] ?? null),
@@ -143,15 +151,8 @@ class DiscoverCreatorsJob implements ShouldQueue
                     'follower_platform' => self::normalizeFollowerPlatform($creatorData['follower_platform'] ?? null),
                 ]);
 
-                $imageMeta = $avatar->fetchAndAttach($creator, $country);
-                if ($imageMeta !== null) {
-                    $creator->update([
-                        'profile_image_attribution' => $imageMeta['attribution'],
-                        'profile_image_license' => $imageMeta['license'],
-                    ]);
-                }
-
-                $linkBuilder->build($creator, $creatorData);
+                // Bio + avatar + social links, shared with EnrichCreatorJob.
+                $enricher->enrich($creator, $creatorData);
             } catch (\Throwable $e) {
                 Log::error('DiscoverCreatorsJob: Failed to create creator', [
                     'name' => $name,
@@ -160,5 +161,4 @@ class DiscoverCreatorsJob implements ShouldQueue
             }
         }
     }
-
 }

@@ -78,6 +78,8 @@ class ContentCalendar extends Component
 
     public int $agentSpotlightScoreBoost = 25;
 
+    public bool $creatorDiscoveryEnabled = true;
+
     public bool $agentSettingsSaved = false;
 
     public bool $showDryRun = false;
@@ -104,6 +106,7 @@ class ContentCalendar extends Component
         'agentEmphasizeTopics' => ['key' => 'content_agent_emphasize_topics', 'default' => '', 'cast' => 'string'],
         'agentSpotlightWeeklyCap' => ['key' => 'content_agent_spotlight_weekly_cap', 'default' => 3, 'cast' => 'int'],
         'agentSpotlightScoreBoost' => ['key' => 'content_agent_spotlight_score_boost', 'default' => 25, 'cast' => 'int'],
+        'creatorDiscoveryEnabled' => ['key' => 'creator_discovery_enabled', 'default' => true, 'cast' => 'bool'],
     ];
 
     public function mount(): void

@@ -236,6 +236,22 @@
                         </div>
                     </div>
 
+                    {{-- Creator discovery --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Creator Discovery</h3>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            When on, creators the AI references by name in a generated post but that aren't yet in your library are auto-created as <span class="font-medium">pending</span> and enriched in the background. Turn this off if discovery starts creating junk profiles.
+                        </p>
+                        <label class="mt-3 flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                            <input type="checkbox" wire:model.live="creatorDiscoveryEnabled"
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <div class="flex-1">
+                                <span class="block text-sm font-medium text-gray-900 dark:text-white">Auto-discover creators from generated posts</span>
+                                <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">New profiles stay pending until an editor reviews them, so they never appear publicly without approval.</span>
+                            </div>
+                        </label>
+                    </div>
+
                     {{-- Editorial guidance --}}
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Editorial Guidance</h3>

@@ -33,6 +33,7 @@ final readonly class PostData
         public array $typeData = [],
         public array $featuredCreatorSlugs = [],
         public ?string $featuredImageQuery = null,
+        public array $mentionedCreators = [],
     ) {}
 
     public function toArray(): array

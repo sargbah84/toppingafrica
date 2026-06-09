@@ -114,6 +114,7 @@ final class PostGeneratorService
             typeData: $content['type_data'] ?? [],
             featuredCreatorSlugs: $content['featured_creator_slugs'] ?? [],
             featuredImageQuery: $content['featured_image_query'] ?? null,
+            mentionedCreators: $content['mentioned_creators'] ?? [],
         );
     }
 
