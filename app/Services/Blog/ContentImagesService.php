@@ -35,6 +35,7 @@ final class ContentImagesService
         private readonly ImageSearchService $imageSearch,
         private readonly MediaService $mediaService,
         private readonly LibraryImageMatcher $libraryMatcher,
+        private readonly RecentImageTracker $recentImages,
     ) {}
 
     public function attach(Post $post, ?string $aiQuery = null): int
@@ -212,23 +213,16 @@ final class ContentImagesService
             return $this->libraryToImageRow($libraryHit, $query);
         }
 
-        // 2. Google — walk every candidate, not just the first one.
+        // 2. Google — ranked best-quality-first, with URLs already used on
+        // this post ($usedUrls) AND on recent posts (tracker) filtered out.
         try {
             $google = $this->imageSearch->searchGoogle($query);
         } catch (Throwable $e) {
             $google = ['results' => []];
         }
 
-        foreach ($google['results'] ?? [] as $result) {
-            $url = $result['url'] ?? '';
-            if (! is_string($url) || $url === '' || ! str_starts_with($url, 'http') || in_array($url, $usedUrls, true)) {
-                continue;
-            }
-            $width = (int) ($result['width'] ?? 0);
-            $height = (int) ($result['height'] ?? 0);
-            if (($width > 0 && $width < 600) || ($height > 0 && $height < 400)) {
-                continue;
-            }
+        foreach ($this->recentImages->rankCandidates($google['results'] ?? [], $usedUrls) as $result) {
+            $url = $result['url'];
             if (! $this->isReachableImage($url)) {
                 continue;
             }
@@ -242,20 +236,17 @@ final class ContentImagesService
         }
 
         // 3. Pexels — always reachable (their CDN guarantees image bytes).
+        // Same ranking + cross-post dedup; the dimension floor now applies to
+        // Pexels too (their rows carry width/height).
         try {
             $pexels = $this->imageSearch->searchPexels($query, 1, 10);
         } catch (Throwable $e) {
             $pexels = ['results' => []];
         }
 
-        foreach ($pexels['results'] ?? [] as $result) {
-            $url = $result['url'] ?? '';
-            if (! is_string($url) || $url === '' || in_array($url, $usedUrls, true)) {
-                continue;
-            }
-
+        foreach ($this->recentImages->rankCandidates($pexels['results'] ?? [], $usedUrls) as $result) {
             return [
-                'url' => $url,
+                'url' => $result['url'],
                 'alt' => $result['alt'] ?? $query,
                 'source' => 'pexels',
                 'photographer' => $result['photographer'] ?? null,

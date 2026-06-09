@@ -101,6 +101,49 @@ class FeaturedImageServiceTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_skips_image_url_already_used_on_a_recent_post(): void
+    {
+        Notification::fake();
+
+        $author = User::factory()->create(['is_super_admin' => true]);
+
+        // An image already saved on a prior post, recorded via source_url.
+        $usedUrl = 'https://cdn.example.com/already-used.jpg';
+        $tempPath = tempnam(sys_get_temp_dir(), 'feat_').'.jpg';
+        file_put_contents($tempPath, base64_decode(
+            '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AL+AB//Z'
+        ));
+        $priorPost = Post::factory()->create(['author_id' => $author->id]);
+        $priorPost->addMedia($tempPath)
+            ->withCustomProperties(['source_url' => $usedUrl])
+            ->toMediaCollection('featured_image');
+
+        $post = Post::factory()->create(['author_id' => $author->id]);
+
+        // First Google candidate is the already-used URL; second is fresh.
+        $this->bindImageSearchMock([
+            'google' => [
+                ['url' => $usedUrl, 'width' => 1200, 'height' => 800],
+                ['url' => 'https://cdn.example.com/fresh.jpg', 'width' => 1200, 'height' => 800],
+            ],
+            'pexels' => [],
+        ]);
+
+        $requested = [];
+        Http::fake(function ($request) use (&$requested) {
+            $requested[] = $request->url();
+
+            return Http::response("\xFF\xD8\xFF stub jpeg", 200, ['Content-Type' => 'image/jpeg']);
+        });
+
+        $service = app(FeaturedImageService::class);
+        $service->attach($post, 'African tech startup');
+
+        // The already-used URL must never be requested; the fresh one should.
+        $this->assertNotContains($usedUrl, $requested, 'Recently-used image URL should be skipped');
+        $this->assertContains('https://cdn.example.com/fresh.jpg', $requested);
+    }
+
     private function bindImageSearchMock(array $payload): void
     {
         // ImageSearchService is final — bind a stub via the container that

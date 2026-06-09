@@ -41,6 +41,7 @@ final class FeaturedImageService
     public function __construct(
         private readonly ImageSearchService $imageSearch,
         private readonly LibraryImageMatcher $libraryMatcher,
+        private readonly RecentImageTracker $recentImages,
     ) {}
 
     /**
@@ -165,6 +166,9 @@ final class FeaturedImageService
     {
         try {
             $media = $post->addMediaFromUrl($url)
+                // Record the origin URL so RecentImageTracker can dedup this
+                // image off future posts (matches MediaService::storeFromUrl).
+                ->withCustomProperties(['source_url' => $url])
                 ->toMediaCollection('featured_image_new');
 
             $post->clearMediaCollection('featured_image');
@@ -201,21 +205,12 @@ final class FeaturedImageService
             $google = ['results' => []];
         }
 
-        foreach ($google['results'] ?? [] as $result) {
-            $url = $result['url'] ?? null;
-            if (! is_string($url) || $url === '' || ! str_starts_with($url, 'http')) {
-                continue;
-            }
-
-            // Skip obvious thumbnails when dimensions are reported. We can't
-            // filter when dimensions are missing — many hits are still good.
-            $width = (int) ($result['width'] ?? 0);
-            $height = (int) ($result['height'] ?? 0);
-            if (($width > 0 && $width < 600) || ($height > 0 && $height < 400)) {
-                continue;
-            }
-
-            yield ['url' => $url, 'source' => 'google'];
+        // Rank Google hits best-quality-first and drop any URL already used
+        // on a recent post, so we stop landing the same top hit on post after
+        // post and prefer high-resolution candidates over barely-passing
+        // thumbnails further up the raw result list.
+        foreach ($this->recentImages->rankCandidates($google['results'] ?? []) as $result) {
+            yield ['url' => $result['url'], 'source' => 'google'];
         }
 
         try {
@@ -228,11 +223,11 @@ final class FeaturedImageService
             $pexels = ['results' => []];
         }
 
-        foreach ($pexels['results'] ?? [] as $result) {
-            $url = $result['url'] ?? null;
-            if (is_string($url) && $url !== '') {
-                yield ['url' => $url, 'source' => 'pexels'];
-            }
+        // Same ranking + cross-post dedup for Pexels. Pexels rows carry
+        // width/height, so the dimension floor (previously skipped for Pexels)
+        // now applies here too.
+        foreach ($this->recentImages->rankCandidates($pexels['results'] ?? []) as $result) {
+            yield ['url' => $result['url'], 'source' => 'pexels'];
         }
     }
 

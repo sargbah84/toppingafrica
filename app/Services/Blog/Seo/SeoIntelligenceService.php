@@ -7,6 +7,7 @@ namespace App\Services\Blog\Seo;
 use App\Models\Post;
 use App\Models\SeoAnalysis;
 use App\Models\Tag;
+use App\Services\Blog\RecentImageTracker;
 use App\Services\ImageSearchService;
 use App\Services\MediaService;
 use Illuminate\Support\Facades\Cache;
@@ -26,6 +27,7 @@ final class SeoIntelligenceService
         private readonly OnPageElementsAnalyzer $onPageElementsAnalyzer,
         private readonly ImageSearchService $imageSearchService,
         private readonly MediaService $mediaService,
+        private readonly RecentImageTracker $recentImages,
     ) {
         $this->config = config('seo-intelligence', []);
     }
@@ -1040,15 +1042,15 @@ PROMPT;
         $searchTerms = $post->focus_keyword ?: $post->title;
         $searchQuery = $searchTerms.' Africa';
 
-        // Search Pexels for relevant images
-        $searchResult = $this->imageSearchService->searchPexels($searchQuery, 1, $needed + 2);
+        // Build a ranked, deduplicated candidate pool. Previously this took
+        // Pexels page-1 results in raw order with no cross-post dedup, so the
+        // same generic stock photos ("{keyword} Africa") landed on post after
+        // post. Now we pull from Google first (more specific/varied) then
+        // Pexels, rank each by quality, and drop any image already used on a
+        // recent post.
+        $candidates = $this->collectImageCandidates($searchQuery, $searchTerms, $needed);
 
-        if (empty($searchResult['results'])) {
-            // Fallback: search with just the keyword
-            $searchResult = $this->imageSearchService->searchPexels($searchTerms, 1, $needed + 2);
-        }
-
-        if (empty($searchResult['results'])) {
+        if ($candidates === []) {
             return null;
         }
 
@@ -1069,18 +1071,18 @@ PROMPT;
         $positions = array_reverse($positions);
 
         foreach ($positions as $position) {
-            if ($insertedCount >= $needed || ! isset($searchResult['results'][$insertedCount])) {
+            if ($insertedCount >= $needed || ! isset($candidates[$insertedCount])) {
                 break;
             }
 
-            $photo = $searchResult['results'][$insertedCount];
+            $photo = $candidates[$insertedCount];
 
             try {
                 $media = $this->mediaService->storeFromUrl(
                     $photo['url'],
-                    'pexels',
+                    $photo['source'],
                     $user,
-                    $photo['alt'] ?: $searchTerms,
+                    ($photo['alt'] ?? '') ?: $searchTerms,
                     array_filter([
                         'photographer' => $photo['photographer'] ?? null,
                         'photographer_url' => $photo['photographer_url'] ?? null,
@@ -1088,11 +1090,11 @@ PROMPT;
                 );
 
                 $imageUrl = $media->getUrl();
-                $altText = htmlspecialchars($photo['alt'] ?: $searchTerms, ENT_QUOTES, 'UTF-8');
+                $altText = htmlspecialchars(($photo['alt'] ?? '') ?: $searchTerms, ENT_QUOTES, 'UTF-8');
                 $photographer = htmlspecialchars($photo['photographer'] ?? '', ENT_QUOTES, 'UTF-8');
 
                 $imgHtml = "\n<figure><img src=\"{$imageUrl}\" alt=\"{$altText}\" loading=\"lazy\" />";
-                if ($photographer) {
+                if ($photo['source'] === 'pexels' && $photographer) {
                     $imgHtml .= "<figcaption>Photo by {$photographer} on Pexels</figcaption>";
                 }
                 $imgHtml .= "</figure>\n";
@@ -1113,13 +1115,69 @@ PROMPT;
 
             return [
                 'type' => 'images',
-                'description' => "Added {$insertedCount} relevant image(s) from Pexels",
+                'description' => "Added {$insertedCount} relevant image(s)",
                 'old' => '',
                 'new' => "{$insertedCount} images inserted into content",
             ];
         }
 
         return null;
+    }
+
+    /**
+     * Build a ranked, deduplicated image pool for SEO auto-insertion.
+     *
+     * Google first (more specific, more varied) then Pexels as licensed
+     * fallback. Each source is ranked best-quality-first and stripped of any
+     * URL already used on a recent post, so repeated runs over similar posts
+     * stop reusing the same handful of stock photos. Falls back to the bare
+     * keyword query when the "{keyword} Africa" query comes up empty.
+     *
+     * @return array<int, array<string, mixed>> candidate rows (with `source`)
+     */
+    private function collectImageCandidates(string $primaryQuery, string $fallbackQuery, int $needed): array
+    {
+        $usedInRun = [];
+        $candidates = [];
+        $want = $needed + 2; // small surplus so dead URLs don't starve us
+
+        foreach ([$primaryQuery, $fallbackQuery] as $query) {
+            if (count($candidates) >= $want) {
+                break;
+            }
+
+            try {
+                $google = $this->imageSearchService->searchGoogle($query);
+            } catch (\Throwable) {
+                $google = ['results' => []];
+            }
+            foreach ($this->recentImages->rankCandidates($google['results'] ?? [], $usedInRun) as $row) {
+                $usedInRun[] = $row['url'];
+                $candidates[] = [
+                    'url' => $row['url'],
+                    'alt' => $row['title'] ?? '',
+                    'source' => 'google',
+                ];
+            }
+
+            try {
+                $pexels = $this->imageSearchService->searchPexels($query, 1, $want + 2);
+            } catch (\Throwable) {
+                $pexels = ['results' => []];
+            }
+            foreach ($this->recentImages->rankCandidates($pexels['results'] ?? [], $usedInRun) as $row) {
+                $usedInRun[] = $row['url'];
+                $candidates[] = [
+                    'url' => $row['url'],
+                    'alt' => $row['alt'] ?? '',
+                    'source' => 'pexels',
+                    'photographer' => $row['photographer'] ?? null,
+                    'photographer_url' => $row['photographer_url'] ?? null,
+                ];
+            }
+        }
+
+        return $candidates;
     }
 
     /**
