@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Page;
 use App\Models\RequestLog;
 use App\Models\Setting;
 use App\Services\GoogleSearchConsoleService;
@@ -62,7 +63,7 @@ class SettingController extends Controller
             $settings[$key] ??= '';
         }
 
-        $allPages = \App\Models\Page::orderBy('title')->get(['id', 'title', 'slug', 'template']);
+        $allPages = Page::orderBy('title')->get(['id', 'title', 'slug', 'template']);
         $footerPageIds = json_decode(Setting::get('footer_pages', '[]'), true) ?: [];
         $pages = $allPages; // footer picker stays alphabetical / no ordering UI
 
@@ -112,8 +113,14 @@ class SettingController extends Controller
             'failed_jobs' => DB::table('failed_jobs')->count(),
         ];
 
+        $apiToken = [
+            'configured' => (bool) (Setting::get('blog_api_token') ?: config('services.blog_api.token')),
+            'from_env' => ! Setting::get('blog_api_token') && (bool) config('services.blog_api.token'),
+            'generated_at' => Setting::get('blog_api_token_generated_at'),
+        ];
+
         return view('admin.settings.index', compact(
-            'settings', 'monitoring', 'pages', 'footerPageIds', 'headerPages',
+            'settings', 'monitoring', 'pages', 'footerPageIds', 'headerPages', 'apiToken',
         ));
     }
 
@@ -123,34 +130,34 @@ class SettingController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'site_name'           => ['nullable', 'string', 'max:255'],
-            'site_description'    => ['nullable', 'string', 'max:500'],
-            'site_keywords'       => ['nullable', 'string', 'max:500'],
-            'site_tagline'        => ['nullable', 'string', 'max:255'],
-            'site_logo'           => ['nullable', 'string', 'max:500'],
-            'site_favicon'        => ['nullable', 'string', 'max:500'],
-            'site_address'        => ['nullable', 'string', 'max:500'],
-            'contact_email'       => ['nullable', 'email', 'max:255'],
-            'social_facebook'     => ['nullable', 'url', 'max:500'],
-            'social_twitter'      => ['nullable', 'url', 'max:500'],
-            'social_instagram'    => ['nullable', 'url', 'max:500'],
-            'social_linkedin'     => ['nullable', 'url', 'max:500'],
-            'social_youtube'      => ['nullable', 'url', 'max:500'],
+            'site_name' => ['nullable', 'string', 'max:255'],
+            'site_description' => ['nullable', 'string', 'max:500'],
+            'site_keywords' => ['nullable', 'string', 'max:500'],
+            'site_tagline' => ['nullable', 'string', 'max:255'],
+            'site_logo' => ['nullable', 'string', 'max:500'],
+            'site_favicon' => ['nullable', 'string', 'max:500'],
+            'site_address' => ['nullable', 'string', 'max:500'],
+            'contact_email' => ['nullable', 'email', 'max:255'],
+            'social_facebook' => ['nullable', 'url', 'max:500'],
+            'social_twitter' => ['nullable', 'url', 'max:500'],
+            'social_instagram' => ['nullable', 'url', 'max:500'],
+            'social_linkedin' => ['nullable', 'url', 'max:500'],
+            'social_youtube' => ['nullable', 'url', 'max:500'],
             'google_analytics_id' => ['nullable', 'string', 'max:50'],
             'google_tag_manager_id' => ['nullable', 'string', 'max:50'],
-            'meta_title'          => ['nullable', 'string', 'max:255'],
-            'meta_description'    => ['nullable', 'string', 'max:300'],
-            'footer_text'         => ['nullable', 'string', 'max:1000'],
-            'excluded_ips'        => ['nullable', 'string', 'max:2000'],
-            'footer_pages'             => ['nullable', 'array'],
-            'footer_pages.*'           => ['integer', 'exists:pages,id'],
-            'header_pages'             => ['nullable', 'array'],
-            'header_pages.*'           => ['integer', 'exists:pages,id'],
-            'header_page_labels'       => ['nullable', 'array'],
-            'header_page_labels.*'     => ['nullable', 'string', 'max:60'],
-            'posts_per_page'      => ['nullable', 'integer', 'min:1', 'max:100'],
-            'allow_comments'      => ['nullable', 'string', 'in:0,1'],
-            'moderate_comments'   => ['nullable', 'string', 'in:0,1'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:300'],
+            'footer_text' => ['nullable', 'string', 'max:1000'],
+            'excluded_ips' => ['nullable', 'string', 'max:2000'],
+            'footer_pages' => ['nullable', 'array'],
+            'footer_pages.*' => ['integer', 'exists:pages,id'],
+            'header_pages' => ['nullable', 'array'],
+            'header_pages.*' => ['integer', 'exists:pages,id'],
+            'header_page_labels' => ['nullable', 'array'],
+            'header_page_labels.*' => ['nullable', 'string', 'max:60'],
+            'posts_per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'allow_comments' => ['nullable', 'string', 'in:0,1'],
+            'moderate_comments' => ['nullable', 'string', 'in:0,1'],
         ]);
 
         // Store footer_pages as JSON
@@ -188,11 +195,41 @@ class SettingController extends Controller
             ->with('success', 'Settings updated successfully.');
     }
 
+    /**
+     * Generate (or rotate) the external Blog Content API bearer token.
+     *
+     * Restricted to super admins — the token grants write access to all blog
+     * content, so it shouldn't be mintable by every staffer with the
+     * `manage settings` permission. The plaintext token is flashed to the
+     * session once for display; only the token itself is stored (no hashing,
+     * since the middleware needs the raw value to compare against).
+     */
+    public function generateApiToken(Request $request): RedirectResponse
+    {
+        if (! $request->user()?->is_super_admin) {
+            abort(403, 'Only super admins can manage the API token.');
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        Setting::set('blog_api_token', $token);
+        Setting::set('blog_api_token_generated_at', now()->toIso8601String());
+
+        activity()
+            ->causedBy($request->user())
+            ->log('Generated a new Blog Content API token');
+
+        return redirect()
+            ->route('admin.settings.index')
+            ->with('success', 'New API token generated. Copy it now — it won\'t be shown again.')
+            ->with('blog_api_token', $token);
+    }
+
     public function gscCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
 
-        if (!$code) {
+        if (! $code) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Google Search Console authorization failed.');
         }
@@ -200,13 +237,13 @@ class SettingController extends Controller
         try {
             $tokens = GoogleSearchConsoleService::exchangeCode($code);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('GSC callback error', ['error' => $e->getMessage()]);
+            Log::error('GSC callback error', ['error' => $e->getMessage()]);
 
             return redirect()->route('admin.dashboard')
-                ->with('error', 'Google Search Console connection failed: ' . $e->getMessage());
+                ->with('error', 'Google Search Console connection failed: '.$e->getMessage());
         }
 
-        if (!$tokens || empty($tokens['refresh_token'])) {
+        if (! $tokens || empty($tokens['refresh_token'])) {
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to obtain refresh token. Please try again.');
         }
@@ -258,7 +295,7 @@ class SettingController extends Controller
      */
     public function runCacheAction(Request $request): RedirectResponse
     {
-        if (!$request->user()?->is_super_admin) {
+        if (! $request->user()?->is_super_admin) {
             abort(403, 'Only super admins can manage caches.');
         }
 
@@ -269,7 +306,7 @@ class SettingController extends Controller
         ];
 
         $action = (string) $request->input('cache_action');
-        if (!isset($actions[$action])) {
+        if (! isset($actions[$action])) {
             return back()->with('error', 'Unknown cache action.');
         }
 
@@ -289,7 +326,7 @@ class SettingController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Cache action failed: ' . $e->getMessage());
+            return back()->with('error', 'Cache action failed: '.$e->getMessage());
         }
 
         activity()

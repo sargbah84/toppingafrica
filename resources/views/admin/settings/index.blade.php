@@ -234,6 +234,75 @@
         </div>
     </form>
 
+    {{-- Blog Content API (super admin only) — token the external site uses to
+         GET/POST/PATCH posts via /api/posts. --}}
+    @if(auth()->user()->is_super_admin)
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mt-8">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">Blog Content API</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">
+            An external site can list, read, create and update posts at
+            <code>{{ url('/api/posts') }}</code>, authenticating with the bearer
+            token below. Generating a new token immediately revokes the old one.
+        </p>
+
+        {{-- Freshly generated token — shown exactly once via flash data. --}}
+        @if(session('blog_api_token'))
+            <div class="mb-5 rounded-md border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-4"
+                 x-data="{ token: @js(session('blog_api_token')), copied: false }">
+                <p class="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                    New token generated — copy it now. For security it won't be shown again.
+                </p>
+                <div class="flex items-center gap-2">
+                    <input type="text" readonly :value="token"
+                           class="flex-1 font-mono text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                           x-on:focus="$event.target.select()">
+                    <button type="button"
+                            x-on:click="navigator.clipboard.writeText(token); copied = true; setTimeout(() => copied = false, 2000)"
+                            class="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500">
+                        <span x-show="!copied">Copy</span>
+                        <span x-show="copied" x-cloak>Copied!</span>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="text-sm">
+                @if($apiToken['configured'])
+                    <p class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                        <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+                        API token active
+                    </p>
+                    <p class="text-gray-500 dark:text-gray-400 mt-0.5">
+                        @if($apiToken['from_env'])
+                            Using the <code>BLOG_API_TOKEN</code> env value. Generate one here to manage it from the panel.
+                        @elseif($apiToken['generated_at'])
+                            Generated {{ \Illuminate\Support\Carbon::parse($apiToken['generated_at'])->diffForHumans() }}.
+                        @endif
+                    </p>
+                @else
+                    <p class="text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                        <span class="inline-block h-2 w-2 rounded-full bg-gray-400"></span>
+                        No token configured — the API is disabled.
+                    </p>
+                @endif
+            </div>
+
+            <form method="POST" action="{{ route('admin.settings.api-token') }}"
+                  x-data
+                  x-on:submit="if({{ $apiToken['configured'] ? 'true' : 'false' }} && !confirm('Generate a new token? The current token will stop working immediately.')) $event.preventDefault()">
+                @csrf
+                <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/>
+                    </svg>
+                    {{ $apiToken['configured'] && ! $apiToken['from_env'] ? 'Regenerate token' : 'Generate token' }}
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
+
     {{-- Cache Management (super admin only) — use after a deploy if views,
          config, or routes aren't showing the latest changes. --}}
     @if(auth()->user()->is_super_admin)

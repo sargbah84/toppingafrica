@@ -75,4 +75,14 @@ return [
         'key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    // External Blog Content API. A single static bearer token shared with the
+    // trusted external site that pushes/pulls posts. Rotate by changing the
+    // env value. Author of all externally-created posts is resolved to the
+    // system user identified by `author_email`.
+    'blog_api' => [
+        'token' => env('BLOG_API_TOKEN'),
+        'author_email' => env('BLOG_API_AUTHOR_EMAIL', 'api@toppingafrica.com'),
+        'author_name' => env('BLOG_API_AUTHOR_NAME', 'Topping Africa API'),
+    ],
+
 ];
