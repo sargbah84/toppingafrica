@@ -80,7 +80,8 @@
                     @endif
 
                     {{-- Content (server-rendered so Livewire components work) --}}
-                    <div>{!! $popup->content !!}</div>
+                    {{-- nofollow_ad_links() keeps promo/banner links (e.g. external sponsor sites) out of editorial backlink counts --}}
+                    <div>{!! nofollow_ad_links($popup->content) !!}</div>
                 </div>
             </div>
         </div>

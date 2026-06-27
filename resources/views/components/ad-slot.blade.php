@@ -12,7 +12,7 @@
 @foreach($ads as $ad)
     <div class="ad-slot ad-slot-{{ $position }} my-4">
         @if($ad->code)
-            {!! $ad->code !!}
+            {!! nofollow_ad_links($ad->code) !!}
         @elseif($ad->image)
             @if($ad->url)
                 <a href="{{ $ad->url }}" target="_blank" rel="noopener nofollow sponsored">
