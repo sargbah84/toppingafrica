@@ -39,6 +39,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pinned Sections
+    |--------------------------------------------------------------------------
+    |
+    | Editors can pin a post to one curated homepage rail via
+    | `posts.pinned_section`. Pins occupy the top slots of that rail and the
+    | remainder is filled organically (by weekly views or recency, depending
+    | on the rail). A pin expires when `pinned_until` passes; leaving it null
+    | pins indefinitely. Keys here are the stored values; `slots` caps how
+    | many pins one rail will honour so a pin can never crowd out the whole
+    | rail.
+    |
+    */
+
+    'pinned_sections' => [
+        'hero' => ['label' => 'Hero (top of homepage)', 'slots' => 2],
+        'most_popular' => ['label' => 'Most Popular', 'slots' => 2],
+        'featured_videos' => ['label' => 'Featured Videos', 'slots' => 2],
+        'tv' => ['label' => "Explore What's On TV", 'slots' => 2],
+        'editors_picked' => ['label' => "Editor's Picked", 'slots' => 2],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Auto-feature Rubric (used by ProcessIdeaJob)
     |--------------------------------------------------------------------------
     |

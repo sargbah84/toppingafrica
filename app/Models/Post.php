@@ -42,6 +42,8 @@ class Post extends Model implements HasMedia
         'scheduled_at',
         'reading_time',
         'is_featured',
+        'pinned_section',
+        'pinned_until',
         'ai_provider',
         'generation_params',
     ];
@@ -53,6 +55,7 @@ class Post extends Model implements HasMedia
         'generation_params' => 'array',
         'published_at' => 'datetime',
         'scheduled_at' => 'datetime',
+        'pinned_until' => 'datetime',
         'reading_time' => 'integer',
         'is_featured' => 'boolean',
     ];
@@ -270,6 +273,20 @@ class Post extends Model implements HasMedia
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
+    }
+
+    /**
+     * Posts currently pinned to a curated homepage rail. A null `pinned_until`
+     * pins indefinitely; a past one lets the pin lapse without any cleanup job.
+     */
+    public function scopePinnedTo($query, string $section)
+    {
+        return $query
+            ->where('pinned_section', $section)
+            ->where(fn ($q) => $q
+                ->whereNull('pinned_until')
+                ->orWhere('pinned_until', '>', now())
+            );
     }
 
     public function scopeOfType($query, string $type)

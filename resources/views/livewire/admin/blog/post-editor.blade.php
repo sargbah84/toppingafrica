@@ -371,6 +371,33 @@
                         </label>
                     </div>
                     <div>
+                        <label for="pinned_section" class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Pin to homepage section</label>
+                        <select
+                            wire:model.live="pinned_section"
+                            id="pinned_section"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        >
+                            <option value="">Not pinned</option>
+                            @foreach (config('blog.pinned_sections', []) as $sectionKey => $sectionConfig)
+                                <option value="{{ $sectionKey }}">{{ $sectionConfig['label'] }}</option>
+                            @endforeach
+                        </select>
+                        @error('pinned_section') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                    @if ($pinned_section)
+                    <div>
+                        <label for="pinned_until" class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Pin expires</label>
+                        <input
+                            wire:model="pinned_until"
+                            type="datetime-local"
+                            id="pinned_until"
+                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        />
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to pin indefinitely.</p>
+                        @error('pinned_until') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                    </div>
+                    @endif
+                    <div>
                         <label for="scheduled_at" class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Schedule for</label>
                         <input
                             wire:model="scheduled_at"

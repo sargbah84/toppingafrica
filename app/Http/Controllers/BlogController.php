@@ -11,8 +11,11 @@ use App\Models\Post;
 use App\Models\Tag;
 use App\Services\Blog\PostViewTracker;
 use App\Services\ContentShortcodeParser;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class BlogController extends Controller
@@ -20,21 +23,34 @@ class BlogController extends Controller
     public function index(): View
     {
         // Hero fill chain (each tier tops up unfilled slots from the previous):
+        //   0. Editor pins (capped below the slot count so the hero can never
+        //      go fully manual and stale)
         //   1. Featured posts published within the recency window
         //   2. Recent posts attached to a creator with a real profile (bio + image)
         //   3. Newest published posts (always fills any remainder)
         // Keeps the hero fresh and creator-led even when nothing is flagged
-        // as featured.
+        // as featured. Pins ignore the recency window — that window exists to
+        // stop stale posts drifting in on their own, not to override an
+        // editor's deliberate choice; `pinned_until` is what ages a pin out.
         $slots = (int) config('blog.hero.slots', 3);
         $recencyDays = (int) config('blog.hero.recency_days', 30);
 
-        $heroPost = Post::published()
-            ->featured()
-            ->where('published_at', '>=', now()->subDays($recencyDays))
+        $heroPost = $this->pinnedFor('hero', fn ($q) => $q
             ->with('author', 'categories')
-            ->latest('published_at')
-            ->take($slots)
-            ->get();
+            ->latest('published_at'));
+
+        if ($heroPost->count() < $slots) {
+            $heroFeatured = Post::published()
+                ->featured()
+                ->whereNotIn('id', $heroPost->pluck('id'))
+                ->where('published_at', '>=', now()->subDays($recencyDays))
+                ->with('author', 'categories')
+                ->latest('published_at')
+                ->take($slots - $heroPost->count())
+                ->get();
+
+            $heroPost = $heroPost->concat($heroFeatured);
+        }
 
         if ($heroPost->count() < $slots) {
             $creatorBacked = Post::published()
@@ -62,43 +78,66 @@ class BlogController extends Controller
             $heroPost = $heroPost->concat($fillers);
         }
 
-        // Most Popular + Trending: ranked by views from the past 7 days.
-        // Pull 5 in one query, then split: top 2 → Most Popular, next 3 → Trending.
+        // Most Popular + Trending: editor pins first, then ranked by views from
+        // the past 7 days. Pull 5 total, then split: top 2 → Most Popular,
+        // next 3 → Trending. Pins only ever occupy the Most Popular slots, so
+        // an organic post displaced from Most Popular slides down to Trending
+        // rather than falling off the page.
+        $pinnedPopular = $this->pinnedFor('most_popular', fn ($q) => $q
+            ->with('author', 'categories')
+            ->latest('published_at'));
+
         $weeklyPopular = Post::published()
+            ->whereNotIn('id', $pinnedPopular->pluck('id'))
             ->with('author', 'categories')
             ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
             ->orderByDesc('weekly_views_count')
             ->latest('published_at')
-            ->take(5)
+            ->take(5 - $pinnedPopular->count())
             ->get();
 
-        $mostPopular = $weeklyPopular->take(2);
-        $trending = $weeklyPopular->slice(2, 3)->values();
+        $popularRail = $pinnedPopular->concat($weeklyPopular);
+        $mostPopular = $popularRail->take(2);
+        $trending = $popularRail->slice(2, 3)->values();
 
         // Featured Videos: top 4 from "Music Videos" or "Featured Videos" categories
         // by views in the past 7 days, tiebreaking by newest published first.
-        $featuredVideos = Post::published()
-            ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', [3, 27]))
+        $pinnedVideos = $this->pinnedFor('featured_videos', fn ($q) => $q
             ->with('author', 'categories')
-            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
-            ->orderByDesc('weekly_views_count')
-            ->latest('published_at')
-            ->take(4)
-            ->get();
+            ->latest('published_at'));
+
+        $featuredVideos = $pinnedVideos->concat(
+            Post::published()
+                ->whereNotIn('id', $pinnedVideos->pluck('id'))
+                ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', [3, 27]))
+                ->with('author', 'categories')
+                ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+                ->orderByDesc('weekly_views_count')
+                ->latest('published_at')
+                ->take(4 - $pinnedVideos->count())
+                ->get()
+        );
 
         // Movies + TV posts for "Explore What's On TV": 1 main card on the
         // left plus 6 stacked small cards on the right, ranked by views in
         // the past 7 days with newest-published as the tiebreak. The right
         // column needs 6 to visually match the taller left card (image +
         // excerpt). Loosen by views; final order is recency-biased.
-        $tvPosts = Post::published()
-            ->whereHas('categories', fn ($q) => $q->where('categories.id', 4))
+        $pinnedTv = $this->pinnedFor('tv', fn ($q) => $q
             ->with('author', 'categories')
-            ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
-            ->orderByDesc('weekly_views_count')
-            ->latest('published_at')
-            ->take(7)
-            ->get();
+            ->latest('published_at'));
+
+        $tvPosts = $pinnedTv->concat(
+            Post::published()
+                ->whereNotIn('id', $pinnedTv->pluck('id'))
+                ->whereHas('categories', fn ($q) => $q->where('categories.id', 4))
+                ->with('author', 'categories')
+                ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
+                ->orderByDesc('weekly_views_count')
+                ->latest('published_at')
+                ->take(7 - $pinnedTv->count())
+                ->get()
+        );
 
         // Latest Stories (skip featured ones)
         $latestStories = Post::published()
@@ -107,14 +146,22 @@ class BlogController extends Controller
             ->take(5)
             ->get();
 
-        // Editor's Picked: featured posts that aren't in hero
-        $editorsPicked = Post::published()
-            ->featured()
+        // Editor's Picked: pins first, then featured posts, excluding whatever
+        // the hero actually took (rather than assuming it took the newest 3 —
+        // hero pins can come from outside that set).
+        $pinnedPicks = $this->pinnedFor('editors_picked', fn ($q) => $q
             ->with('categories')
-            ->latest('published_at')
-            ->skip(3)
-            ->take(5)
-            ->get();
+            ->latest('published_at'));
+
+        $editorsPicked = $pinnedPicks->concat(
+            Post::published()
+                ->featured()
+                ->whereNotIn('id', $pinnedPicks->pluck('id')->concat($heroPost->pluck('id')))
+                ->with('categories')
+                ->latest('published_at')
+                ->take(5 - $pinnedPicks->count())
+                ->get()
+        );
 
         $categories = Category::active()
             ->ordered()
@@ -148,6 +195,30 @@ class BlogController extends Controller
             'heroPost', 'mostPopular', 'trending', 'featuredVideos',
             'tvPosts', 'latestStories', 'editorsPicked', 'categories', 'creators', 'topCreators'
         ));
+    }
+
+    /**
+     * Published posts an editor has pinned to a curated homepage rail, capped
+     * at that rail's configured slot count so a pin can never crowd out the
+     * whole section. `$shape` applies the eager loads and ordering the calling
+     * rail needs. Unknown sections yield an empty collection, so the rail
+     * silently falls back to its organic query.
+     */
+    private function pinnedFor(string $section, ?\Closure $shape = null): Collection
+    {
+        $slots = (int) config("blog.pinned_sections.{$section}.slots", 0);
+
+        if ($slots < 1) {
+            return Post::query()->whereRaw('1 = 0')->get();
+        }
+
+        $query = Post::published()->pinnedTo($section);
+
+        if ($shape) {
+            $shape($query);
+        }
+
+        return $query->take($slots)->get();
     }
 
     public function show(Request $request, string $slug): View
@@ -255,7 +326,7 @@ class BlogController extends Controller
         return view('blog.tag', compact('tag', 'posts', 'categories'));
     }
 
-    public function suggest(Request $request): \Illuminate\Http\JsonResponse
+    public function suggest(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
 
@@ -287,10 +358,10 @@ class BlogController extends Controller
             ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'published_at', 'author_id'])
             ->map(fn ($p) => [
                 'title' => $p->title,
-                'excerpt' => \Illuminate\Support\Str::limit(strip_tags((string) $p->excerpt), 90),
+                'excerpt' => Str::limit(strip_tags((string) $p->excerpt), 90),
                 'author' => $p->author?->display_name,
                 'image' => $p->featured_image_thumbnail,
-                'url' => url('/' . $p->slug),
+                'url' => url('/'.$p->slug),
             ]);
 
         return response()->json(['creators' => $creators, 'posts' => $posts]);
