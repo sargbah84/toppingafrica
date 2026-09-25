@@ -12,7 +12,7 @@ use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-class ManageCreatorsUnpublishTest extends TestCase
+class ManageCreatorsTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -72,6 +72,37 @@ class ManageCreatorsUnpublishTest extends TestCase
 
         $this->assertSame('pending', $target->fresh()->status);
         $this->assertTrue($owner->fresh()->hasRole('creator'));
+    }
+
+    public function test_preview_shows_pending_submission_with_owner_details(): void
+    {
+        $owner = User::factory()->create(['name' => 'Submitter Person', 'email' => 'submitter@example.com']);
+        $creator = $this->makeCreator(['user_id' => $owner->id, 'name' => 'Pending Hopeful', 'status' => 'pending']);
+
+        Livewire::actingAs($this->staff())
+            ->test(ManageCreators::class)
+            ->assertDontSee('Owner account')
+            ->call('openPreview', $creator->id)
+            ->assertSet('previewingCreatorId', $creator->id)
+            ->assertSee('Owner account')
+            ->assertSee('submitter@example.com')
+            ->assertSee('Test bio.')
+            ->assertSee('Re-pull')
+            ->call('closePreview')
+            ->assertSet('previewingCreatorId', null)
+            ->assertDontSee('Owner account');
+    }
+
+    public function test_editing_from_preview_closes_the_preview(): void
+    {
+        $creator = $this->makeCreator(['name' => 'Editable One', 'status' => 'published']);
+
+        Livewire::actingAs($this->staff())
+            ->test(ManageCreators::class)
+            ->call('openPreview', $creator->id)
+            ->call('edit', $creator->id)
+            ->assertSet('previewingCreatorId', null)
+            ->assertSet('showEditModal', true);
     }
 
     public function test_unpublish_ignores_pending_creators(): void

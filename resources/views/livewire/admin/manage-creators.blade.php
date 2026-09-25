@@ -174,41 +174,37 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <div class="flex items-center justify-end gap-2">
+                            <div class="flex items-center justify-end gap-1">
+                                <button type="button" wire:click="openPreview({{ $creator->id }})" title="Preview" aria-label="Preview {{ $creator->name }}"
+                                        class="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                                </button>
                                 @if($creator->status === 'pending')
-                                    <button wire:click="approve({{ $creator->id }})"
-                                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 text-xs font-medium">
-                                        Approve
+                                    <button type="button" wire:click="approve({{ $creator->id }})" title="Approve" aria-label="Approve {{ $creator->name }}"
+                                            class="p-1.5 rounded text-green-600 hover:text-green-800 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-900/20">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                                     </button>
                                 @elseif(in_array($creator->status, ['published', 'claimed']))
-                                    <button type="button"
+                                    <button type="button" title="Unpublish" aria-label="Unpublish {{ $creator->name }}"
                                             @click="window.tcModal.confirm(@js('Unpublish '.$creator->name.'? The profile will be hidden from the site and moved back to pending.'), {variant:'warning', confirmText:'Unpublish'}).then(ok => ok && $wire.unpublish({{ $creator->id }}))"
-                                            class="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 text-xs font-medium">
-                                        Unpublish
+                                            class="p-1.5 rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
                                     </button>
                                 @endif
                                 @if($creator->pending_claim_edit)
-                                    <button wire:click="openReviewModal({{ $creator->id }})"
-                                            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium">
-                                        Review
+                                    <button type="button" wire:click="openReviewModal({{ $creator->id }})" title="Review pending edits" aria-label="Review pending edits for {{ $creator->name }}"
+                                            class="p-1.5 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"/></svg>
                                     </button>
                                 @endif
-                                <button wire:click="edit({{ $creator->id }})"
-                                        class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-medium">
-                                    Edit
+                                <button type="button" wire:click="edit({{ $creator->id }})" title="Edit" aria-label="Edit {{ $creator->name }}"
+                                        class="p-1.5 rounded text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-900/20">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/></svg>
                                 </button>
-                                <button type="button"
-                                        @click="window.tcModal.confirm(@js('Re-pull AI data for '.$creator->name.'? This will overwrite the bio, image, and social links.'), {variant:'warning', confirmText:'Re-pull'}).then(ok => ok && $wire.repullCreator({{ $creator->id }}))"
-                                        wire:loading.attr="disabled"
-                                        wire:target="repullCreator({{ $creator->id }})"
-                                        class="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 text-xs font-medium disabled:opacity-50">
-                                    <span wire:loading.remove wire:target="repullCreator({{ $creator->id }})">Re-pull</span>
-                                    <span wire:loading wire:target="repullCreator({{ $creator->id }})">...</span>
-                                </button>
-                                <button type="button"
+                                <button type="button" title="Delete" aria-label="Delete {{ $creator->name }}"
                                         @click="window.tcModal.confirm(@js('Delete '.$creator->name.'? This cannot be undone.'), {variant:'danger', confirmText:'Delete'}).then(ok => ok && $wire.delete({{ $creator->id }}))"
-                                        class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs font-medium">
-                                    Delete
+                                        class="p-1.5 rounded text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.02-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
                                 </button>
                             </div>
                         </td>
@@ -950,6 +946,155 @@
             </div>
         </div>
     </div>
+    @endif
+
+    {{-- Preview Modal — read-only view of a profile, works for pending ones too --}}
+    @if($previewCreator = $this->previewCreator)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="preview-modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/80 transition-opacity" wire:click="closePreview"></div>
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-4">
+                        <div class="flex items-center gap-4 min-w-0">
+                            @if($previewCreator->profile_image_url)
+                                <img src="{{ $previewCreator->profile_image_url }}" alt="{{ $previewCreator->name }}" class="w-16 h-16 rounded-full object-cover flex-shrink-0">
+                            @else
+                                <div class="w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+                                     style="background-color: {{ $previewCreator->avatar_color }}">
+                                    {{ $previewCreator->initials }}
+                                </div>
+                            @endif
+                            <div class="min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate" id="preview-modal-title">{{ $previewCreator->name }}</h3>
+                                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium {{ match($previewCreator->status) {
+                                        'published' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                                        'claimed' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+                                        default => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                                    } }}">{{ ucfirst($previewCreator->status) }}</span>
+                                    @if($previewCreator->category)
+                                        <span class="text-gray-500 dark:text-gray-400">{{ $previewCreator->category }}</span>
+                                    @endif
+                                    @if($previewCreator->country)
+                                        <span class="text-gray-400">&middot;</span>
+                                        <span class="text-gray-500 dark:text-gray-400">{{ $previewCreator->country }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closePreview" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Close preview">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="px-6 py-5 max-h-[60vh] overflow-y-auto space-y-5 text-sm">
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Bio</div>
+                            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ $previewCreator->bio ?: '—' }}</p>
+                        </div>
+
+                        <div>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Social links</div>
+                            @forelse($previewCreator->socialLinks as $link)
+                                <div class="flex items-center gap-2 py-0.5 min-w-0">
+                                    <span class="w-20 flex-shrink-0 text-gray-500 dark:text-gray-400">{{ ucfirst($link->platform) }}</span>
+                                    @if(str_starts_with($link->url, 'http://') || str_starts_with($link->url, 'https://'))
+                                        <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer nofollow" class="text-indigo-600 dark:text-indigo-400 hover:underline truncate">{{ $link->url }}</a>
+                                    @else
+                                        <span class="text-gray-700 dark:text-gray-300 truncate">{{ $link->url }}</span>
+                                    @endif
+                                </div>
+                            @empty
+                                <p class="text-gray-400 italic">No social links.</p>
+                            @endforelse
+                        </div>
+
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Contact email</dt>
+                                <dd class="text-gray-900 dark:text-white break-all">{{ $previewCreator->contact_email ?: '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Followers (estimate)</dt>
+                                <dd class="text-gray-900 dark:text-white">
+                                    {{ $previewCreator->follower_count ? number_format($previewCreator->follower_count).($previewCreator->follower_platform ? ' on '.ucfirst($previewCreator->follower_platform) : '') : '—' }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Tagged posts</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ number_format($previewCreator->posts_count) }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Site followers</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ number_format($previewCreator->followers_count) }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Created</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $previewCreator->created_at?->format('M j, Y') }} <span class="text-gray-500 dark:text-gray-400">({{ $previewCreator->created_at?->diffForHumans() }})</span></dd>
+                            </div>
+                            @if($previewCreator->claimed_by_email)
+                                <div>
+                                    <dt class="text-xs text-gray-500 dark:text-gray-400">Claimed by</dt>
+                                    <dd class="text-gray-900 dark:text-white break-all">{{ $previewCreator->claimed_by_email }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+
+                        {{-- Owner account — the main signal when vetting user submissions --}}
+                        <div class="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Owner account</div>
+                            @if($owner = $previewCreator->user)
+                                <div class="text-gray-900 dark:text-white">{{ $owner->name }} <span class="text-gray-500 dark:text-gray-400 break-all">&lt;{{ $owner->email }}&gt;</span></div>
+                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Registered {{ $owner->created_at?->diffForHumans() }}
+                                    &middot;
+                                    @if($owner->email_verified_at)
+                                        <span class="text-green-700 dark:text-green-400">email verified</span>
+                                    @else
+                                        <span class="text-red-700 dark:text-red-400">email not verified</span>
+                                    @endif
+                                    &middot; role: {{ $owner->getRoleNames()->implode(', ') ?: 'none' }}
+                                </div>
+                            @else
+                                <p class="text-gray-500 dark:text-gray-400">No linked account (added by staff or AI discovery).</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                    @click="window.tcModal.confirm(@js('Re-pull AI data for '.$previewCreator->name.'? This will overwrite the bio, image, and social links.'), {variant:'warning', confirmText:'Re-pull'}).then(ok => ok && $wire.repullCreator({{ $previewCreator->id }}))"
+                                    wire:loading.attr="disabled" wire:target="repullCreator"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50">
+                                <svg class="w-4 h-4" wire:loading.class="animate-spin" wire:target="repullCreator" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                                <span wire:loading.remove wire:target="repullCreator">Re-pull</span>
+                                <span wire:loading wire:target="repullCreator">Re-pulling…</span>
+                            </button>
+                            @if(in_array($previewCreator->status, ['published', 'claimed']))
+                                <a href="{{ $previewCreator->public_url }}" target="_blank" rel="noopener"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                                    View on site
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                                </a>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2">
+                            @if($previewCreator->status === 'pending')
+                                <button type="button" wire:click="approve({{ $previewCreator->id }})"
+                                        class="px-3 py-1.5 text-xs font-semibold text-white bg-green-600 rounded hover:bg-green-700">Approve</button>
+                            @elseif(in_array($previewCreator->status, ['published', 'claimed']))
+                                <button type="button"
+                                        @click="window.tcModal.confirm(@js('Unpublish '.$previewCreator->name.'? The profile will be hidden from the site and moved back to pending.'), {variant:'warning', confirmText:'Unpublish'}).then(ok => ok && $wire.unpublish({{ $previewCreator->id }}))"
+                                        class="px-3 py-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded hover:bg-amber-200 dark:hover:bg-amber-900/50">Unpublish</button>
+                            @endif
+                            <button type="button" wire:click="edit({{ $previewCreator->id }})"
+                                    class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded hover:bg-indigo-700">Edit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     {{-- Review Pending Edits Modal --}}

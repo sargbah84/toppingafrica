@@ -70,6 +70,9 @@ class ManageCreators extends Component
     public ?int $editFollowerCount = null;
     public ?string $editFollowerPlatform = null;
 
+    // Preview modal state — read-only look at a profile, incl. pending ones
+    public ?int $previewingCreatorId = null;
+
     // Review modal state — for the Pending Edits tab
     public bool $showReviewModal = false;
     public ?int $reviewingCreatorId = null;
@@ -751,6 +754,27 @@ class ManageCreators extends Component
 
     // ── Pending Edit Review ──────────────────────────────────
 
+    public function openPreview(int $id): void
+    {
+        $this->previewingCreatorId = Creator::findOrFail($id)->id;
+    }
+
+    public function closePreview(): void
+    {
+        $this->previewingCreatorId = null;
+    }
+
+    public function getPreviewCreatorProperty(): ?Creator
+    {
+        if (! $this->previewingCreatorId) {
+            return null;
+        }
+
+        return Creator::with(['socialLinks', 'user'])
+            ->withCount(['posts', 'followers'])
+            ->find($this->previewingCreatorId);
+    }
+
     /**
      * Open the review modal for a creator with pending claim edits.
      * Shows the activity log diffs so staff can see what changed and
@@ -843,6 +867,7 @@ class ManageCreators extends Component
 
     public function edit(int $id): void
     {
+        $this->previewingCreatorId = null;
         $creator = Creator::with('socialLinks')->findOrFail($id);
 
         $this->editingCreatorId = $creator->id;
