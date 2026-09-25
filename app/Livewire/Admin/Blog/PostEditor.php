@@ -88,6 +88,8 @@ class PostEditor extends Component
 
     public bool $is_featured = false;
 
+    public bool $is_sponsored = false;
+
     /** Curated homepage rail this post is pinned to; '' = not pinned. */
     public string $pinned_section = '';
 
@@ -149,6 +151,7 @@ class PostEditor extends Component
         $this->status = $post->status;
         $this->scheduled_at = $post->scheduled_at?->format('Y-m-d\TH:i');
         $this->is_featured = $post->is_featured;
+        $this->is_sponsored = (bool) $post->is_sponsored;
         $this->pinned_section = $post->pinned_section ?? '';
         $this->pinned_until = $post->pinned_until?->format('Y-m-d\TH:i');
         $this->existingFeaturedImageUrl = $post->featured_image_url;
@@ -401,6 +404,7 @@ class PostEditor extends Component
             'og_meta' => $this->og_meta,
             'status' => $this->status,
             'is_featured' => $this->is_featured,
+            'is_sponsored' => $this->is_sponsored,
             'pinned_section' => $this->pinned_section ?: null,
             'pinned_until' => $this->pinned_section ? ($this->pinned_until ?: null) : null,
             'reading_time' => $this->calculateReadingTime(),
@@ -552,6 +556,7 @@ class PostEditor extends Component
             'status' => ['required', Rule::in(['draft', 'published', 'scheduled'])],
             'scheduled_at' => ['nullable', 'required_if:status,scheduled', 'date', 'after:now'],
             'is_featured' => ['boolean'],
+            'is_sponsored' => ['boolean'],
             'pinned_section' => ['nullable', 'string', Rule::in(array_keys(config('blog.pinned_sections', [])))],
             'pinned_until' => ['nullable', 'date', 'after:now'],
         ];

@@ -42,6 +42,7 @@ class Post extends Model implements HasMedia
         'scheduled_at',
         'reading_time',
         'is_featured',
+        'is_sponsored',
         'pinned_section',
         'pinned_until',
         'ai_provider',
@@ -58,6 +59,7 @@ class Post extends Model implements HasMedia
         'pinned_until' => 'datetime',
         'reading_time' => 'integer',
         'is_featured' => 'boolean',
+        'is_sponsored' => 'boolean',
     ];
 
     protected static function boot(): void
@@ -251,6 +253,42 @@ class Post extends Model implements HasMedia
     public function getFormattedReadingTimeAttribute(): string
     {
         return ($this->reading_time ?? 1).' min read';
+    }
+
+    /**
+     * Post body for display. Sponsored posts get rel="sponsored" on every
+     * outbound link so paid links don't pass ranking signals (Google policy).
+     */
+    public function getRenderedContentAttribute(): string
+    {
+        $content = (string) $this->content;
+
+        if (! $this->is_sponsored) {
+            return $content;
+        }
+
+        $siteHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+
+        return preg_replace_callback('/<a\b[^>]*>/i', function (array $match) use ($siteHost) {
+            $tag = $match[0];
+
+            if (! preg_match('/\bhref\s*=\s*(["\'])(https?:\/\/[^"\']+)\1/i', $tag, $href)) {
+                return $tag;
+            }
+
+            $linkHost = strtolower((string) parse_url(html_entity_decode($href[2]), PHP_URL_HOST));
+            if ($linkHost === '' || $linkHost === $siteHost || str_ends_with($linkHost, '.'.$siteHost)) {
+                return $tag;
+            }
+
+            if (preg_match('/\brel\s*=\s*(["\'])(.*?)\1/i', $tag, $rel)) {
+                $values = array_unique(array_filter([...preg_split('/\s+/', trim($rel[2])), 'sponsored', 'noopener']));
+
+                return str_replace($rel[0], 'rel="'.implode(' ', $values).'"', $tag);
+            }
+
+            return substr($tag, 0, -1).' rel="sponsored noopener">';
+        }, $content) ?? $content;
     }
 
     // Scopes

@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             LogRequests::class,
         ]);
 
+        // Stripe signs its webhook payloads; there is no session to carry a CSRF token.
+        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+
         $middleware->alias([
             'api.token' => AuthenticateApiToken::class,
         ]);

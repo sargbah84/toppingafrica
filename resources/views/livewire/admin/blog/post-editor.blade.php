@@ -371,6 +371,13 @@
                         </label>
                     </div>
                     <div>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="is_sponsored" class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700" />
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Sponsored (paid promotion)</span>
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Shows a Sponsored label and marks outbound links rel="sponsored".</p>
+                    </div>
+                    <div>
                         <label for="pinned_section" class="block text-sm text-gray-700 dark:text-gray-300 mb-1">Pin to homepage section</label>
                         <select
                             wire:model.live="pinned_section"

@@ -4,6 +4,7 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CreatorClaimController;
 use App\Http\Controllers\CreatorController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -72,6 +73,17 @@ Route::middleware('auth')->group(function () {
 // (or an open tab from before the refactor) lands on the new /dashboard.
 // 301 so browsers update their bookmarks.
 Route::permanentRedirect('/creator/dashboard', '/dashboard');
+
+// Paid promotions
+Route::get('/promote', [PromotionController::class, 'index'])->name('promote.index');
+Route::get('/promote/checkout', [PromotionController::class, 'create'])->name('promote.checkout');
+Route::post('/promote/checkout', [PromotionController::class, 'store'])->middleware('throttle:6,1')->name('promote.store');
+Route::get('/promote/{promotion}/pay', [PromotionController::class, 'pay'])->middleware('signed')->name('promote.pay');
+Route::get('/promote/{promotion}/pay-now', [PromotionController::class, 'startPayment'])
+    ->middleware(['signed', 'throttle:10,1'])
+    ->name('promote.pay-now');
+Route::get('/promote/{promotion}/thanks', [PromotionController::class, 'thanks'])->name('promote.thanks');
+Route::post('/stripe/webhook', [PromotionController::class, 'webhook'])->name('stripe.webhook');
 
 Route::get('/creators/suggest', [CreatorController::class, 'suggest'])->name('creators.suggest');
 Route::get('/creators/{slug}/qr-card', [CreatorController::class, 'qrCard'])->name('creators.qr-card');

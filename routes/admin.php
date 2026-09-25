@@ -18,6 +18,7 @@ use App\Http\Middleware\IsStaff;
 use App\Livewire\Admin\Blog\ContentCalendar;
 use App\Livewire\Admin\Blog\ContentLab;
 use App\Livewire\Admin\ManageCreators;
+use App\Livewire\Admin\ManagePromotions;
 use App\Livewire\Admin\ManageTrends;
 use App\Livewire\Admin\Monitoring\ActivityLogs;
 use App\Livewire\Admin\Monitoring\JobMonitor;
@@ -101,6 +102,9 @@ Route::prefix('admin')
 
         // Trends
         Route::get('trends', ManageTrends::class)->name('trends.index');
+
+        // Paid promotions
+        Route::get('promotions', ManagePromotions::class)->name('promotions.index');
 
         // Monitoring
         Route::get('monitoring/activity-logs', ActivityLogs::class)->name('monitoring.activity-logs');

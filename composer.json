@@ -17,6 +17,7 @@
         "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^6.25",
+        "stripe/stripe-php": "^21.3",
         "symfony/http-client": "^7.4",
         "symfony/mailgun-mailer": "^7.4"
     },
