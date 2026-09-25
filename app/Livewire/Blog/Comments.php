@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace App\Livewire\Blog;
 
-use App\Livewire\Concerns\HasRecaptcha;
+use App\Livewire\Concerns\HasTurnstile;
 use App\Models\Comment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class Comments extends Component
 {
-    use HasRecaptcha;
+    use HasTurnstile;
+
+    /** Comments + replies a single user may post per decay window. */
+    private const RATE_LIMIT = 5;
+
+    private const RATE_LIMIT_DECAY_SECONDS = 600;
+
     public int $postId;
 
     // Comment form
@@ -69,7 +76,7 @@ class Comments extends Component
             'body' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
-        if (!$this->validateRecaptcha('comment')) {
+        if ($this->rateLimited('body') || ! $this->validateTurnstile('comment')) {
             return;
         }
 
@@ -106,7 +113,9 @@ class Comments extends Component
             'replyBody' => ['required', 'string', 'min:3', 'max:5000'],
         ]);
 
-        if (!$this->validateRecaptcha('comment_reply')) {
+        // Replies share the 'comment' action: every widget on the page writes
+        // to the same $turnstileToken, so a per-form action could mismatch.
+        if ($this->rateLimited('replyBody') || ! $this->validateTurnstile('comment')) {
             return;
         }
 
@@ -126,6 +135,26 @@ class Comments extends Component
         $this->replyBody = '';
         $this->replyingTo = null;
         $this->successMessage = 'Your reply is awaiting moderation. Thank you!';
+    }
+
+    /**
+     * Counts the attempt and reports whether the user has exceeded the limit,
+     * attaching the error to the given field when they have.
+     */
+    private function rateLimited(string $errorField): bool
+    {
+        $key = 'comment:'.Auth::id();
+
+        if (RateLimiter::tooManyAttempts($key, self::RATE_LIMIT)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+            $this->addError($errorField, "You're commenting too quickly. Please try again in {$minutes} minute(s).");
+
+            return true;
+        }
+
+        RateLimiter::hit($key, self::RATE_LIMIT_DECAY_SECONDS);
+
+        return false;
     }
 
     public function startReply(int $commentId): void

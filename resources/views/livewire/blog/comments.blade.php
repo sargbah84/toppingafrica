@@ -51,31 +51,13 @@
                 </div>
             @endif
 
-            @error('recaptcha')
+            @error('turnstile')
                 <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
                     <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
                 </div>
             @enderror
 
-            <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-                  x-on:submit.prevent="
-                      if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                          grecaptcha.enterprise.ready(async () => {
-                              try {
-                                  const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment' });
-                                  $wire.set('recaptchaToken', token);
-                              } catch (e) {
-                                  $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                              }
-                              $wire.submitComment();
-                          });
-                      } else if (siteKey) {
-                          $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                          $wire.submitComment();
-                      } else {
-                          $wire.submitComment();
-                      }
-                  ">
+            <form wire:submit="submitComment">
                 {{-- Honeypot --}}
                 <div class="hidden" aria-hidden="true">
                     <input type="text" wire:model="honeypot" tabindex="-1" autocomplete="off">
@@ -92,6 +74,7 @@
                 </div>
 
                 <div class="flex justify-end">
+                    <x-turnstile action="comment" :livewire="true" class="mb-3" />
                     <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-semibold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             wire:loading.attr="disabled"
@@ -140,25 +123,7 @@
                         {{-- Inline Reply Form --}}
                         @if($replyingTo === $comment->id)
                             <div class="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                                <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-                                      x-on:submit.prevent="
-                                          if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                                              grecaptcha.enterprise.ready(async () => {
-                                                  try {
-                                                      const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
-                                                      $wire.set('recaptchaToken', token);
-                                                  } catch (e) {
-                                                      $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                                                  }
-                                                  $wire.submitReply();
-                                              });
-                                          } else if (siteKey) {
-                                              $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                                              $wire.submitReply();
-                                          } else {
-                                              $wire.submitReply();
-                                          }
-                                      ">
+                                <form wire:submit="submitReply">
                                     <div class="hidden" aria-hidden="true">
                                         <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
                                     </div>
@@ -177,6 +142,7 @@
                                                 class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                                             Cancel
                                         </button>
+                                        <x-turnstile action="comment" :livewire="true" class="mb-3" />
                                         <button type="submit"
                                                 class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors"
                                                 wire:loading.attr="disabled">
@@ -219,25 +185,7 @@
                                             {{-- Inline Reply Form for reply --}}
                                             @if($replyingTo === $reply->id)
                                                 <div class="mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
-                                                    <form x-data="{ siteKey: '{{ $this->getRecaptchaSiteKey() }}' }"
-                                                          x-on:submit.prevent="
-                                                              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                                                                  grecaptcha.enterprise.ready(async () => {
-                                                                      try {
-                                                                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'comment_reply' });
-                                                                          $wire.set('recaptchaToken', token);
-                                                                      } catch (e) {
-                                                                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                                                                      }
-                                                                      $wire.submitReply();
-                                                                  });
-                                                              } else if (siteKey) {
-                                                                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                                                                  $wire.submitReply();
-                                                              } else {
-                                                                  $wire.submitReply();
-                                                              }
-                                                          ">
+                                                    <form wire:submit="submitReply">
                                                         <div class="hidden" aria-hidden="true">
                                                             <input type="text" wire:model="replyHoneypot" tabindex="-1" autocomplete="off">
                                                         </div>
@@ -256,6 +204,7 @@
                                                                     class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700">
                                                                 Cancel
                                                             </button>
+                                                            <x-turnstile action="comment" :livewire="true" class="mb-3" />
                                                             <button type="submit"
                                                                     class="inline-flex items-center px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary-hover transition-colors"
                                                                     wire:loading.attr="disabled">

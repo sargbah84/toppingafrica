@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Concerns\VerifiesRecaptcha;
+use App\Http\Concerns\VerifiesTurnstile;
 use App\Models\Creator;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -17,7 +17,7 @@ use Illuminate\View\View;
 
 class CreatorClaimController extends Controller
 {
-    use VerifiesRecaptcha;
+    use VerifiesTurnstile;
 
     public function show(string $token): RedirectResponse|View
     {
@@ -120,7 +120,7 @@ class CreatorClaimController extends Controller
             'social_links.*.url' => 'nullable|url',
         ]);
 
-        $this->verifyRecaptcha($request, 'submit_creator_claim');
+        $this->verifyTurnstile($request, 'submit_creator_claim');
 
         if ($request->hasFile('photo')) {
             $creator->addMediaFromRequest('photo')->toMediaCollection('profile_image');
@@ -217,7 +217,7 @@ class CreatorClaimController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $this->verifyRecaptcha($request, 'creator_register');
+        $this->verifyTurnstile($request, 'creator_register');
 
         $user = User::create([
             'name' => $request->input('name'),

@@ -1,15 +1,15 @@
 <?php
 
-use App\Services\RecaptchaService;
+use App\Livewire\Concerns\HasTurnstile;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.guest')] class extends Component
 {
-    public string $email = '';
+    use HasTurnstile;
 
-    public mixed $recaptchaToken = '';
+    public string $email = '';
 
     /**
      * Send a password reset link to the provided email address.
@@ -20,15 +20,8 @@ new #[Layout('layouts.guest')] class extends Component
             'email' => ['required', 'string', 'email'],
         ]);
 
-        $recaptcha = app(RecaptchaService::class);
-        if ($recaptcha->isEnabled()) {
-            $token = is_string($this->recaptchaToken) ? $this->recaptchaToken : 'RECAPTCHA_INVALID';
-            $result = $recaptcha->verify($token, 'forgot_password');
-            if (! $result['success']) {
-                $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
-
-                return;
-            }
+        if (! $this->validateTurnstile('forgot_password')) {
+            return;
         }
 
         $status = Password::sendResetLink(
@@ -62,28 +55,9 @@ new #[Layout('layouts.guest')] class extends Component
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
 
-    <form x-data="{ siteKey: '{{ $recaptchaSiteKey }}' }"
-          x-on:submit.prevent="
-              if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                  grecaptcha.enterprise.ready(async () => {
-                      try {
-                          const token = await grecaptcha.enterprise.execute(siteKey, { action: 'forgot_password' });
-                          $wire.set('recaptchaToken', token);
-                      } catch (e) {
-                          $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                      }
-                      $wire.sendPasswordResetLink();
-                  });
-              } else if (siteKey) {
-                  $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                  $wire.sendPasswordResetLink();
-              } else {
-                  $wire.sendPasswordResetLink();
-              }
-          ">
-        @error('recaptcha')
+    <form wire:submit="sendPasswordResetLink">
+        @error('turnstile')
             <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
             </div>
@@ -104,6 +78,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <!-- Submit -->
+        <x-turnstile action="forgot_password" :livewire="true" class="mb-3" />
         <button type="submit" class="w-full mt-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
             Email Password Reset Link
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>

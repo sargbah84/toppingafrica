@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Listeners\LogJobHistory;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
-use App\Services\RecaptchaService;
+use App\Services\TurnstileService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -24,22 +24,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(RecaptchaService::class, function ($app) {
-            $config = $app['config']['recaptcha'];
-
-            $credentialsPath = $config['credentials_path'] ?? null;
-            if ($credentialsPath && ! str_starts_with($credentialsPath, '/') && ! str_starts_with($credentialsPath, 'C:')) {
-                $credentialsPath = storage_path('app/'.$credentialsPath);
-            }
-
-            return new RecaptchaService(
-                siteKey: $config['site_key'] ?? '',
-                projectId: $config['project_id'] ?? '',
-                scoreThreshold: $config['score_threshold'] ?? 0.5,
-                credentialsPath: $credentialsPath,
-                enabled: $config['enabled'] ?? true,
-            );
-        });
+        $this->app->singleton(TurnstileService::class, fn ($app) => new TurnstileService(
+            siteKey: $app['config']['turnstile.site_key'],
+            secretKey: $app['config']['turnstile.secret_key'],
+            enabled: (bool) $app['config']['turnstile.enabled'],
+        ));
     }
 
     /**

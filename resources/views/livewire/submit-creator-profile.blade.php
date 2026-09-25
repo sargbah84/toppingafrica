@@ -15,31 +15,13 @@
                 </div>
             @endif
 
-            @error('recaptcha')
+            @error('turnstile')
                 <div class="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
                     <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
                 </div>
             @enderror
 
-            <form x-data="{ siteKey: @js($this->getRecaptchaSiteKey()) }"
-                  @submit.prevent="
-                      if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                          grecaptcha.enterprise.ready(async () => {
-                              try {
-                                  const token = await grecaptcha.enterprise.execute(siteKey, { action: 'submit_creator_profile' });
-                                  $wire.set('recaptchaToken', token);
-                              } catch (e) {
-                                  $wire.set('recaptchaToken', 'RECAPTCHA_FAILED');
-                              }
-                              $wire.submit();
-                          });
-                      } else if (siteKey) {
-                          $wire.set('recaptchaToken', 'RECAPTCHA_NOT_LOADED');
-                          $wire.submit();
-                      } else {
-                          $wire.submit();
-                      }
-                  "
+            <form wire:submit="submit"
                   class="space-y-5">
 
                 {{-- Name --}}
@@ -176,6 +158,7 @@
 
                 {{-- Submit --}}
                 <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <x-turnstile action="submit_creator_profile" :livewire="true" class="mb-3" />
                     <button type="submit"
                             class="w-full px-6 py-3 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-60"
                             wire:loading.attr="disabled" wire:target="submit">

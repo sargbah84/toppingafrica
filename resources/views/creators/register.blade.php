@@ -41,32 +41,10 @@
                     </div>
                 @endif
 
-                @php($recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey())
                 <form action="{{ route('creators.claim.register', ['token' => $token]) }}" method="POST" class="space-y-4"
-                      x-data="{ siteKey: @js($recaptchaSiteKey), submitting: false }"
-                      x-on:submit.prevent="
-                          if (submitting) return;
-                          submitting = true;
-                          const doSubmit = () => { $el.submit(); };
-                          if (siteKey && typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                              grecaptcha.enterprise.ready(async () => {
-                                  try {
-                                      const token = await grecaptcha.enterprise.execute(siteKey, { action: 'creator_register' });
-                                      $refs.recaptchaToken.value = token;
-                                  } catch (e) {
-                                      $refs.recaptchaToken.value = 'RECAPTCHA_FAILED';
-                                  }
-                                  doSubmit();
-                              });
-                          } else if (siteKey) {
-                              $refs.recaptchaToken.value = 'RECAPTCHA_NOT_LOADED';
-                              doSubmit();
-                          } else {
-                              doSubmit();
-                          }
-                      ">
+                  x-data="{ submitting: false }"
+                  x-on:submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
                     @csrf
-                    <input type="hidden" name="recaptcha_token" x-ref="recaptchaToken" value="">
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
@@ -93,6 +71,7 @@
                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary sm:text-sm">
                     </div>
 
+                    <x-turnstile action="creator_register" class="mb-3" />
                     <button type="submit" :disabled="submitting"
                             class="w-full px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-md hover:bg-primary-hover transition-colors disabled:opacity-60">
                         <span x-show="!submitting">Create my account</span>

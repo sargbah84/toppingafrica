@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Livewire\Blog;
 
-use App\Livewire\Concerns\HasRecaptcha;
+use App\Livewire\Concerns\HasTurnstile;
 use App\Models\NewsletterSubscriber;
 use Illuminate\View\View;
 use Livewire\Component;
 
 class NewsletterSubscribe extends Component
 {
-    use HasRecaptcha;
+    use HasTurnstile;
 
     public string $email = '';
     public string $name = '';
@@ -23,7 +23,7 @@ class NewsletterSubscribe extends Component
         $this->successMessage = '';
         $this->errorMessage = '';
 
-        if (! $this->validateRecaptcha('newsletter_subscribe')) {
+        if (! $this->validateTurnstile('newsletter_subscribe')) {
             return;
         }
 

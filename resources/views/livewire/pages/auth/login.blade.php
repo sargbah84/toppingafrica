@@ -1,16 +1,16 @@
 <?php
 
 use App\Livewire\Forms\LoginForm;
-use App\Services\RecaptchaService;
+use App\Livewire\Concerns\HasTurnstile;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.guest')] class extends Component
 {
-    public LoginForm $form;
+    use HasTurnstile;
 
-    public mixed $recaptchaToken = '';
+    public LoginForm $form;
 
     /**
      * Handle an incoming authentication request.
@@ -19,15 +19,8 @@ new #[Layout('layouts.guest')] class extends Component
     {
         $this->validate();
 
-        $recaptcha = app(RecaptchaService::class);
-        if ($recaptcha->isEnabled()) {
-            $token = is_string($this->recaptchaToken) ? $this->recaptchaToken : 'RECAPTCHA_INVALID';
-            $result = $recaptcha->verify($token, 'login');
-            if (! $result['success']) {
-                $this->addError('recaptcha', $result['error'] ?? 'reCAPTCHA verification failed.');
-
-                return;
-            }
+        if (! $this->validateTurnstile('login')) {
+            return;
         }
 
         $this->form->authenticate();
@@ -66,49 +59,9 @@ new #[Layout('layouts.guest')] class extends Component
 
     <x-auth.google-button label="Continue with Google" />
 
-    @php $recaptchaSiteKey = app(\App\Services\RecaptchaService::class)->getSiteKey(); @endphp
 
-    <form x-data="{
-              siteKey: '{{ $recaptchaSiteKey }}',
-              submitting: false,
-              async handleSubmit() {
-                  if (this.submitting) return;
-                  this.submitting = true;
-                  try {
-                      if (!this.siteKey) {
-                          await $wire.login();
-                          return;
-                      }
-                      const deadline = Date.now() + 5000;
-                      while (Date.now() < deadline && (typeof grecaptcha === 'undefined' || !grecaptcha.enterprise)) {
-                          await new Promise(r => setTimeout(r, 100));
-                      }
-                      let token = 'RECAPTCHA_NOT_LOADED';
-                      if (typeof grecaptcha !== 'undefined' && grecaptcha.enterprise) {
-                          try {
-                              token = await new Promise((resolve, reject) => {
-                                  const t = setTimeout(() => reject(new Error('timeout')), 8000);
-                                  grecaptcha.enterprise.ready(async () => {
-                                      try {
-                                          const tok = await grecaptcha.enterprise.execute(this.siteKey, { action: 'login' });
-                                          clearTimeout(t);
-                                          resolve(tok);
-                                      } catch (e) { clearTimeout(t); reject(e); }
-                                  });
-                              });
-                          } catch (e) {
-                              token = 'RECAPTCHA_FAILED';
-                          }
-                      }
-                      await $wire.set('recaptchaToken', token, false);
-                      await $wire.login();
-                  } finally {
-                      this.submitting = false;
-                  }
-              }
-          }"
-          x-on:submit.prevent="handleSubmit()">
-        @error('recaptcha')
+    <form wire:submit="login">
+        @error('turnstile')
             <div class="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
                 <p class="text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
             </div>
@@ -164,6 +117,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <!-- Submit -->
+        <x-turnstile action="login" :livewire="true" class="mb-3" />
         <button type="submit" class="w-full mt-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
             Login
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>

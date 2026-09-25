@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
-use App\Livewire\Concerns\HasRecaptcha;
+use App\Livewire\Concerns\HasTurnstile;
 use App\Models\Creator;
 use App\Models\CreatorSocialLink;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +15,7 @@ use Livewire\Features\SupportRedirects\Redirector;
 #[Layout('components.layouts.blog')]
 class SubmitCreatorProfile extends Component
 {
-    use HasRecaptcha;
+    use HasTurnstile;
 
     public string $name = '';
     public string $bio = '';
@@ -86,7 +86,7 @@ class SubmitCreatorProfile extends Component
             'socialLinks.*.handle' => 'nullable|string|max:100',
         ]);
 
-        if (! $this->validateRecaptcha('submit_creator_profile')) {
+        if (! $this->validateTurnstile('submit_creator_profile')) {
             return;
         }
 
