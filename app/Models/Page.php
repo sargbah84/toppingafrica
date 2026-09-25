@@ -83,6 +83,13 @@ class Page extends Model
             'singleton' => true,
             'protected' => true,
         ],
+        'promote' => [
+            'label' => 'Promote (Packages)',
+            'description' => 'Renders the paid promotion packages, add-ons and FAQ. Optional content replaces the hero text. Prices live in config/promotions.php.',
+            'dynamic' => true,
+            'singleton' => true,
+            'protected' => true,
+        ],
     ];
 
     protected static function boot(): void
@@ -134,6 +141,11 @@ class Page extends Model
     public function isCreatorsTemplate(): bool
     {
         return $this->template === 'creators';
+    }
+
+    public function isPromoteTemplate(): bool
+    {
+        return $this->template === 'promote';
     }
 
     public function isDynamicTemplate(): bool

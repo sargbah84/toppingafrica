@@ -227,7 +227,7 @@
                         @endif
                     </div>
 
-                    @if ($template === 'trending' || $template === 'creators')
+                    @if (in_array($template, ['trending', 'creators', 'promote'], true))
                         <div class="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                             <p class="text-xs text-purple-700 dark:text-purple-400">
                                 {{ \App\Models\Page::TEMPLATES[$template]['description'] }}

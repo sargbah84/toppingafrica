@@ -75,7 +75,6 @@ Route::middleware('auth')->group(function () {
 Route::permanentRedirect('/creator/dashboard', '/dashboard');
 
 // Paid promotions
-Route::get('/promote', [PromotionController::class, 'index'])->name('promote.index');
 Route::get('/promote/checkout', [PromotionController::class, 'create'])->name('promote.checkout');
 Route::post('/promote/checkout', [PromotionController::class, 'store'])->middleware('throttle:6,1')->name('promote.store');
 Route::get('/promote/{promotion}/pay', [PromotionController::class, 'pay'])->middleware('signed')->name('promote.pay');

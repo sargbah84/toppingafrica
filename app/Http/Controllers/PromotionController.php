@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Concerns\VerifiesTurnstile;
+use App\Models\Page;
 use App\Models\PromotionRequest;
 use App\Services\Promotions\PromotionCheckout;
 use App\Services\Promotions\PromotionPricing;
@@ -38,11 +39,16 @@ class PromotionController extends Controller
         private readonly PromotionCheckout $checkout,
     ) {}
 
-    public function index(): View
+    /**
+     * Rendered by BlogController::show() for the CMS page using the `promote`
+     * template, so its slug, SEO fields and header-menu entry are editable.
+     */
+    public function index(Page $page): View
     {
         $online = $this->checkout->isEnabled();
 
         return view('promote.index', [
+            'page' => $page,
             'packages' => config('promotions.packages'),
             'addons' => config('promotions.addons'),
             'steps' => [
@@ -153,7 +159,7 @@ class PromotionController extends Controller
     public function pay(PromotionRequest $promotion): RedirectResponse|View
     {
         if ($promotion->status !== 'pending_payment') {
-            return redirect()->route('promote.index')
+            return redirect(template_url('promote'))
                 ->with('status', "Order {$promotion->reference} is already paid. We'll be in touch by email.");
         }
 
@@ -163,7 +169,7 @@ class PromotionController extends Controller
     public function startPayment(PromotionRequest $promotion): RedirectResponse
     {
         if ($promotion->status !== 'pending_payment') {
-            return redirect()->route('promote.index');
+            return redirect(template_url('promote'));
         }
 
         return $this->redirectToCheckout($promotion);

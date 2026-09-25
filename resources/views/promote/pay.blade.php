@@ -26,7 +26,7 @@
            class="block w-full text-center px-6 py-3 bg-primary text-white font-semibold rounded-md hover:bg-primary-hover transition-colors">
             Pay {{ $promotion->formatted_amount }} securely
         </a>
-        <a href="{{ route('promote.index') }}" class="block text-center text-sm text-gray-500 dark:text-gray-400 hover:underline mt-4">
+        <a href="{{ template_url('promote') }}" class="block text-center text-sm text-gray-500 dark:text-gray-400 hover:underline mt-4">
             Start a different order
         </a>
     </div>

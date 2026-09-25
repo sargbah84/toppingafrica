@@ -242,6 +242,10 @@ class BlogController extends Controller
                 return $this->renderCreatorsPage($page, $request);
             }
 
+            if ($page->isPromoteTemplate()) {
+                return app(PromotionController::class)->index($page);
+            }
+
             return view('blog.page', compact('page'));
         }
 

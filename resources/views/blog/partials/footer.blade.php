@@ -32,7 +32,7 @@
                 <a href="#" class="inline-block px-7 py-2.5 border border-gray-500 text-sm text-gray-300 hover:bg-white hover:text-gray-900 transition-colors rounded-sm">
                     Subscribe
                 </a>
-                <a href="{{ route('promote.index') }}" class="inline-block ml-2 px-7 py-2.5 bg-primary text-sm font-semibold text-white hover:bg-primary-hover transition-colors rounded-sm">
+                <a href="{{ template_url('promote') }}" class="inline-block ml-2 px-7 py-2.5 bg-primary text-sm font-semibold text-white hover:bg-primary-hover transition-colors rounded-sm">
                     Promote with us
                 </a>
             </div>

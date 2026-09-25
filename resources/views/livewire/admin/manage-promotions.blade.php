@@ -14,7 +14,7 @@
 
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p class="text-sm text-gray-600 dark:text-gray-400">
-            Paid orders from <a href="{{ route('promote.index') }}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">/promote</a>.
+            Paid orders from <a href="{{ template_url('promote') }}" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">the Promote page</a>.
             Revenue to date: <strong class="text-gray-900 dark:text-white">{{ \App\Models\PromotionRequest::formatMoney((int) $revenue) }}</strong>
         </p>
         <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search orders…"

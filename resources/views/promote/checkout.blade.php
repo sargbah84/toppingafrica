@@ -5,7 +5,7 @@
 >
 
 <section class="max-w-container mx-auto px-4 py-10">
-    <a href="{{ route('promote.index') }}#packages" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary mb-4">
+    <a href="{{ template_url('promote') }}#packages" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary mb-4">
         &larr; Back to packages
     </a>
     <h1 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Start your promotion</h1>
@@ -152,7 +152,7 @@
                         </label>
                     @endforeach
                 </div>
-                <a href="{{ route('promote.index') }}#packages" target="_blank" class="inline-block mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-primary">Compare packages ↗</a>
+                <a href="{{ template_url('promote') }}#packages" target="_blank" class="inline-block mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-primary">Compare packages ↗</a>
             </div>
 
             <div>

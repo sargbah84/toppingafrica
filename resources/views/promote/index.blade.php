@@ -1,21 +1,27 @@
 <x-layouts.blog
-    title="Promote with Topping Africa"
-    :metaDescription="'Get your music, video, event or business featured on Topping Africa — published on our site, shared with our Facebook, Instagram and YouTube audience, and boosted for global reach.'"
-    :canonical="route('promote.index')"
+    :title="$page->meta_title ?: 'Promote with Topping Africa'"
+    :metaDescription="$page->meta_description ?: 'Get your music, video, event or business featured on Topping Africa — published on our site, shared with our Facebook, Instagram and YouTube audience, and boosted for global reach.'"
+    :canonical="url('/' . $page->slug)"
 >
 
-{{-- Hero --}}
+{{-- Hero: the page's own content (from the page editor) replaces the default copy when set. --}}
 <section class="bg-gray-950 text-white">
     <div class="max-w-container mx-auto px-4 py-14 md:py-20">
         <div class="max-w-3xl">
-            <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">Promote with us</p>
-            <h1 class="text-3xl md:text-5xl font-black leading-tight mb-5">
-                Put your release in front of Africa &mdash; and the world.
-            </h1>
-            <p class="text-lg text-gray-300 leading-relaxed mb-8">
-                New song, music video, event, startup or product? Our editors turn it into a story, publish it on
-                Topping Africa, and share it with our community on Facebook, Instagram, YouTube and TikTok.
-            </p>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">{{ $page->title }}</p>
+            @if(trim(strip_tags((string) $page->content)) !== '')
+                <div class="prose prose-lg prose-invert max-w-none mb-8 prose-headings:font-black prose-h1:text-3xl md:prose-h1:text-5xl prose-h1:leading-tight">
+                    {!! $page->content !!}
+                </div>
+            @else
+                <h1 class="text-3xl md:text-5xl font-black leading-tight mb-5">
+                    Put your release in front of Africa &mdash; and the world.
+                </h1>
+                <p class="text-lg text-gray-300 leading-relaxed mb-8">
+                    New song, music video, event, startup or product? Our editors turn it into a story, publish it on
+                    Topping Africa, and share it with our community on Facebook, Instagram, YouTube and TikTok.
+                </p>
+            @endif
             <div class="flex flex-wrap gap-3">
                 <a href="#packages" class="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-md hover:bg-primary-hover transition-colors">
                     See packages

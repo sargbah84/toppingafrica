@@ -9,8 +9,10 @@ use App\Mail\PromotionAdminAlert;
 use App\Mail\PromotionInquiryReceived;
 use App\Mail\PromotionLive;
 use App\Mail\PromotionReceipt;
+use App\Models\Page;
 use App\Models\Post;
 use App\Models\PromotionRequest;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Promotions\PromotionCheckout;
 use App\Services\Promotions\PromotionPricing;
@@ -110,6 +112,24 @@ class PromotionTest extends TestCase
             ->assertSee('$179')
             ->assertSee(route('promote.checkout', ['package' => 'spotlight']), false)
             ->assertSee('Get your invoice');
+    }
+
+    public function test_promote_page_is_a_cms_page_in_the_header_menu(): void
+    {
+        $page = Page::byTemplate('promote');
+        $this->assertNotNull($page);
+
+        $header = json_decode(Setting::get('header_pages', '[]'), true);
+        $this->assertContains($page->id, array_column($header, 'id'));
+
+        $this->get('/')->assertSee('href="'.url('/promote').'"', false);
+
+        // Renaming the slug moves the page, and internal links follow it.
+        $page->update(['slug' => 'advertise', 'meta_title' => 'Advertise with us', 'content' => '<h1>Get featured</h1>']);
+
+        $this->get('/advertise')->assertOk()->assertSee('Get featured')->assertSee('Advertise with us')->assertSee('Spotlight');
+        $this->get('/promote')->assertNotFound();
+        $this->get('/promote/checkout')->assertOk()->assertSee(url('/advertise').'#packages', false);
     }
 
     public function test_checkout_page_preselects_package(): void
