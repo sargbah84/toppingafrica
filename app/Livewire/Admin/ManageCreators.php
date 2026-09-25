@@ -664,6 +664,39 @@ class ManageCreators extends Component
         session()->flash('success', "{$creator->name} has been published.");
     }
 
+    /**
+     * Reverse an approval — hide the profile from the public site by moving
+     * it back to pending. Any outstanding claim invite is revoked, and if the
+     * owner only held the 'creator' role because of this profile, they are
+     * demoted back to 'regular' (single-role rule: syncRoles, never assign).
+     */
+    public function unpublish(int $id): void
+    {
+        $creator = Creator::findOrFail($id);
+
+        if (! in_array($creator->status, ['published', 'claimed'], true)) {
+            return;
+        }
+
+        $creator->update([
+            'status' => 'pending',
+            'claim_token' => null,
+            'claim_token_expires_at' => null,
+        ]);
+
+        $owner = $creator->user;
+        $ownsOtherLiveProfiles = $owner && $owner->claimedCreators()
+            ->whereKeyNot($creator->id)
+            ->whereIn('status', ['published', 'claimed'])
+            ->exists();
+
+        if ($owner && $owner->hasRole('creator') && ! $ownsOtherLiveProfiles) {
+            $owner->syncRoles(['regular']);
+        }
+
+        session()->flash('success', "{$creator->name} has been unpublished and moved back to pending.");
+    }
+
     public function bulkRepull(): void
     {
         $ids = array_map('intval', $this->selected);

@@ -180,6 +180,12 @@
                                             class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 text-xs font-medium">
                                         Approve
                                     </button>
+                                @elseif(in_array($creator->status, ['published', 'claimed']))
+                                    <button type="button"
+                                            @click="window.tcModal.confirm(@js('Unpublish '.$creator->name.'? The profile will be hidden from the site and moved back to pending.'), {variant:'warning', confirmText:'Unpublish'}).then(ok => ok && $wire.unpublish({{ $creator->id }}))"
+                                            class="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 text-xs font-medium">
+                                        Unpublish
+                                    </button>
                                 @endif
                                 @if($creator->pending_claim_edit)
                                     <button wire:click="openReviewModal({{ $creator->id }})"
