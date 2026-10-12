@@ -42,6 +42,8 @@ class DatabaseSeeder extends Seeder
         $regular = Role::create(['name' => 'regular']);
         // "creator" has no permissions — it's a marker role for routing.
         $creator = Role::create(['name' => 'creator']);
+        // "contributor" is the same kind of marker, for sponsored-article submitters.
+        Role::findOrCreate('contributor', 'web');
 
         $superAdmin->givePermissionTo(Permission::all());
         $editor->givePermissionTo([

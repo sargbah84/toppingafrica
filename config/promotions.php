@@ -118,6 +118,44 @@ return [
         ],
     ],
 
+    /*
+    | Sponsored articles: the buyer supplies a finished article, we review,
+    | edit and publish it. Sold separately from the packages above (no
+    | add-ons) and only to signed-in, email-verified accounts.
+    */
+    'sponsored_packages' => [
+        'sponsored_article' => [
+            'name' => 'Sponsored Article',
+            'price' => 9900,
+            'tagline' => 'Your own article, published on Topping Africa.',
+            'turnaround' => '3 business days after payment',
+            'max_words' => 1200,
+            'features' => [
+                'Your article (up to 1,200 words), reviewed by our editors',
+                'One link to your website',
+                'Featured image',
+                'Permanent article, labelled Sponsored',
+            ],
+        ],
+        'sponsored_article_plus' => [
+            'name' => 'Sponsored Article + Social',
+            'price' => 14900,
+            'tagline' => 'Your article, shared with our Facebook community.',
+            'turnaround' => '3 business days after payment',
+            'max_words' => 1500,
+            'popular' => true,
+            'features' => [
+                'Everything in Sponsored Article',
+                'Up to 1,500 words',
+                'Shared on the Topping Africa Facebook page',
+                'Pinned on the homepage for 3 days',
+            ],
+        ],
+    ],
+
+    // Shortest article accepted for a sponsored placement.
+    'sponsored_min_words' => 300,
+
     'promo_types' => [
         'music' => 'Music release',
         'video' => 'Music video / film',

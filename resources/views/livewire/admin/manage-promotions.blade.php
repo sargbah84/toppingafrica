@@ -125,7 +125,7 @@
                             @if($selected->phone) · {{ $selected->phone }} @endif
                         </dd>
                         <dt class="text-gray-500 dark:text-gray-400">Type</dt>
-                        <dd class="col-span-2 text-gray-900 dark:text-white">{{ config("promotions.promo_types.{$selected->promo_type}", $selected->promo_type) }}</dd>
+                        <dd class="col-span-2 text-gray-900 dark:text-white">{{ $selected->promo_type_label }}</dd>
                         <dt class="text-gray-500 dark:text-gray-400">Add-ons</dt>
                         <dd class="col-span-2 text-gray-900 dark:text-white">{{ implode(', ', $selected->addon_names) ?: '—' }}</dd>
                         <dt class="text-gray-500 dark:text-gray-400">Preferred date</dt>
@@ -141,10 +141,25 @@
                         </dd>
                     </dl>
 
-                    <div>
-                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Their story</h3>
-                        <p class="whitespace-pre-line text-gray-700 dark:text-gray-300 rounded-md bg-gray-50 dark:bg-gray-900/50 p-3">{{ $selected->description }}</p>
-                    </div>
+                    @if($selected->isSponsoredArticle())
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
+                                Their article
+                                <span class="font-normal text-xs text-gray-500 dark:text-gray-400">
+                                    · {{ number_format(\App\Http\Controllers\SponsoredArticleController::wordCount((string) $selected->article_body)) }} words
+                                    · link text: “{{ $selected->anchor_text }}”
+                                </span>
+                            </h3>
+                            <p class="whitespace-pre-line text-gray-700 dark:text-gray-300 rounded-md bg-gray-50 dark:bg-gray-900/50 p-3 max-h-96 overflow-y-auto">{{ $selected->article_body }}</p>
+                        </div>
+                    @endif
+
+                    @if(filled($selected->description))
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ $selected->isSponsoredArticle() ? 'Notes for editors' : 'Their story' }}</h3>
+                            <p class="whitespace-pre-line text-gray-700 dark:text-gray-300 rounded-md bg-gray-50 dark:bg-gray-900/50 p-3">{{ $selected->description }}</p>
+                        </div>
+                    @endif
 
                     @if($selected->getMedia('assets')->isNotEmpty())
                         <div>
@@ -171,7 +186,11 @@
                                         <option value="{{ $key }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Inquiry → Invoice sent → Paid → In production → Live. Setting <strong>Paid</strong> records the payment date; <strong>Live</strong> emails the buyer their links (once).</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Inquiry → Invoice sent → Paid → In production → Live. Setting <strong>Paid</strong> records the payment date; <strong>Live</strong> emails the buyer their links (once).
+                                    @if($selected->isSponsoredArticle())
+                                        To approve this article set <strong>Invoice sent</strong> — with online payments on, the buyer is emailed a payment link automatically.
+                                    @endif
+                                </p>
                             </div>
                             <div>
                                 <label class="block font-medium text-gray-700 dark:text-gray-300 mb-1">Article (post ID, slug or URL)</label>

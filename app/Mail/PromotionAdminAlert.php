@@ -41,7 +41,9 @@ class PromotionAdminAlert extends Mailable
                     $this->promotion->isPaid()
                         ? "{$who} paid {$this->promotion->formatted_amount}."
                         : "{$who} submitted a request ({$this->promotion->formatted_amount}). Review it, then email them an invoice / payment link and set the status to <strong>Invoice sent</strong>.",
-                    nl2br(e($this->promotion->description)),
+                    $this->promotion->isSponsoredArticle()
+                        ? 'They supplied their own article — read it in admin before approving.'
+                        : nl2br(e($this->promotion->description)),
                 ],
                 'showDetails' => true,
                 'ctaUrl' => route('admin.promotions.index', ['open' => $this->promotion->reference]),

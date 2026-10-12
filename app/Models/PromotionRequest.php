@@ -27,6 +27,9 @@ class PromotionRequest extends Model implements HasMedia
         'cancelled' => 'Cancelled',
     ];
 
+    /** `promo_type` of an order where the buyer supplies the finished article. */
+    public const SPONSORED_ARTICLE = 'sponsored_article';
+
     protected $fillable = [
         'user_id',
         'package',
@@ -40,7 +43,9 @@ class PromotionRequest extends Model implements HasMedia
         'subject_name',
         'title',
         'description',
+        'article_body',
         'primary_url',
+        'anchor_text',
         'links',
         'preferred_date',
         'rights_confirmed',
@@ -98,7 +103,15 @@ class PromotionRequest extends Model implements HasMedia
 
     public function getPackageNameAttribute(): string
     {
-        return config("promotions.packages.{$this->package}.name", Str::headline($this->package));
+        return config("promotions.packages.{$this->package}.name")
+            ?? config("promotions.sponsored_packages.{$this->package}.name", Str::headline($this->package));
+    }
+
+    public function getPromoTypeLabelAttribute(): string
+    {
+        return $this->isSponsoredArticle()
+            ? 'Sponsored article'
+            : config("promotions.promo_types.{$this->promo_type}", Str::headline($this->promo_type));
     }
 
     /** @return array<int, string> */
@@ -133,6 +146,65 @@ class PromotionRequest extends Model implements HasMedia
     public function isPaid(): bool
     {
         return $this->paid_at !== null;
+    }
+
+    /** Approved or checked out, but not paid yet. */
+    public function awaitingPayment(): bool
+    {
+        return ! $this->isPaid() && in_array($this->status, ['invoiced', 'pending_payment'], true);
+    }
+
+    public function isSponsoredArticle(): bool
+    {
+        return $this->promo_type === self::SPONSORED_ARTICLE;
+    }
+
+    /** Status as shown to the buyer in their dashboard. */
+    public function getBuyerStatusAttribute(): string
+    {
+        return match ($this->status) {
+            'inquiry' => 'In review',
+            'invoiced', 'pending_payment' => 'Approved — awaiting payment',
+            'paid', 'in_production' => 'Paid — being published',
+            'live', 'completed' => 'Published',
+            'declined' => 'Declined',
+            'cancelled' => 'Cancelled',
+            default => $this->status_label,
+        };
+    }
+
+    /**
+     * The submitted article as post HTML. The buyer's link goes on the first
+     * occurrence of their anchor text, or in a closing paragraph if the text
+     * doesn't appear in the article.
+     */
+    public function articleHtml(): string
+    {
+        $anchor = e((string) $this->anchor_text);
+        $href = e($this->primary_url);
+        $linked = false;
+
+        $html = collect(preg_split('/\R{2,}/', trim((string) $this->article_body)))
+            ->filter(fn (string $paragraph) => trim($paragraph) !== '')
+            ->map(function (string $paragraph) use ($anchor, $href, &$linked) {
+                $paragraph = nl2br(e(trim($paragraph)));
+
+                if (! $linked && $anchor !== '') {
+                    $paragraph = preg_replace_callback(
+                        '/'.preg_quote($anchor, '/').'/i',
+                        fn (array $match) => '<a href="'.$href.'">'.$match[0].'</a>',
+                        $paragraph,
+                        1,
+                        $count,
+                    );
+                    $linked = $count > 0;
+                }
+
+                return "<p>{$paragraph}</p>";
+            })
+            ->implode('');
+
+        return $linked ? $html : $html.'<p><a href="'.$href.'">'.($anchor ?: $href).'</a></p>';
     }
 
     public static function formatMoney(int $cents, ?string $currency = null): string

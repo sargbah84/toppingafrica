@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Livewire\Admin;
 
+use App\Mail\PromotionApproved;
 use App\Mail\PromotionLive;
 use App\Models\Post;
 use App\Models\PromotionRequest;
+use App\Services\Promotions\PromotionCheckout;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
@@ -128,6 +130,12 @@ class ManagePromotions extends Component
 
         $becameLive = $this->status === 'live' && $promotion->live_at === null;
 
+        // A sponsored article passing review; with Stripe on, the buyer is sent a pay link.
+        $approved = $promotion->isSponsoredArticle()
+            && $promotion->status === 'inquiry'
+            && in_array($this->status, ['invoiced', 'pending_payment'], true)
+            && app(PromotionCheckout::class)->isEnabled();
+
         // Invoices are paid outside the site; moving past "paid" records it.
         $markPaid = $promotion->paid_at === null
             && in_array($this->status, ['paid', 'in_production', 'live', 'completed'], true);
@@ -157,6 +165,14 @@ class ManagePromotions extends Component
                 Log::error('Promotion live email failed', ['reference' => $promotion->reference, 'error' => $e->getMessage()]);
                 session()->flash('error', 'Saved, but the "you\'re live" email failed to send.');
             }
+        } elseif ($approved) {
+            try {
+                Mail::to($promotion->email)->send(new PromotionApproved($promotion));
+                session()->flash('success', "Saved. {$promotion->name} was emailed a payment link.");
+            } catch (\Throwable $e) {
+                Log::error('Promotion approved email failed', ['reference' => $promotion->reference, 'error' => $e->getMessage()]);
+                session()->flash('error', 'Saved, but the payment-link email failed to send.');
+            }
         } else {
             session()->flash('success', "Order {$promotion->reference} saved.");
         }
@@ -179,8 +195,12 @@ class ManagePromotions extends Component
 
         $post = Post::create([
             'author_id' => auth()->id(),
-            'title' => "{$promotion->subject_name} — {$promotion->title}",
-            'content' => '<p>'.nl2br(e($promotion->description)).'</p><ul>'.$links.'</ul>',
+            'title' => $promotion->isSponsoredArticle()
+                ? $promotion->title
+                : "{$promotion->subject_name} — {$promotion->title}",
+            'content' => $promotion->isSponsoredArticle()
+                ? $promotion->articleHtml()
+                : '<p>'.nl2br(e($promotion->description)).'</p><ul>'.$links.'</ul>',
             'post_type' => $promotion->promo_type === 'video' ? 'video' : 'article',
             'status' => 'draft',
             'is_sponsored' => true,

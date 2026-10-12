@@ -75,6 +75,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Creator::class);
     }
 
+    public function promotionRequests(): HasMany
+    {
+        return $this->hasMany(PromotionRequest::class);
+    }
+
     public function getAvatarUrlAttribute(): string
     {
         return $this->avatar ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=000000&color=ffffff';

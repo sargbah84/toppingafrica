@@ -6,6 +6,7 @@ use App\Http\Controllers\CreatorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\SponsoredArticleController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -54,6 +55,16 @@ Route::post('/creators/claim/{token}/register', [CreatorClaimController::class, 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/settings', [DashboardController::class, 'settings'])->name('dashboard.settings');
+    Route::get('/dashboard/sponsored', [SponsoredArticleController::class, 'index'])->name('dashboard.sponsored');
+
+    // Sponsored articles need a verified account so submissions can't be
+    // scripted and every one is tied to a reachable email address.
+    Route::middleware('verified')->group(function () {
+        Route::get('/promote/sponsored-article', [SponsoredArticleController::class, 'create'])->name('sponsored.create');
+        Route::post('/promote/sponsored-article', [SponsoredArticleController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('sponsored.store');
+    });
 
     // Authenticated creator profile edit routes — intentionally kept at
     // /creator/profile/* because they're semantically creator-specific

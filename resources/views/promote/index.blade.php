@@ -125,6 +125,53 @@
     </div>
 </section>
 
+{{-- Sponsored articles: the buyer brings a finished article --}}
+<section id="sponsored" class="max-w-container mx-auto px-4 py-14 scroll-mt-20">
+    <div class="text-center max-w-2xl mx-auto mb-10">
+        <h2 class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">Already have an article written?</h2>
+        <p class="text-gray-600 dark:text-gray-400">
+            Submit your own article with a link to your site. Our editors review it first — you only pay once it's approved.
+            It must be relevant to Africa or the African diaspora.
+        </p>
+    </div>
+
+    <div class="grid gap-5 sm:grid-cols-2 max-w-3xl mx-auto">
+        @foreach($sponsoredPackages as $key => $package)
+            <div @class([
+                'relative flex flex-col rounded-lg bg-white dark:bg-gray-800 p-6 border-2',
+                'border-primary shadow-lg' => !empty($package['popular']),
+                'border-gray-200 dark:border-gray-700' => empty($package['popular']),
+            ])>
+                <h3 class="text-lg font-black text-gray-900 dark:text-white">{{ $package['name'] }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4 min-h-[2.5rem]">{{ $package['tagline'] }}</p>
+                <p class="mb-1">
+                    <span class="text-4xl font-black text-gray-900 dark:text-white">{{ \App\Models\PromotionRequest::formatMoney($package['price']) }}</span>
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">Published within {{ $package['turnaround'] }}</p>
+                <ul class="space-y-2 mb-6 flex-1">
+                    @foreach($package['features'] as $feature)
+                        <li class="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <svg class="w-4 h-4 mt-0.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                            <span>{{ $feature }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <a href="{{ route('sponsored.create', ['package' => $key]) }}"
+                   @class([
+                       'block w-full py-2.5 rounded-md text-center text-sm font-semibold transition-colors',
+                       'bg-primary text-white hover:bg-primary-hover' => !empty($package['popular']),
+                       'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200' => empty($package['popular']),
+                   ])>
+                    Submit your article
+                </a>
+            </div>
+        @endforeach
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-5">
+        A free Topping Africa account with a verified email is required to submit.
+    </p>
+</section>
+
 {{-- FAQ --}}
 <section>
     <div class="max-w-3xl mx-auto px-4 py-14">

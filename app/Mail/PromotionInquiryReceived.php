@@ -30,14 +30,18 @@ class PromotionInquiryReceived extends Mailable
             with: [
                 'promotion' => $this->promotion,
                 'greeting' => "Hi {$this->promotion->name},",
-                'paragraphs' => [
+                'paragraphs' => $this->promotion->isSponsoredArticle() ? [
+                    "Thank you for submitting your article to Topping Africa! We've received it under <strong>{$this->promotion->package_name}</strong>.",
+                    'There is nothing to pay yet. Our editors will review your article within 2 business days. If it is approved, we will email you <strong>payment details</strong>; if it is not a fit, we will let you know.',
+                    'Your article is published once payment is received. You can follow its status under <strong>Sponsored articles</strong> in your dashboard.',
+                ] : [
                     "Thank you for choosing Topping Africa! We've received your request for <strong>{$this->promotion->package_name}</strong>.",
                     'There is nothing to pay yet. Our team will review your submission and, within 2 business days, send you a separate email with your <strong>invoice and a secure payment link</strong>. Please keep an eye on your inbox (and your spam folder, just in case).',
                     'Once payment is received we start production and will email you every link as soon as your promotion is live.',
                 ],
                 'showDetails' => true,
-                'ctaUrl' => null,
-                'ctaLabel' => null,
+                'ctaUrl' => $this->promotion->isSponsoredArticle() ? route('dashboard.sponsored') : null,
+                'ctaLabel' => $this->promotion->isSponsoredArticle() ? 'View your submission' : null,
             ],
         );
     }

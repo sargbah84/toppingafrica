@@ -55,6 +55,24 @@
             </ul>
         @endif
 
+        {{-- PUBLISH section — for everyone, so a newly registered user can
+             find the sponsored-article form. Submitting one makes a
+             regular user a "contributor". --}}
+        <div class="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {{ $user->hasRole('contributor') ? 'Contributor' : 'Publish with us' }}
+        </div>
+        <ul class="space-y-1">
+            <li>
+                <a href="{{ route('dashboard.sponsored') }}"
+                   class="block px-3 py-2 rounded-md text-sm font-medium transition-colors
+                          {{ request()->routeIs('dashboard.sponsored')
+                             ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
+                    Sponsored articles
+                </a>
+            </li>
+        </ul>
+
         {{-- ACCOUNT section (divider + items at the bottom, for everyone) --}}
         <div class="my-3 border-t border-gray-200 dark:border-gray-700"></div>
         <ul class="space-y-1">

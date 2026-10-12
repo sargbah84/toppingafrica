@@ -51,6 +51,7 @@ class PromotionController extends Controller
             'page' => $page,
             'packages' => config('promotions.packages'),
             'addons' => config('promotions.addons'),
+            'sponsoredPackages' => config('promotions.sponsored_packages'),
             'steps' => [
                 ['1', 'Pick a package', 'Choose what fits your budget — from a quick news post to a full video spotlight.'],
                 ['2', 'Tell us your story', 'Share your links, photos and the details that make your release special.'],
@@ -62,6 +63,7 @@ class PromotionController extends Controller
             'faqs' => [
                 ['Who can promote with Topping Africa?', 'Musicians, filmmakers, creators, event organisers, startups and brands — from Africa and the diaspora. We focus on positive, creative and entrepreneurial stories and don\'t accept political campaigns, gambling, adult content or unverified financial offers.'],
                 ['Will my post be marked as sponsored?', 'Yes. Paid features carry a "Sponsored" label on our site, and social posts use the platforms\' paid-partnership labels. It keeps our readers\' trust — which is what makes the promotion worth it.'],
+                ['Can I submit an article I\'ve already written?', 'Yes — that\'s a Sponsored Article. Create a free account, paste your article and the link you want included, and our editors review it within 2 business days. You only pay once it\'s approved, and it\'s published after payment. Links in sponsored articles are marked rel="sponsored".'],
                 ['Do I get to approve the article?', 'Our editors write the story using what you send us. We\'ll happily fix factual errors, but Topping Africa keeps final editorial control over wording and headlines.'],
                 ['How does the paid boost work?', 'For Social Boost and Spotlight, we run the included ad budget on Facebook and Instagram for about 7 days, targeting audiences most likely to engage with your release. You can add more budget with the Extra Paid Boost add-on.'],
                 $online
@@ -158,9 +160,13 @@ class PromotionController extends Controller
     /** Signed link used as Stripe's cancel URL — lets the buyer retry payment. */
     public function pay(PromotionRequest $promotion): RedirectResponse|View
     {
-        if ($promotion->status !== 'pending_payment') {
+        if ($promotion->isPaid()) {
             return redirect(template_url('promote'))
                 ->with('status', "Order {$promotion->reference} is already paid. We'll be in touch by email.");
+        }
+
+        if (! $promotion->awaitingPayment()) {
+            return redirect(template_url('promote'));
         }
 
         return view('promote.pay', ['promotion' => $promotion]);
@@ -168,7 +174,9 @@ class PromotionController extends Controller
 
     public function startPayment(PromotionRequest $promotion): RedirectResponse
     {
-        if ($promotion->status !== 'pending_payment') {
+        // "Invoice sent" orders can pay online too — approved sponsored
+        // articles are paid this way from the dashboard.
+        if (! $promotion->awaitingPayment() || ! $this->checkout->isEnabled()) {
             return redirect(template_url('promote'));
         }
 

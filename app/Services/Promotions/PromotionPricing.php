@@ -15,6 +15,21 @@ class PromotionPricing
         return config("promotions.packages.{$package}") !== null;
     }
 
+    public function isSponsored(string $package): bool
+    {
+        return config("promotions.sponsored_packages.{$package}") !== null;
+    }
+
+    /**
+     * A promote package or a sponsored-article package.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function package(string $package): ?array
+    {
+        return config("promotions.packages.{$package}") ?? config("promotions.sponsored_packages.{$package}");
+    }
+
     /**
      * Add-on keys that may be bought with the given package.
      *
@@ -22,6 +37,10 @@ class PromotionPricing
      */
     public function availableAddons(string $package): array
     {
+        if ($this->isSponsored($package)) {
+            return [];
+        }
+
         return collect(config('promotions.addons', []))
             ->reject(fn (array $addon) => in_array($package, $addon['excluded_packages'] ?? [], true))
             ->keys()
@@ -48,8 +67,8 @@ class PromotionPricing
     public function lineItems(string $package, array $addons): array
     {
         $items = [[
-            'name' => config("promotions.packages.{$package}.name").' package',
-            'amount' => (int) config("promotions.packages.{$package}.price"),
+            'name' => $this->package($package)['name'].' package',
+            'amount' => (int) $this->package($package)['price'],
         ]];
 
         foreach ($this->sanitizeAddons($package, $addons) as $key) {
