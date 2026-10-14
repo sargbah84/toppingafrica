@@ -37,7 +37,7 @@ class BlogController extends Controller
         $recencyDays = (int) config('blog.hero.recency_days', 30);
 
         $heroPost = $this->pinnedFor('hero', fn ($q) => $q
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->latest('published_at'));
 
         if ($heroPost->count() < $slots) {
@@ -45,7 +45,7 @@ class BlogController extends Controller
                 ->featured()
                 ->whereNotIn('id', $heroPost->pluck('id'))
                 ->where('published_at', '>=', now()->subDays($recencyDays))
-                ->with('author', 'categories')
+                ->with('author', 'categories', 'media')
                 ->latest('published_at')
                 ->take($slots - $heroPost->count())
                 ->get();
@@ -60,7 +60,7 @@ class BlogController extends Controller
                 ->whereHas('creators', fn ($q) => $q
                     ->whereNotNull('bio')->where('bio', '!=', '')
                     ->whereNotNull('profile_image_url')->where('profile_image_url', '!=', ''))
-                ->with('author', 'categories')
+                ->with('author', 'categories', 'media')
                 ->latest('published_at')
                 ->take($slots - $heroPost->count())
                 ->get();
@@ -71,7 +71,7 @@ class BlogController extends Controller
         if ($heroPost->count() < $slots) {
             $fillers = Post::published()
                 ->whereNotIn('id', $heroPost->pluck('id'))
-                ->with('author', 'categories')
+                ->with('author', 'categories', 'media')
                 ->latest('published_at')
                 ->take($slots - $heroPost->count())
                 ->get();
@@ -85,7 +85,7 @@ class BlogController extends Controller
         // an organic post displaced from Most Popular slides down to Trending
         // rather than falling off the page.
         $pinnedPopular = $this->pinnedFor('most_popular', fn ($q) => $q
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->latest('published_at'));
 
         $weeklyPopular = $this->rankedPosts('popular', $pinnedPopular, fn () => Post::published()
@@ -102,7 +102,7 @@ class BlogController extends Controller
         // Featured Videos: top 4 from "Music Videos" or "Featured Videos" categories
         // by views in the past 7 days, tiebreaking by newest published first.
         $pinnedVideos = $this->pinnedFor('featured_videos', fn ($q) => $q
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->latest('published_at'));
 
         $featuredVideos = $pinnedVideos->concat(
@@ -121,7 +121,7 @@ class BlogController extends Controller
         // column needs 6 to visually match the taller left card (image +
         // excerpt). Loosen by views; final order is recency-biased.
         $pinnedTv = $this->pinnedFor('tv', fn ($q) => $q
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->latest('published_at'));
 
         $tvPosts = $pinnedTv->concat(
@@ -136,7 +136,7 @@ class BlogController extends Controller
 
         // Latest Stories (skip featured ones)
         $latestStories = Post::published()
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->latest('published_at')
             ->take(5)
             ->get();
@@ -145,14 +145,14 @@ class BlogController extends Controller
         // the hero actually took (rather than assuming it took the newest 3 —
         // hero pins can come from outside that set).
         $pinnedPicks = $this->pinnedFor('editors_picked', fn ($q) => $q
-            ->with('categories')
+            ->with('categories', 'media')
             ->latest('published_at'));
 
         $editorsPicked = $pinnedPicks->concat(
             Post::published()
                 ->featured()
                 ->whereNotIn('id', $pinnedPicks->pluck('id')->concat($heroPost->pluck('id')))
-                ->with('categories')
+                ->with('categories', 'media')
                 ->latest('published_at')
                 ->take(5 - $pinnedPicks->count())
                 ->get()
@@ -169,6 +169,7 @@ class BlogController extends Controller
                 $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
                     ->orWhere('profile_image_url', '!=', '');
             })
+            ->with('media')
             ->inRandomOrder()
             ->take(24)
             ->get();
@@ -191,6 +192,7 @@ class BlogController extends Controller
 
         $topCreators = Creator::published()
             ->whereIn('id', $topCreatorIds)
+            ->with('media')
             ->get()
             ->sortBy(fn ($creator) => array_search($creator->id, $topCreatorIds))
             ->values();
@@ -225,7 +227,7 @@ class BlogController extends Controller
 
         return Post::published()
             ->whereIn('id', $ids)
-            ->with('author', 'categories')
+            ->with('author', 'categories', 'media')
             ->get()
             ->sortBy(fn (Post $post) => array_search($post->id, $ids))
             ->values();

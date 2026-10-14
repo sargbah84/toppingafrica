@@ -16,14 +16,19 @@ class Setting extends Model
         // get() caches forever, so any mutation must invalidate. saved/deleted
         // covers model-driven inserts, updates, and deletes — including the
         // updateOrCreate() path used by set().
-        static::saved(fn (Setting $s) => Cache::forget("setting.{$s->key}"));
-        static::deleted(fn (Setting $s) => Cache::forget("setting.{$s->key}"));
+        static::saved(fn (Setting $s) => Cache::memo()->forget("setting.{$s->key}"));
+        static::deleted(fn (Setting $s) => Cache::memo()->forget("setting.{$s->key}"));
     }
 
+    /**
+     * Memoized per request (and per queue job): layouts call this dozens of
+     * times, and with the database cache store each call was its own query.
+     */
     public static function get(string $key, mixed $default = null): mixed
     {
-        return Cache::rememberForever("setting.{$key}", function () use ($key, $default) {
+        return Cache::memo()->rememberForever("setting.{$key}", function () use ($key, $default) {
             $setting = static::where('key', $key)->first();
+
             return $setting?->value ?? $default;
         });
     }
@@ -38,6 +43,6 @@ class Setting extends Model
         // Use first()->delete() (not where()->delete()) so the deleted model
         // event fires and our cache invalidation hook in booted() runs.
         static::where('key', $key)->first()?->delete();
-        Cache::forget("setting.{$key}");
+        Cache::memo()->forget("setting.{$key}");
     }
 }

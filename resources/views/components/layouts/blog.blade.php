@@ -231,6 +231,7 @@
             ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
             ->where(fn ($q) => $q->whereHas('media', fn ($m) => $m->where('collection_name', 'profile_image'))
                 ->orWhere('profile_image_url', '!=', ''))
+            ->with('media')
             ->orderByDesc('follower_count')
             ->limit(12)
             ->get(['id', 'name', 'slug', 'category', 'country', 'profile_image_url', 'follower_count']));
