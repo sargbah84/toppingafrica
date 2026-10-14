@@ -10,10 +10,10 @@ use App\Models\Creator;
 use App\Models\NewsletterSubscriber;
 use App\Models\Post;
 use App\Models\SearchConsoleData;
-use App\Models\View as ViewRecord;
-use App\Models\Setting;
 use App\Models\SeoAnalysis;
+use App\Models\Setting;
 use App\Models\User;
+use App\Models\View as ViewRecord;
 use App\Services\GoogleSearchConsoleService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -103,6 +103,65 @@ class StatsOverview extends Component
         return $query;
     }
 
+    /**
+     * Run one grouped query for a per-day series (instead of one query per
+     * day) and return the rows keyed by Y-m-d.
+     */
+    private function dailyRows($query, string $column, int $days, array $aggregates): Collection
+    {
+        return $query
+            ->where($column, '>=', now()->subDays($days - 1)->startOfDay())
+            ->selectRaw("DATE({$column}) as day")
+            ->addSelect(array_map(fn ($sql) => DB::raw($sql), $aggregates))
+            ->groupBy('day')
+            ->toBase()
+            ->get()
+            ->keyBy(fn ($row) => (string) $row->day);
+    }
+
+    /**
+     * Expand grouped daily rows into a gap-free series for the last $days days.
+     * $map receives the row for that day (or null) and returns its values.
+     */
+    private function fillDays(int $days, Collection $rows, callable $map): array
+    {
+        $data = [];
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $data[] = ['date' => $date->format('M d')] + $map($rows->get($date->toDateString()));
+        }
+
+        return $data;
+    }
+
+    /**
+     * Group referer counts by host. Counting happens in SQL so we only
+     * hydrate one row per distinct referer URL, not one per view.
+     */
+    private function referrerDomains($query): Collection
+    {
+        return $query
+            ->whereNotNull('referer')
+            ->where('referer', '!=', '')
+            ->select('referer', DB::raw('COUNT(*) as count'))
+            ->groupBy('referer')
+            ->toBase()
+            ->get()
+            ->groupBy(function ($row) {
+                $parsed = parse_url($row->referer);
+
+                return $parsed['host'] ?? $row->referer;
+            })
+            ->map(fn ($group, $domain) => [
+                'domain' => $domain,
+                'count' => (int) $group->sum('count'),
+            ])
+            ->sortByDesc('count')
+            ->take(10)
+            ->values();
+    }
+
     // ── Stat Cards ──
 
     #[Computed]
@@ -134,18 +193,9 @@ class StatsOverview extends Component
     #[Computed]
     public function viewsGrowthChart(): array
     {
-        $days = 30;
-        $data = [];
+        $rows = $this->dailyRows(ViewRecord::query(), 'viewed_at', 30, ['COUNT(*) as views']);
 
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $data[] = [
-                'date' => $date->format('M d'),
-                'views' => ViewRecord::whereDate('viewed_at', $date->toDateString())->count(),
-            ];
-        }
-
-        return $data;
+        return $this->fillDays(30, $rows, fn ($row) => ['views' => (int) ($row->views ?? 0)]);
     }
 
     #[Computed]
@@ -248,24 +298,7 @@ class StatsOverview extends Component
         $totalViews = (clone $viewsQuery)->count();
         $uniqueVisitors = (clone $viewsQuery)->distinct('ip_hash')->count('ip_hash');
 
-        $referrers = (clone $viewsQuery)
-            ->whereNotNull('referer')
-            ->where('referer', '!=', '')
-            ->get()
-            ->groupBy(function ($item) {
-                $parsed = parse_url($item->referer);
-
-                return $parsed['host'] ?? $item->referer;
-            })
-            ->map(function ($group, $domain) {
-                return [
-                    'domain' => $domain,
-                    'count' => $group->count(),
-                ];
-            })
-            ->sortByDesc('count')
-            ->take(10)
-            ->values();
+        $referrers = $this->referrerDomains(clone $viewsQuery);
 
         $devices = (clone $viewsQuery)
             ->select('device_type', DB::raw('COUNT(*) as count'))
@@ -273,19 +306,13 @@ class StatsOverview extends Component
             ->orderByDesc('count')
             ->get();
 
-        $daily = [];
-        $days = 7;
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $daily[] = [
-                'date' => $date->format('M d'),
-                'views' => ViewRecord::query()
-                    ->where('viewable_type', $viewableType)
-                    ->where('viewable_id', $subject->id)
-                    ->whereDate('viewed_at', $date->toDateString())
-                    ->count(),
-            ];
-        }
+        $dailyRows = $this->dailyRows(
+            ViewRecord::query()->where('viewable_type', $viewableType)->where('viewable_id', $subject->id),
+            'viewed_at',
+            7,
+            ['COUNT(*) as views'],
+        );
+        $daily = $this->fillDays(7, $dailyRows, fn ($row) => ['views' => (int) ($row->views ?? 0)]);
 
         $this->pageDetail = [
             'title' => $title,
@@ -307,35 +334,8 @@ class StatsOverview extends Component
     #[Computed]
     public function topReferrers(): Collection
     {
-        $query = ViewRecord::query()
-            ->whereNotNull('referer')
-            ->where('referer', '!=', '');
-
-        $start = $this->periodStart();
-        $end = $this->periodEnd();
-
-        if ($start) {
-            $query->where('viewed_at', '>=', $start);
-        }
-        if ($end) {
-            $query->where('viewed_at', '<=', $end);
-        }
-
-        return $query->get()
-            ->groupBy(function ($item) {
-                $parsed = parse_url($item->referer);
-
-                return $parsed['host'] ?? $item->referer;
-            })
-            ->map(function ($group, $domain) {
-                return (object) [
-                    'domain' => $domain,
-                    'count' => $group->count(),
-                ];
-            })
-            ->sortByDesc('count')
-            ->take(10)
-            ->values();
+        return $this->referrerDomains($this->viewsQuery())
+            ->map(fn ($referrer) => (object) $referrer);
     }
 
     #[Computed]
@@ -352,8 +352,12 @@ class StatsOverview extends Component
     #[Computed]
     public function deviceBreakdown(): array
     {
-        $query = $this->viewsQuery();
-        $total = $query->count();
+        $devices = $this->viewsQuery()
+            ->select('device_type', DB::raw('COUNT(*) as count'))
+            ->groupBy('device_type')
+            ->pluck('count', 'device_type')
+            ->toArray();
+        $total = (int) array_sum($devices);
 
         if ($total === 0) {
             return [
@@ -362,12 +366,6 @@ class StatsOverview extends Component
                 ['type' => 'Tablet', 'count' => 0, 'percentage' => 0],
             ];
         }
-
-        $devices = $this->viewsQuery()
-            ->select('device_type', DB::raw('COUNT(*) as count'))
-            ->groupBy('device_type')
-            ->pluck('count', 'device_type')
-            ->toArray();
 
         return collect(['desktop', 'mobile', 'tablet'])->map(function ($type) use ($devices, $total) {
             $count = $devices[$type] ?? 0;
@@ -392,19 +390,15 @@ class StatsOverview extends Component
             default => 30,
         };
 
-        $data = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $dayViews = ViewRecord::whereDate('viewed_at', $date->toDateString())->count();
-            $uniqueViews = ViewRecord::whereDate('viewed_at', $date->toDateString())->distinct('ip_hash')->count('ip_hash');
-            $data[] = [
-                'date' => $date->format('M d'),
-                'views' => $dayViews,
-                'unique' => $uniqueViews,
-            ];
-        }
+        $rows = $this->dailyRows(ViewRecord::query(), 'viewed_at', $days, [
+            'COUNT(*) as views',
+            'COUNT(DISTINCT ip_hash) as uniques',
+        ]);
 
-        return $data;
+        return $this->fillDays($days, $rows, fn ($row) => [
+            'views' => (int) ($row->views ?? 0),
+            'unique' => (int) ($row->uniques ?? 0),
+        ]);
     }
 
     #[Computed]
@@ -500,20 +494,20 @@ class StatsOverview extends Component
     {
         $sevenDaysAgo = now()->subDays(7);
 
-        $total = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
+        $total = DB::table('creator_qr_downloads')
             ->where('created_at', '>=', $sevenDaysAgo)
             ->count();
 
-        $byFormat = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
-            ->select('format', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
+        $byFormat = DB::table('creator_qr_downloads')
+            ->select('format', DB::raw('COUNT(*) as count'))
             ->where('created_at', '>=', $sevenDaysAgo)
             ->groupBy('format')
             ->pluck('count', 'format')
             ->toArray();
 
-        $topCreators = \Illuminate\Support\Facades\DB::table('creator_qr_downloads')
+        $topCreators = DB::table('creator_qr_downloads')
             ->join('creators', 'creator_qr_downloads.creator_id', '=', 'creators.id')
-            ->select('creators.id', 'creators.name', 'creators.slug', \Illuminate\Support\Facades\DB::raw('COUNT(*) as shares'))
+            ->select('creators.id', 'creators.name', 'creators.slug', DB::raw('COUNT(*) as shares'))
             ->where('creator_qr_downloads.created_at', '>=', $sevenDaysAgo)
             ->groupBy('creators.id', 'creators.name', 'creators.slug')
             ->orderByDesc('shares')
@@ -638,19 +632,17 @@ class StatsOverview extends Component
     #[Computed]
     public function aiUsageTrend(): array
     {
-        $data = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $dayLogs = AiUsageLog::whereDate('created_at', $date->toDateString());
-            $data[] = [
-                'date' => $date->format('M d'),
-                'requests' => $dayLogs->count(),
-                'tokens' => (int) $dayLogs->sum('total_tokens'),
-                'cost' => (float) $dayLogs->sum('estimated_cost'),
-            ];
-        }
+        $rows = $this->dailyRows(AiUsageLog::query(), 'created_at', 30, [
+            'COUNT(*) as requests',
+            'SUM(total_tokens) as tokens',
+            'SUM(estimated_cost) as cost',
+        ]);
 
-        return $data;
+        return $this->fillDays(30, $rows, fn ($row) => [
+            'requests' => (int) ($row->requests ?? 0),
+            'tokens' => (int) ($row->tokens ?? 0),
+            'cost' => (float) ($row->cost ?? 0),
+        ]);
     }
 
     #[Computed]
@@ -848,31 +840,17 @@ class StatsOverview extends Component
     #[Computed]
     public function subscriberGrowth(): array
     {
-        $data = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $data[] = [
-                'date' => $date->format('M d'),
-                'count' => NewsletterSubscriber::whereDate('created_at', $date->toDateString())->count(),
-            ];
-        }
+        $rows = $this->dailyRows(NewsletterSubscriber::query(), 'created_at', 30, ['COUNT(*) as total']);
 
-        return $data;
+        return $this->fillDays(30, $rows, fn ($row) => ['count' => (int) ($row->total ?? 0)]);
     }
 
     #[Computed]
     public function userGrowth(): array
     {
-        $data = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $data[] = [
-                'date' => $date->format('M d'),
-                'count' => User::whereDate('created_at', $date->toDateString())->count(),
-            ];
-        }
+        $rows = $this->dailyRows(User::query(), 'created_at', 30, ['COUNT(*) as total']);
 
-        return $data;
+        return $this->fillDays(30, $rows, fn ($row) => ['count' => (int) ($row->total ?? 0)]);
     }
 
     #[Computed]
@@ -971,7 +949,7 @@ class StatsOverview extends Component
 
         foreach ($rules as &$rule) {
             if ($rule['id'] === $id) {
-                $rule['active'] = !($rule['active'] ?? true);
+                $rule['active'] = ! ($rule['active'] ?? true);
                 break;
             }
         }
