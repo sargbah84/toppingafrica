@@ -98,5 +98,13 @@ class RepullCreatorTest extends TestCase
         $this->assertTrue(PerplexityService::isSameCreator(['name' => 'X', 'tiktok_handle' => '@purplespeedy'], 'Purplespeedy'));
         $this->assertFalse(PerplexityService::isSameCreator(['name' => 'Brain Jotter'], 'Layi Wasabi'));
         $this->assertFalse(PerplexityService::isSameCreator(['name' => 'Camidoh'], 'Last'));
+
+        $this->assertTrue(PerplexityService::isSameCreator(['name' => 'Tony Onyemaechi Elumelu'], 'Tony Elumelu'));
+        $this->assertTrue(PerplexityService::isSameCreator(['name' => 'Patrick Okorie', 'instagram_handle' => 'patorankingfire'], 'Patoranking'));
+        $this->assertTrue(PerplexityService::isSameCreator(['name' => 'Shirin Joy Borau'], 'Shirin'));
+        $this->assertTrue(PerplexityService::isSameCreator(['name' => 'Chioma Nmakama'], 'Dr. Chioma Nmakama'));
+        $this->assertFalse(PerplexityService::isSameCreator(['name' => 'Tony Ade'], 'Tony Elumelu'));
+        $this->assertFalse(PerplexityService::isSameCreator(['name' => 'Ruth Kadiri'], 'Ruth'));
+        $this->assertFalse(PerplexityService::isSameCreator(['name' => 'Joy Shirin'], 'Shirin'));
     }
 }

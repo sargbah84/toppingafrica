@@ -149,11 +149,12 @@ PROMPT;
             $category ? "creates {$category} content" : null,
         ]));
 
-        $results = $this->searchCreatorByName($name, 3, $hint);
-
-        foreach ($results as $result) {
-            if (is_array($result) && self::isSameCreator($result, $name)) {
-                return $result;
+        // Answers vary between calls (sometimes empty), so try twice.
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            foreach ($this->searchCreatorByName($name, 3, $hint) as $result) {
+                if (is_array($result) && self::isSameCreator($result, $name)) {
+                    return $result;
+                }
             }
         }
 
@@ -161,31 +162,49 @@ PROMPT;
     }
 
     /**
-     * True when an AI result refers to the creator named $name: either the
-     * returned name matches (ignoring case, accents and punctuation), or one
-     * of the returned social handles is the name itself (for creators listed
-     * under their handle, e.g. "Purplespeedy").
+     * True when an AI result refers to the creator named $name (comparisons
+     * ignore case, accents and punctuation):
+     *   - the returned name or a returned handle equals the name;
+     *   - every word of a multi-word name appears in the returned name
+     *     ("Tony Elumelu" → "Tony Onyemaechi Elumelu");
+     *   - a stage name of 6+ chars is contained in a handle
+     *     ("Patoranking" → "patorankingfire");
+     *   - a one-word name of 5+ chars is the returned first name
+     *     ("Shirin" → "Shirin Joy Borau").
      */
     public static function isSameCreator(array $result, string $name): bool
     {
         $norm = fn ($s) => preg_replace('/[^a-z0-9]/', '', Str::lower(Str::ascii((string) $s)));
+        $words = fn ($s) => array_values(array_filter(
+            array_map($norm, preg_split('/[\s\-_.]+/', (string) $s)),
+            fn ($w) => $w !== '' && ! in_array($w, ['dr', 'mr', 'mrs', 'ms', 'prof', 'chef'], true),
+        ));
+
         $target = $norm($name);
+        $targetWords = $words($name);
+        $resultName = is_string($result['name'] ?? null) ? $result['name'] : '';
+        $resultWords = $words($resultName);
 
         if ($target === '') {
             return false;
         }
 
-        if (is_string($result['name'] ?? null) && $norm($result['name']) === $target) {
+        if ($norm($resultName) === $target) {
             return true;
         }
 
         foreach (['instagram_handle', 'tiktok_handle', 'twitter_handle'] as $key) {
-            if (is_string($result[$key] ?? null) && $norm($result[$key]) === $target) {
+            $handle = is_string($result[$key] ?? null) ? $norm($result[$key]) : '';
+            if ($handle !== '' && ($handle === $target || (strlen($target) >= 6 && str_contains($handle, $target)))) {
                 return true;
             }
         }
 
-        return false;
+        if (count($targetWords) >= 2 && array_diff($targetWords, $resultWords) === []) {
+            return true;
+        }
+
+        return count($targetWords) === 1 && strlen($target) >= 5 && ($resultWords[0] ?? null) === $target;
     }
 
     public function discoverCreators(string $niche, string $country, int $count = 10): array
