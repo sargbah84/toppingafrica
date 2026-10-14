@@ -1,18 +1,30 @@
-<x-layouts.blog title="Home" :description="\App\Models\Setting::get('site_description')">
+<x-layouts.blog title="African Creators, Tech & Innovation News">
 
     @push('schema')
-        <x-schema.json-ld page-type="home" :context="[]" />
+        <x-schema.json-ld page-type="home" :context="[
+            'name' => 'African Creators, Tech & Innovation News - ' . \App\Models\Setting::get('site_name', config('app.name')),
+            'description' => (string) \App\Models\Setting::get('site_description', ''),
+        ]" />
     @endpush
+
+    {{-- Page heading: the homepage's single <h1>, styled like the section eyebrows --}}
+    <div class="max-w-container mx-auto px-4 pt-8">
+        <h1 class="text-xs font-semibold uppercase tracking-wider text-primary">
+            <span class="inline-block w-8 h-[3px] bg-primary mr-2 align-middle"></span>Topping Africa: African creators, tech &amp; innovation stories
+        </h1>
+    </div>
 
     {{-- Section 1: Hero - 3 Featured Posts --}}
     @if($heroPost->isNotEmpty())
-    <section class="max-w-container mx-auto px-4 pt-8 pb-6">
+    <section class="max-w-container mx-auto px-4 pt-4 pb-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             @foreach($heroPost as $post)
             <article class="relative group overflow-hidden rounded-sm">
                 <a href="{{ route('blog.show', $post->slug) }}">
                     @if($post->featured_image_url)
+                        {{-- First hero image is the page's largest above-the-fold paint (LCP) --}}
                         <img src="{{ $post->featured_image_url }}" alt="{{ $post->title }}"
+                             @if($loop->first) fetchpriority="high" @endif
                              class="w-full aspect-[4/3] object-cover object-top transition-transform duration-700 group-hover:scale-105">
                     @else
                         <div class="w-full aspect-[4/3] bg-gray-200 dark:bg-gray-800"></div>
@@ -410,11 +422,11 @@
                                     </a>
                                 @endif
                             </div>
-                            <h4 class="text-sm font-bold leading-snug text-gray-900 dark:text-white line-clamp-2">
+                            <h3 class="text-sm font-bold leading-snug text-gray-900 dark:text-white line-clamp-2">
                                 <a href="{{ route('blog.show', $post->slug) }}" class="hover:text-primary dark:hover:text-primary transition-colors">
                                     {{ $post->title }}
                                 </a>
-                            </h4>
+                            </h3>
                             <span class="text-xs text-gray-400 mt-1 block">{{ ($post->published_at ?? $post->created_at)->format('M d, Y') }}</span>
                         </div>
                     </article>

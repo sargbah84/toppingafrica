@@ -30,10 +30,11 @@ final class SchemaService
         return [
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
+            '@id' => $siteUrl.'/#organization',
             'name' => $siteName,
             'legalName' => $siteName,
             'url' => $siteUrl,
-            'logo' => $siteUrl . '/images/logo.png',
+            'logo' => $siteUrl.'/img/topping-africa-logo.png',
             'description' => Setting::get('site_description', $siteName),
             'foundingDate' => config('schema.organization.founding_date', '2024'),
             'contactPoint' => [
@@ -53,18 +54,45 @@ final class SchemaService
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
+            '@id' => $siteUrl.'/#website',
             'name' => $siteName,
             'alternateName' => $siteName,
             'url' => $siteUrl,
+            'publisher' => ['@id' => $siteUrl.'/#organization'],
             'potentialAction' => [
                 '@type' => 'SearchAction',
                 'target' => [
                     '@type' => 'EntryPoint',
-                    'urlTemplate' => $siteUrl . '/search?q={search_term_string}',
+                    'urlTemplate' => $siteUrl.'/search?q={search_term_string}',
                 ],
                 'query-input' => 'required name=search_term_string',
             ],
         ];
+    }
+
+    /**
+     * The homepage as a CollectionPage, dated by the newest published post so
+     * crawlers and answer engines can tell the front page is current.
+     *
+     * @return array<string, mixed>
+     */
+    public function homePage(string $name, string $description): array
+    {
+        $siteUrl = config('app.url');
+        $latest = Post::published()->latest('updated_at')->first(['id', 'updated_at']);
+
+        return array_filter([
+            '@context' => 'https://schema.org',
+            '@type' => 'CollectionPage',
+            '@id' => $siteUrl.'/#webpage',
+            'url' => $siteUrl,
+            'name' => $name,
+            'description' => $description,
+            'isPartOf' => ['@id' => $siteUrl.'/#website'],
+            'about' => ['@id' => $siteUrl.'/#organization'],
+            'dateModified' => $latest?->updated_at?->toIso8601String(),
+            'inLanguage' => 'en',
+        ]);
     }
 
     public function article(Post $post): array
@@ -86,10 +114,11 @@ final class SchemaService
             ],
             'publisher' => [
                 '@type' => 'Organization',
+                '@id' => $siteUrl.'/#organization',
                 'name' => $siteName,
                 'logo' => [
                     '@type' => 'ImageObject',
-                    'url' => $siteUrl . '/images/logo.png',
+                    'url' => $siteUrl.'/img/topping-africa-logo.png',
                 ],
                 'url' => $siteUrl,
             ],
@@ -138,7 +167,7 @@ final class SchemaService
     /**
      * Generate BreadcrumbList schema.
      *
-     * @param array<int, array{name: string, url: string}> $items
+     * @param  array<int, array{name: string, url: string}>  $items
      * @return array<string, mixed>
      */
     public function breadcrumbList(array $items): array

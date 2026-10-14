@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -87,14 +88,12 @@ class BlogController extends Controller
             ->with('author', 'categories')
             ->latest('published_at'));
 
-        $weeklyPopular = Post::published()
+        $weeklyPopular = $this->rankedPosts('popular', $pinnedPopular, fn () => Post::published()
             ->whereNotIn('id', $pinnedPopular->pluck('id'))
-            ->with('author', 'categories')
             ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
             ->orderByDesc('weekly_views_count')
             ->latest('published_at')
-            ->take(5 - $pinnedPopular->count())
-            ->get();
+            ->take(5 - $pinnedPopular->count()));
 
         $popularRail = $pinnedPopular->concat($weeklyPopular);
         $mostPopular = $popularRail->take(2);
@@ -107,15 +106,13 @@ class BlogController extends Controller
             ->latest('published_at'));
 
         $featuredVideos = $pinnedVideos->concat(
-            Post::published()
+            $this->rankedPosts('videos', $pinnedVideos, fn () => Post::published()
                 ->whereNotIn('id', $pinnedVideos->pluck('id'))
                 ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', [3, 27]))
-                ->with('author', 'categories')
                 ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
                 ->orderByDesc('weekly_views_count')
                 ->latest('published_at')
-                ->take(4 - $pinnedVideos->count())
-                ->get()
+                ->take(4 - $pinnedVideos->count()))
         );
 
         // Movies + TV posts for "Explore What's On TV": 1 main card on the
@@ -128,15 +125,13 @@ class BlogController extends Controller
             ->latest('published_at'));
 
         $tvPosts = $pinnedTv->concat(
-            Post::published()
+            $this->rankedPosts('tv', $pinnedTv, fn () => Post::published()
                 ->whereNotIn('id', $pinnedTv->pluck('id'))
                 ->whereHas('categories', fn ($q) => $q->where('categories.id', 4))
-                ->with('author', 'categories')
                 ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->subWeek())])
                 ->orderByDesc('weekly_views_count')
                 ->latest('published_at')
-                ->take(7 - $pinnedTv->count())
-                ->get()
+                ->take(7 - $pinnedTv->count()))
         );
 
         // Latest Stories (skip featured ones)
@@ -181,7 +176,9 @@ class BlogController extends Controller
         // Top creators widget — by page views this week, only with profile images.
         // Aliased to weekly_views_count to avoid colliding with the historical
         // creators.views_count column (now removed) and any future denormalization.
-        $topCreators = Creator::published()
+        // Ranking is cached like the post rails; the creators themselves are
+        // re-read so a creator unpublished mid-window drops out immediately.
+        $topCreatorIds = Cache::remember('home.ranked.top_creators', now()->addMinutes(10), fn () => Creator::published()
             ->where(function ($query) {
                 $query->whereHas('media', fn ($q) => $q->where('collection_name', 'profile_image'))
                     ->orWhere('profile_image_url', '!=', '');
@@ -189,7 +186,14 @@ class BlogController extends Controller
             ->withCount(['views as weekly_views_count' => fn ($q) => $q->where('viewed_at', '>=', now()->startOfWeek())])
             ->orderByDesc('weekly_views_count')
             ->take(5)
-            ->get();
+            ->get()
+            ->modelKeys());
+
+        $topCreators = Creator::published()
+            ->whereIn('id', $topCreatorIds)
+            ->get()
+            ->sortBy(fn ($creator) => array_search($creator->id, $topCreatorIds))
+            ->values();
 
         return view('blog.index', compact(
             'heroPost', 'mostPopular', 'trending', 'featuredVideos',
@@ -204,6 +208,29 @@ class BlogController extends Controller
      * rail needs. Unknown sections yield an empty collection, so the rail
      * silently falls back to its organic query.
      */
+    /**
+     * Homepage rails ranked by weekly views. Counting views per post scans the
+     * views table, so only the ranked IDs are cached (keyed on the pins they
+     * were ranked around); the posts are re-read every request, still scoped
+     * to published, so an unpublished post drops out immediately.
+     */
+    private function rankedPosts(string $rail, Collection $pinned, \Closure $rank): Collection
+    {
+        $key = "home.ranked.{$rail}.".md5(implode(',', $pinned->modelKeys()));
+        $ids = Cache::remember($key, now()->addMinutes(10), fn () => $rank()->get()->modelKeys());
+
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return Post::published()
+            ->whereIn('id', $ids)
+            ->with('author', 'categories')
+            ->get()
+            ->sortBy(fn (Post $post) => array_search($post->id, $ids))
+            ->values();
+    }
+
     private function pinnedFor(string $section, ?\Closure $shape = null): Collection
     {
         $slots = (int) config("blog.pinned_sections.{$section}.slots", 0);

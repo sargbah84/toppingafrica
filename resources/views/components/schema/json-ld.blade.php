@@ -11,6 +11,9 @@
         case 'home':
             $schemas[] = $schemaService->organization();
             $schemas[] = $schemaService->website();
+            if (isset($context['name'], $context['description'])) {
+                $schemas[] = $schemaService->homePage($context['name'], $context['description']);
+            }
             break;
 
         case 'article':

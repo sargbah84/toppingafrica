@@ -25,13 +25,13 @@
 
     $defaultOgImage = file_exists(public_path('images/og-default.png'))
         ? asset('images/og-default.png')
-        : (file_exists(public_path('img/og-default.png')) ? asset('img/og-default.png') : asset('images/logo.png'));
+        : (file_exists(public_path('img/og-default.png')) ? asset('img/og-default.png') : asset('img/topping-africa-logo.png'));
     $metaImage = $ogImage ?? $defaultOgImage;
     $metaImageAlt = $ogImageAlt ?? $metaTitle;
 @endphp
 
 {{-- Primary Meta Tags --}}
-<meta name="description" content="{{ Str::limit($metaDescription, 160) }}">
+<meta name="description" content="{{ Str::limit($metaDescription, 155, '…', preserveWords: true) }}">
 @if($keywords)
 <meta name="keywords" content="{{ is_array($keywords) ? implode(', ', $keywords) : $keywords }}">
 @endif

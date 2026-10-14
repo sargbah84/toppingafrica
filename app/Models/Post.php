@@ -261,7 +261,9 @@ class Post extends Model implements HasMedia
      */
     public function getRenderedContentAttribute(): string
     {
-        $content = (string) $this->content;
+        // The post template already renders the title as the page's <h1>;
+        // body <h1>s (pasted or AI-generated) would make a second one.
+        $content = preg_replace('/<(\/?)h1\b/i', '<$1h2', (string) $this->content) ?? (string) $this->content;
 
         if (! $this->is_sponsored) {
             return $content;

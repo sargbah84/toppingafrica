@@ -171,7 +171,8 @@
                     $mobileHeaderBadges = collect($mobileHeaderPages)->pluck('badge', 'id')->filter();
                     $creatorPage = \App\Models\Page::where('slug', 'creators')->first();
                     $creatorBadge = $creatorPage ? ($mobileHeaderBadges[$creatorPage->id] ?? null) : null;
-                    $menuCategories = \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get();
+                    $menuCategories = \Illuminate\Support\Facades\Cache::remember('layout.menu_categories', now()->addMinutes(10),
+                        fn () => \App\Models\Category::active()->ordered()->withCount('publishedPosts')->take(10)->get());
                 @endphp
                 <nav class="space-y-5">
                     <a href="{{ template_url('trending') }}"
@@ -225,13 +226,14 @@
         // Featured creators shown below the search input (empty state).
         // Queried once here so the overlay has content on open — the live
         // search-as-you-type replaces this list when the user types 2+ chars.
-        $searchFeaturedCreators = \App\Models\Creator::query()
+        // Runs on every public page, so it's cached briefly.
+        $searchFeaturedCreators = \Illuminate\Support\Facades\Cache::remember('layout.search_featured_creators', now()->addMinutes(10), fn () => \App\Models\Creator::query()
             ->where(fn ($q) => $q->where('status', 'published')->orWhere('status', 'claimed'))
             ->where(fn ($q) => $q->whereHas('media', fn ($m) => $m->where('collection_name', 'profile_image'))
                 ->orWhere('profile_image_url', '!=', ''))
             ->orderByDesc('follower_count')
             ->limit(12)
-            ->get(['id', 'name', 'slug', 'category', 'country', 'profile_image_url', 'follower_count']);
+            ->get(['id', 'name', 'slug', 'category', 'country', 'profile_image_url', 'follower_count']));
     @endphp
     <div x-data="{
              open: false,
@@ -292,7 +294,7 @@
                                     <a :href="c.url" class="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 hover:border-primary transition-colors text-center">
                                         <div class="mx-auto w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                                             <template x-if="c.image">
-                                                <img :src="c.image" :alt="c.name" loading="lazy" class="w-full h-full object-cover">
+                                                <img :src="c.image" alt="Creator photo" :alt="c.name" loading="lazy" class="w-full h-full object-cover">
                                             </template>
                                             <template x-if="!c.image">
                                                 <span class="text-white text-sm font-bold" x-text="c.initials"></span>
@@ -313,7 +315,7 @@
                                     <a :href="p.url" class="group flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                                         <div class="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700">
                                             <template x-if="p.image">
-                                                <img :src="p.image" :alt="p.title" loading="lazy" class="w-full h-full object-cover">
+                                                <img :src="p.image" alt="Article image" :alt="p.title" loading="lazy" class="w-full h-full object-cover">
                                             </template>
                                         </div>
                                         <div class="flex-1 min-w-0">
