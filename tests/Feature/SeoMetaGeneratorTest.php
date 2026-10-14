@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Admin\Blog\PostEditor;
 use App\Models\Post;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -53,6 +54,26 @@ class SeoMetaGeneratorTest extends TestCase
             ->assertDispatched('notify', type: 'success');
 
         $this->assertSame(160, mb_strlen($component->get('meta_description')));
+    }
+
+    public function test_generate_tags_merges_without_duplicates_and_reuses_existing_spelling(): void
+    {
+        $this->fakeOpenAi(['tags' => ['Kat Lincoln', '#Afrobeats', 'liberia', 'kat lincoln', 'New Album']]);
+
+        Tag::create(['name' => 'Liberia', 'slug' => 'liberia']);
+
+        $user = User::factory()->create(['is_staff' => true]);
+        $post = Post::factory()->for($user, 'author')->create([
+            'title' => 'Kat Lincoln Releases New Album',
+            'content' => '<p>'.str_repeat('Kat Lincoln has released a new album. ', 10).'</p>',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(PostEditor::class, ['postId' => $post->id])
+            ->set('selectedTags', ['Music', 'Kat Lincoln'])
+            ->call('generateTags')
+            ->assertSet('selectedTags', ['Music', 'Kat Lincoln', 'Afrobeats', 'Liberia', 'New Album'])
+            ->assertDispatched('notify', type: 'success');
     }
 
     public function test_generate_seo_meta_requires_content(): void

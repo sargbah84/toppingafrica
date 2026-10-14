@@ -514,7 +514,26 @@
 
             {{-- Tags --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Tags</h3>
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">Tags</h3>
+                    <button
+                        type="button"
+                        wire:click="generateTags"
+                        wire:loading.attr="disabled"
+                        wire:target="generateTags"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
+                    >
+                        <svg wire:loading.remove wire:target="generateTags" class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                        </svg>
+                        <svg wire:loading wire:target="generateTags" class="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="generateTags">Generate</span>
+                        <span wire:loading wire:target="generateTags">Generating...</span>
+                    </button>
+                </div>
                 <div class="flex items-center gap-2 mb-3">
                     <input
                         wire:model="tagInput"

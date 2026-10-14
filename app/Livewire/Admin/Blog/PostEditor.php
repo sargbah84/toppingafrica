@@ -290,6 +290,30 @@ class PostEditor extends Component
         $this->dispatch('notify', type: 'success', message: 'SEO meta generated. Review before publishing.');
     }
 
+    public function generateTags(SeoMetaGenerator $generator): void
+    {
+        if (trim($this->title) === '' || Str::length(strip_tags($this->content)) < 50) {
+            $this->dispatch('notify', type: 'error', message: 'Add a title and some content before generating tags.');
+
+            return;
+        }
+
+        try {
+            $tags = $generator->generateTags($this->title, $this->excerpt, $this->content);
+        } catch (\Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Could not generate tags. Please try again.');
+
+            return;
+        }
+
+        $current = array_map(Str::lower(...), $this->selectedTags);
+        $new = array_filter($tags, fn (string $tag) => ! in_array(Str::lower($tag), $current, true));
+        $this->selectedTags = array_values(array_merge($this->selectedTags, $new));
+
+        $this->dispatch('notify', type: 'success', message: count($new).' tag(s) added. Remove any that don\'t fit.');
+    }
+
     public function addTag(): void
     {
         $tag = trim($this->tagInput);
