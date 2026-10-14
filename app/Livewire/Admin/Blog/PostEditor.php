@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\Reaction;
 use App\Models\Tag;
 use App\Services\Blog\CreatorContextService;
+use App\Services\Blog\SeoMetaGenerator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -263,6 +264,30 @@ class PostEditor extends Component
     public function generateSlug(): void
     {
         $this->slug = Str::slug($this->title);
+    }
+
+    public function generateSeoMeta(SeoMetaGenerator $generator): void
+    {
+        if (trim($this->title) === '' || Str::length(strip_tags($this->content)) < 50) {
+            $this->dispatch('notify', type: 'error', message: 'Add a title and some content before generating SEO meta.');
+
+            return;
+        }
+
+        try {
+            $meta = $generator->generate($this->title, $this->excerpt, $this->content);
+        } catch (\Throwable $e) {
+            report($e);
+            $this->dispatch('notify', type: 'error', message: 'Could not generate SEO meta. Please try again.');
+
+            return;
+        }
+
+        $this->meta_title = $meta['meta_title'] ?: $this->meta_title;
+        $this->meta_description = $meta['meta_description'] ?: $this->meta_description;
+        $this->focus_keyword = $meta['focus_keyword'] ?: $this->focus_keyword;
+
+        $this->dispatch('notify', type: 'success', message: 'SEO meta generated. Review before publishing.');
     }
 
     public function addTag(): void

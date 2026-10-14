@@ -294,32 +294,50 @@
                     </svg>
                 </button>
                 <div x-show="seoOpen" x-collapse class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 space-y-4">
-                    <div x-data="{ len: $wire.meta_title.length }">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Fill meta title, description and focus keyword from the post content.</p>
+                        <button
+                            type="button"
+                            wire:click="generateSeoMeta"
+                            wire:loading.attr="disabled"
+                            wire:target="generateSeoMeta"
+                            class="inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 disabled:opacity-50"
+                        >
+                            <svg wire:loading.remove wire:target="generateSeoMeta" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
+                            </svg>
+                            <svg wire:loading wire:target="generateSeoMeta" class="w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <span wire:loading.remove wire:target="generateSeoMeta">Generate with AI</span>
+                            <span wire:loading wire:target="generateSeoMeta">Generating...</span>
+                        </button>
+                    </div>
+                    <div>
                         <label for="meta_title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta Title</label>
                         <input
                             wire:model="meta_title"
-                            x-on:input="len = $event.target.value.length"
                             type="text"
                             id="meta_title"
                             maxlength="255"
                             placeholder="SEO title (recommended: 70 characters)"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                         />
-                        <p class="mt-1 text-xs" :class="len > 70 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'"><span x-text="len"></span>/70 characters</p>
+                        <p class="mt-1 text-xs" :class="($wire.meta_title || '').length > 70 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'"><span x-text="($wire.meta_title || '').length"></span>/70 characters</p>
                         @error('meta_title') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
-                    <div x-data="{ len: $wire.meta_description.length }">
+                    <div>
                         <label for="meta_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta Description</label>
                         <textarea
                             wire:model="meta_description"
-                            x-on:input="len = $event.target.value.length"
                             id="meta_description"
                             rows="2"
                             maxlength="255"
                             placeholder="SEO description (recommended: 160 characters)"
                             class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                         ></textarea>
-                        <p class="mt-1 text-xs" :class="len > 160 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'"><span x-text="len"></span>/160 characters</p>
+                        <p class="mt-1 text-xs" :class="($wire.meta_description || '').length > 160 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'"><span x-text="($wire.meta_description || '').length"></span>/160 characters</p>
                         @error('meta_description') <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
                     </div>
                     <div>
