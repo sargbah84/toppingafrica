@@ -19,7 +19,7 @@ class SeoMetaGeneratorTest extends TestCase
 
     private function fakeOpenAi(array $payload): void
     {
-        config(['services.openai.api_key' => 'test-key']);
+        config(['blog.ai.providers.openai.api_key' => 'test-key']);
 
         Http::fake([
             'api.openai.com/*' => Http::response([

@@ -202,6 +202,7 @@
         </div>
     @endif
 
+    @include('layouts.partials.toasts')
     @livewireScripts
 </body>
 </html>

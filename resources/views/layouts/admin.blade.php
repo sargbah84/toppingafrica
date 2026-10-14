@@ -117,6 +117,7 @@
 
     <x-ui-modal />
 
+    @include('layouts.partials.toasts')
     @livewireScripts
 </body>
 </html>

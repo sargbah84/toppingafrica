@@ -58,7 +58,7 @@ final class SeoMetaGenerator
 
     private function request(string $prompt, string $feature, int $maxTokens): array
     {
-        $apiKey = config('services.openai.api_key', env('OPENAI_API_KEY', ''));
+        $apiKey = config('blog.ai.providers.openai.api_key');
         $model = config('blog.ai.providers.openai.model', 'gpt-4o');
 
         if (empty($apiKey)) {
