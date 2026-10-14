@@ -23,7 +23,7 @@ final class OpenAIBlogService implements BlogGeneratorInterface
 
     public function __construct()
     {
-        $this->apiKey = config('services.openai.api_key', env('OPENAI_API_KEY', ''));
+        $this->apiKey = (string) config('blog.ai.providers.openai.api_key', '');
         $this->model = config('blog.ai.providers.openai.model', 'gpt-4o');
         $this->maxTokens = config('blog.ai.providers.openai.max_tokens', 4000);
     }
