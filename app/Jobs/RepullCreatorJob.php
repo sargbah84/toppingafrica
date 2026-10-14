@@ -15,7 +15,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 /**
  * Re-pull a single creator's AI-generated data (bio, social links, avatar,
@@ -30,6 +29,7 @@ class RepullCreatorJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 300;
+
     public int $tries = 2;
 
     public function __construct(public int $creatorId) {}
@@ -48,22 +48,20 @@ class RepullCreatorJob implements ShouldQueue
         }
 
         try {
-            $results = $perplexity->discoverCreators($creator->category, $creator->country, 1);
-
-            $match = collect($results)->first(function ($r) use ($creator) {
-                return isset($r['name']) && Str::lower($r['name']) === Str::lower($creator->name);
-            }) ?? ($results[0] ?? null);
+            // Look up this exact creator. If the AI can't confidently identify
+            // them we change nothing — never substitute another creator's data.
+            $match = $perplexity->lookupCreator($creator->name, $creator->country, $creator->category);
 
             if (! $match) {
-                Log::warning('RepullCreatorJob: no match from Perplexity', [
+                Log::warning('RepullCreatorJob: no confident match from Perplexity', [
                     'creator_id' => $creator->id,
                     'name' => $creator->name,
                 ]);
+
                 return;
             }
 
-            // Keep the existing name — the AI may have drifted on which creator
-            // it returned, and we don't want to rewrite someone else's identity.
+            // Keep the stored display name (the match may be keyed by handle).
             $match['name'] = $creator->name;
 
             $bio = $claude->generateBio($match);

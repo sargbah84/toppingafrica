@@ -7,12 +7,14 @@ namespace App\Services;
 use App\Services\AI\Concerns\TracksAiUsage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PerplexityService
 {
     use TracksAiUsage;
 
     private const MODEL = 'sonar';
+
     private const FEATURE = 'creator-discovery';
 
     /**
@@ -20,7 +22,7 @@ class PerplexityService
      * Returns the same JSON shape as discoverCreators so downstream
      * (bio generation, social links, image search) can reuse it as-is.
      */
-    public function searchCreatorByName(string $query, int $count = 5): array
+    public function searchCreatorByName(string $query, int $count = 5, string $hint = ''): array
     {
         $startedAt = microtime(true);
 
@@ -34,10 +36,11 @@ class PerplexityService
             }
 
             $query = trim($query);
+            $hintLine = $hint !== '' ? "\nContext we already have about them: {$hint}. Use it only to pick between people with the same name.\n" : '';
 
             $prompt = <<<PROMPT
-Find up to {$count} real African creators (broadly defined — influencers, musicians, actors, fashion designers, chefs, athletes, artists, social-media creators, etc.) matching the name or handle: "{$query}". Return the best matches — if only one clearly matches, return only that one. Do NOT invent people.
-
+Find up to {$count} real African creators (broadly defined — influencers, musicians, actors, fashion designers, chefs, athletes, artists, social-media creators, etc.) matching the name or handle: "{$query}". Return the best matches — if only one clearly matches, return only that one. Do NOT invent people, and do NOT return a different, more famous creator just because they work in the same niche or country.
+{$hintLine}
 Respond ONLY with valid JSON. No markdown, no preamble, no explanation. Return a JSON array of objects with these exact keys:
 - name (string, full name)
 - country (string, the African country they are from or primarily based in)
@@ -59,7 +62,7 @@ Return ONLY the JSON array, nothing else.
 PROMPT;
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(60)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => 'sonar',
@@ -91,7 +94,7 @@ PROMPT;
                     feature: 'creator-search',
                     isSuccessful: false,
                     durationMs: $durationMs,
-                    errorMessage: 'HTTP ' . $response->status() . ': ' . mb_substr($response->body(), 0, 400),
+                    errorMessage: 'HTTP '.$response->status().': '.mb_substr($response->body(), 0, 400),
                 );
 
                 return [];
@@ -130,6 +133,59 @@ PROMPT;
 
             return [];
         }
+    }
+
+    /**
+     * Fresh AI data for one specific, already-known creator — used by re-pull.
+     *
+     * Returns null unless a result is unambiguously the same person. Never
+     * fall back to "some creator in the same niche": that is how bios and
+     * social links from one creator ended up on another's profile.
+     */
+    public function lookupCreator(string $name, ?string $country = null, ?string $category = null): ?array
+    {
+        $hint = implode(', ', array_filter([
+            $country ? "based in {$country}" : null,
+            $category ? "creates {$category} content" : null,
+        ]));
+
+        $results = $this->searchCreatorByName($name, 3, $hint);
+
+        foreach ($results as $result) {
+            if (is_array($result) && self::isSameCreator($result, $name)) {
+                return $result;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * True when an AI result refers to the creator named $name: either the
+     * returned name matches (ignoring case, accents and punctuation), or one
+     * of the returned social handles is the name itself (for creators listed
+     * under their handle, e.g. "Purplespeedy").
+     */
+    public static function isSameCreator(array $result, string $name): bool
+    {
+        $norm = fn ($s) => preg_replace('/[^a-z0-9]/', '', Str::lower(Str::ascii((string) $s)));
+        $target = $norm($name);
+
+        if ($target === '') {
+            return false;
+        }
+
+        if (is_string($result['name'] ?? null) && $norm($result['name']) === $target) {
+            return true;
+        }
+
+        foreach (['instagram_handle', 'tiktok_handle', 'twitter_handle'] as $key) {
+            if (is_string($result[$key] ?? null) && $norm($result[$key]) === $target) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function discoverCreators(string $niche, string $country, int $count = 10): array
@@ -173,7 +229,7 @@ Return ONLY the JSON array, nothing else.
 PROMPT;
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(60)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => 'sonar',
@@ -205,7 +261,7 @@ PROMPT;
                     feature: self::FEATURE,
                     isSuccessful: false,
                     durationMs: $durationMs,
-                    errorMessage: 'HTTP ' . $response->status() . ': ' . mb_substr($response->body(), 0, 400),
+                    errorMessage: 'HTTP '.$response->status().': '.mb_substr($response->body(), 0, 400),
                 );
 
                 return [];

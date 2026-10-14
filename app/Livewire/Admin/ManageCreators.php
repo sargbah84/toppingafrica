@@ -1074,14 +1074,10 @@ class ManageCreators extends Component
             return;
         }
 
-        $results = $perplexity->discoverCreators($this->editCategory, $this->editCountry, 1);
-
-        $match = collect($results)->first(function ($r) {
-            return isset($r['name']) && Str::lower($r['name']) === Str::lower($this->editName);
-        }) ?? ($results[0] ?? null);
+        $match = $perplexity->lookupCreator($this->editName, $this->editCountry, $this->editCategory);
 
         if (! $match) {
-            session()->flash('error', "Could not re-pull data for {$this->editName}.");
+            session()->flash('error', "Could not confidently find {$this->editName} — nothing was changed.");
 
             return;
         }
@@ -1185,21 +1181,17 @@ class ManageCreators extends Component
     ): void {
         $creator = Creator::findOrFail($id);
 
-        // Ask Perplexity for fresh data on this specific creator (count=1, niche=their category)
-        $results = $perplexity->discoverCreators($creator->category, $creator->country, 1);
-
-        // Try to find a match by name in case Perplexity returns multiple
-        $match = collect($results)->first(function ($r) use ($creator) {
-            return isset($r['name']) && Str::lower($r['name']) === Str::lower($creator->name);
-        }) ?? ($results[0] ?? null);
+        // Look up this exact creator by name. No confident match → change
+        // nothing (never fall back to another creator in the same niche).
+        $match = $perplexity->lookupCreator($creator->name, $creator->country, $creator->category);
 
         if (! $match) {
-            session()->flash('error', "Could not re-pull data for {$creator->name}.");
+            session()->flash('error', "Could not confidently find {$creator->name} — nothing was changed.");
 
             return;
         }
 
-        // Override the name to keep the existing one (avoid mismatched re-pulls)
+        // Keep the stored display name (the match may be keyed by handle).
         $match['name'] = $creator->name;
 
         $bio = $claude->generateBio($match);
