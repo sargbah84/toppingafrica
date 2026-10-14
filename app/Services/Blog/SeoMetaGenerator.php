@@ -70,7 +70,7 @@ final class SeoMetaGenerator
         $response = Http::withHeaders([
             'Authorization' => 'Bearer '.$apiKey,
             'Content-Type' => 'application/json',
-        ])->withoutVerifying()->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
+        ])->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
             'model' => $model,
             'messages' => [
                 [
