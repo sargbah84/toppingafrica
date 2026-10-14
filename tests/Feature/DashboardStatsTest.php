@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Livewire\Admin\Dashboard\StatsOverview;
+use App\Models\Creator;
 use App\Models\Post;
 use App\Models\View;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,6 +69,41 @@ class DashboardStatsTest extends TestCase
         $referrers = $component->topReferrers()->map(fn ($r) => [$r->domain, $r->count])->all();
 
         $this->assertSame([['www.google.com', 2], ['t.co', 1]], $referrers);
+    }
+
+    public function test_top_creators_follow_the_selected_period(): void
+    {
+        $creator = fn (string $name) => Creator::create([
+            'name' => $name,
+            'bio' => 'Bio.',
+            'country' => 'Nigeria',
+            'category' => 'Music',
+            'status' => 'published',
+        ]);
+        $recent = $creator('Recent');
+        $older = $creator('Older');
+
+        $creatorView = fn (Creator $creator, string $at) => View::create([
+            'viewable_type' => Creator::class,
+            'viewable_id' => $creator->id,
+            'ip_hash' => 'x',
+            'device_type' => 'desktop',
+            'viewed_at' => $at,
+        ]);
+
+        $creatorView($recent, '2026-10-14 08:00:00');
+        foreach (['2026-10-02', '2026-10-03', '2026-10-04'] as $day) {
+            $creatorView($older, "{$day} 08:00:00");
+        }
+
+        $component = new StatsOverview;
+        $top = fn () => $component->topCreators()->map(fn ($c) => [$c->name, $c->views_count])->all();
+
+        $component->setTimePeriod('today');
+        $this->assertSame([['Recent', 1]], $top());
+
+        $component->setTimePeriod('month');
+        $this->assertSame([['Older', 3], ['Recent', 1]], $top());
     }
 
     public function test_device_breakdown_uses_period_totals(): void

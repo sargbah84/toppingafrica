@@ -341,9 +341,22 @@ class StatsOverview extends Component
     #[Computed]
     public function topCreators(): Collection
     {
+        $start = $this->periodStart();
+        $end = $this->periodEnd();
+
+        $inPeriod = function ($q) use ($start, $end) {
+            if ($start) {
+                $q->where('viewed_at', '>=', $start);
+            }
+            if ($end) {
+                $q->where('viewed_at', '<=', $end);
+            }
+        };
+
         return Creator::query()
             ->where('status', 'published')
-            ->withCount('views')
+            ->whereHas('views', $inPeriod)
+            ->withCount(['views' => $inPeriod])
             ->orderByDesc('views_count')
             ->limit(5)
             ->get(['id', 'name', 'slug', 'category', 'country', 'follower_count']);
